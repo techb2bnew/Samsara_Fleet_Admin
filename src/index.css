@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+/* ===========================================================================
+   Design tokens
+   ===========================================================================
+   A console dispatchers stare at for eight hours. Priorities, in order:
+   legible dense data, state readable at a glance, nothing decorative that
+   competes with the information.
+
+   Neutrals carry a slight blue bias so they sit with the accent rather than
+   looking like unconsidered grey. Semantic colours are separate from the
+   accent - "danger" must never be mistaken for "primary action".
+=========================================================================== */
+
+@theme {
+  /* -- type ------------------------------------------------------------- */
+  /* System stack: native on Mac and Windows, no webfont download. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas,
+    monospace;
+
+  /* -- neutrals --------------------------------------------------------- */
+  --color-ground:     #F5F6F8;
+  --color-surface:    #FFFFFF;
+  --color-surface-2:  #EFF1F4;
+  --color-line:       #DFE3E8;
+  --color-line-strong:#C4CAD3;
+
+  --color-ink:        #0F1419;
+  --color-ink-2:      #414B57;
+  --color-ink-3:      #6B7482;
+  --color-ink-4:      #98A1AD;
+
+  /* -- brand ------------------------------------------------------------ */
+  /* Ground for the signed-out screens. It follows the theme rather than being
+     pinned dark, so the sign-in page matches the console the user is about to
+     enter. `brand-ink` is the text that sits on it, and `accent-on-brand` is a
+     link colour picked to stay readable against that ground in each theme. */
+  --color-brand:      #E4EBF4;
+  --color-brand-ink:  #12161C;
+  --color-accent-on-brand: #1A5FB4;
+  /* The sign-in card floats above the brand ground and needs to read as
+     lifted, which takes a different value in each theme: white on a tinted
+     light ground, and a raised dark surface with a brighter edge on a dark
+     one. */
+  --color-auth-card:      #FFFFFF;
+  --color-auth-card-edge: #D3DAE4;
+
+  /* -- accent ----------------------------------------------------------- */
+  --color-accent:      #1D6FD0;
+  --color-accent-hover:#1A5FB4;
+  /* Text sitting ON a solid accent or danger fill. White works here because
+     the light-theme accent is dark. In dark mode the accent lightens, so this
+     flips to a dark ink — see the dark blocks below. White text on the dark
+     mode accent would fall to roughly 2.4:1, well under the readable floor. */
+  --color-on-accent:   #FFFFFF;
+  --color-on-danger:   #FFFFFF;
+  --color-accent-soft: #E8F1FC;
+  --color-accent-line: #B6D3F2;
+
+  /* -- semantic --------------------------------------------------------- */
+  --color-ok:        #16794C;
+  --color-ok-soft:   #E1F2EA;
+  --color-ok-line:   #A9D8C1;
+
+  --color-warn:      #9A5B00;
+  --color-warn-soft: #FBEFDC;
+  --color-warn-line: #EACFA0;
+
+  --color-danger:      #B3261E;
+  --color-danger-hover:#96201A;
+  --color-danger-soft: #FBE7E5;
+  --color-danger-line: #EFB9B4;
+
+  --color-neutral-soft: #EEF0F3;
+  --color-neutral-line: #D3D8DF;
+
+  /* -- radii ------------------------------------------------------------ */
+  --radius-control: 6px;
+  --radius-panel:   8px;
+}
+
+/* --- dark theme -----------------------------------------------------------
+   Tokens only. No component ever declares a colour inside a media query, so
+   both themes stay in step automatically.
+-------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-ground:      #0E1116;
+    --color-surface:     #161A21;
+    --color-surface-2:   #1E232B;
+    --color-line:        #2A3039;
+    --color-line-strong: #3A424D;
+
+    --color-ink:         #E8EBEF;
+    --color-ink-2:       #B0B8C2;
+    --color-ink-3:       #828B97;
+    --color-ink-4:       #626B77;
+
+    --color-accent:      #549BEC;
+    --color-accent-hover:#6FAEF3;
+    --color-on-accent:   #08111C;
+    --color-on-danger:   #2A0B08;
+    --color-accent-soft: #14243A;
+    --color-accent-line: #26456B;
+
+    --color-ok:          #4FBE8B;
+    --color-ok-soft:     #12271D;
+    --color-ok-line:     #235C43;
+
+    --color-warn:        #DFA659;
+    --color-warn-soft:   #2A2113;
+    --color-warn-line:   #5C482A;
+
+    --color-danger:      #EF7A70;
+    --color-danger-hover:#F49189;
+    --color-danger-soft: #2C1715;
+    --color-danger-line: #5E2E2A;
+
+    --color-neutral-soft:#1E232B;
+    --color-neutral-line:#333B45;
+
+    --color-brand:      #10151C;
+    --color-brand-ink:  #FFFFFF;
+    --color-accent-on-brand: #7FB6E8;
+
+    --color-auth-card:      #1B2029;
+    --color-auth-card-edge: #363F4C;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-ground:      #0E1116;
+  --color-surface:     #161A21;
+  --color-surface-2:   #1E232B;
+  --color-line:        #2A3039;
+  --color-line-strong: #3A424D;
+
+  --color-ink:         #E8EBEF;
+  --color-ink-2:       #B0B8C2;
+  --color-ink-3:       #828B97;
+  --color-ink-4:       #626B77;
+
+  --color-accent:      #549BEC;
+  --color-accent-hover:#6FAEF3;
+  --color-accent-soft: #14243A;
+  --color-accent-line: #26456B;
+  --color-on-accent:   #08111C;
+  --color-on-danger:   #2A0B08;
+
+  --color-ok:          #4FBE8B;
+  --color-ok-soft:     #12271D;
+  --color-ok-line:     #235C43;
+
+  --color-warn:        #DFA659;
+  --color-warn-soft:   #2A2113;
+  --color-warn-line:   #5C482A;
+
+  --color-danger:      #EF7A70;
+  --color-danger-hover:#F49189;
+  --color-danger-soft: #2C1715;
+  --color-danger-line: #5E2E2A;
+
+  --color-neutral-soft:#1E232B;
+  --color-neutral-line:#333B45;
+
+  --color-brand:      #10151C;
+  --color-brand-ink:  #FFFFFF;
+  --color-accent-on-brand: #7FB6E8;
+
+  --color-auth-card:      #1B2029;
+  --color-auth-card-edge: #363F4C;
+}
+
+/* ===========================================================================
+   Base
+=========================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* Windows scrollbars overlay content; reserving the gutter stops layouts
+     jumping when a list grows past the viewport. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  /* Smoothing helps on macOS and washes text out on Windows, so it is applied
+     only where it belongs. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Digits line up in every table in this console. */
+  font-variant-numeric: tabular-nums;
+}
+
+html, body, #root { height: 100%; }
+
+/* Dispatchers work this console by keyboard. Focus must always be visible. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Match scrollbars to the palette on both platforms. */
+@supports selector(::-webkit-scrollbar) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+}
+* { scrollbar-width: thin; scrollbar-color: var(--color-line-strong) transparent; }
+
+/* ===========================================================================
+   Entrance animation for the signed-out screens
+   ===========================================================================
+   A sign-in page that snaps into existence feels cheap; one that arrives in
+   sequence feels considered. The order follows how the page is read — brand,
+   then the promise, then the form — and the whole thing is over in under a
+   second, because this is a screen people pass through, not one they admire.
+
+   `backwards` fill matters: without it an element with a delay is visible at
+   full opacity until its animation starts, which produces a flash of the very
+   thing the delay was meant to hold back.
+=========================================================================== */
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Roads draw themselves along their own length. */
+@keyframes draw-road {
+  from { stroke-dashoffset: 2400; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.animate-rise {
+  animation: rise-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.animate-fade {
+  animation: fade-in 0.9s ease-out backwards;
+}
+
+.animate-road {
+  stroke-dasharray: 2400;
+  animation: draw-road 2.4s cubic-bezier(0.33, 1, 0.68, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
