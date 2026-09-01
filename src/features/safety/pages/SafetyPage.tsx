@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
@@ -11,13 +12,15 @@ import {
 } from '../../../mocks/admin'
 import { useFleetData } from '../../fleet-data'
 import { ConfirmDialog, useToast } from '../../../components/ui'
+import { hrefForDriverName } from '../../../lib/entityLinks'
 
 const t = STRINGS.safety
 type Tab = keyof typeof t.tabs
 
 /** Module A11. */
 export function SafetyPage() {
-  const { safetyEvents, setSafetyEventStatus } = useFleetData()
+  const { safetyEvents, setSafetyEventStatus, drivers } = useFleetData()
+  const navigate = useNavigate()
   const { show } = useToast()
   const [tab, setTab] = useState<Tab>('all')
   const [pending, setPending] = useState<{
@@ -37,7 +40,7 @@ export function SafetyPage() {
       width: '190px',
       render: (e) => (
         <div className="flex items-center gap-2.5">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[10.5px] font-semibold text-ink-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10.5px] font-semibold text-accent">
             {e.initials}
           </span>
           <span className="truncate font-medium whitespace-nowrap text-ink">{e.driver}</span>
@@ -63,22 +66,31 @@ export function SafetyPage() {
       header: t.columns.status,
       align: 'right',
       width: '230px',
-      render: (e) =>
-        e.status === 'new' ? (
+      render: (event) =>
+        event.status === 'new' ? (
           <div className="flex justify-end gap-1.5">
-            <Button size="sm" onClick={() => setPending({ event: e, action: 'coachable' })}>
+            <Button
+              size="sm"
+              onClick={(click) => {
+                click.stopPropagation()
+                setPending({ event, action: 'coachable' })
+              }}
+            >
               {t.assignCoaching}
             </Button>
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setPending({ event: e, action: 'dismissed' })}
+              onClick={(click) => {
+                click.stopPropagation()
+                setPending({ event, action: 'dismissed' })
+              }}
             >
               {t.dismiss}
             </Button>
           </div>
         ) : (
-          <span className="text-[12.5px] text-ink-3">{SAFETY_STATUS_LABEL[e.status]}</span>
+          <span className="text-[12.5px] text-ink-3">{SAFETY_STATUS_LABEL[event.status]}</span>
         ),
     },
   ]
@@ -103,7 +115,8 @@ export function SafetyPage() {
               }))}
             />
           </Toolbar>
-          <DataTable columns={columns} rows={rows} getRowKey={(e) => e.id} empty={
+          <DataTable columns={columns} rows={rows} getRowKey={(e) => e.id}
+          onRowClick={(e) => navigate(`/safety/${e.id}`)} empty={
             <EmptyState
               title={STRINGS.empty.noMatchTitle}
               hint={STRINGS.empty.noMatchHint}
@@ -116,9 +129,13 @@ export function SafetyPage() {
         <Panel title={t.scoreboardTitle} hint={t.scoreboardHint}>
           <ul className="divide-y divide-line">
             {MOCK_SCOREBOARD.map((row) => (
-              <li key={row.rank} className="flex items-center gap-3 px-5 py-2.5">
+              <li key={row.rank}>
+                <Link
+                  to={hrefForDriverName(drivers, row.driver)}
+                  className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-surface-2"
+                >
                 <span className="w-4 font-mono text-[12px] text-ink-4">{row.rank}</span>
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[10.5px] font-semibold text-ink-2">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10.5px] font-semibold text-accent">
                   {row.initials}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
@@ -133,6 +150,7 @@ export function SafetyPage() {
                 >
                   {row.change > 0 ? `+${row.change}` : row.change === 0 ? '—' : row.change}
                 </span>
+                </Link>
               </li>
             ))}
           </ul>

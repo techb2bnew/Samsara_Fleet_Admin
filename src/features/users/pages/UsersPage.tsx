@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
@@ -13,6 +14,7 @@ type Tab = keyof typeof t.tabs
 /** Module A01. */
 export function UsersPage() {
   const { staff } = useFleetData()
+  const navigate = useNavigate()
   const [inviting, setInviting] = useOpenOnQuery()
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
@@ -32,7 +34,7 @@ export function UsersPage() {
       header: t.columns.user,
       render: (u) => (
         <div className="flex items-center gap-2.5">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[10.5px] font-semibold text-ink-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10.5px] font-semibold text-accent">
             {u.initials}
           </span>
           <div className="min-w-0">
@@ -85,7 +87,8 @@ export function UsersPage() {
               }))}
             />
           </Toolbar>
-          <DataTable columns={columns} rows={rows} getRowKey={(u) => u.id} empty={
+          <DataTable columns={columns} rows={rows} getRowKey={(u) => u.id}
+          onRowClick={(u) => navigate(`/users/${u.id}`)} empty={
             <EmptyState
               title={
                 staff.length === 0
@@ -108,7 +111,7 @@ export function UsersPage() {
         <Panel title={t.rolesTitle} hint={t.rolesHint}>
           <ul className="divide-y divide-line">
             {ROLE_SUMMARY.map((role) => (
-              <li key={role.key} className="px-5 py-3">
+              <li key={role.key} className="px-5 py-3.5">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-[13.5px] font-medium text-ink">{role.name}</p>
                   <span className="shrink-0 text-[12px] text-ink-4">

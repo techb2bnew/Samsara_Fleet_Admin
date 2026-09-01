@@ -114,8 +114,12 @@ export async function mockSetPassword(_password: string): Promise<{ ok: true }> 
 export async function mockAcceptInvite(
   email: string,
   fullName: string,
+  password: string,
 ): Promise<AuthResult> {
   await wait(FAKE_LATENCY_MS)
+  if (password.length < MIN_LOGIN_PASSWORD_LENGTH) {
+    return { ok: false, error: STRINGS.auth.login.errors.passwordTooShort(MIN_LOGIN_PASSWORD_LENGTH) }
+  }
   const session = buildSession(email)
   return {
     ok: true,

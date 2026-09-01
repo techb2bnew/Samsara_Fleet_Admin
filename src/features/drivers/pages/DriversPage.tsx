@@ -38,7 +38,7 @@ export function DriversPage() {
       header: t.columns.driver,
       render: (d) => (
         <div className="flex items-center gap-2.5">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[10.5px] font-semibold text-ink-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10.5px] font-semibold text-accent">
             {d.initials}
           </span>
           <div className="min-w-0">

@@ -1,8 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { STRINGS, TONE_SOLID } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
-import { Badge } from '../../../components/ui'
+import { Badge, Button } from '../../../components/ui'
 import { FleetMap, HAS_MAPS_KEY, MissingKeyNotice } from '../components/FleetMap'
 import {
   MAP_STATUS_LABEL,
@@ -10,6 +11,8 @@ import {
   MOCK_MAP_VEHICLES,
   type MapVehicle,
 } from '../../../mocks/admin'
+import { useFleetData } from '../../fleet-data'
+import { hrefForDriverName, hrefForVehicleName } from '../../../lib/entityLinks'
 
 const t = STRINGS.map
 
@@ -22,31 +25,61 @@ const t = STRINGS.map
  * fully reviewable before anyone buys a map key.
  */
 export function LiveMapPage() {
+  const [params, setParams] = useSearchParams()
   const [selected, setSelected] = useState<MapVehicle>(MOCK_MAP_VEHICLES[0])
+  const { vehicles, drivers } = useFleetData()
+
+  useEffect(() => {
+    const name = params.get('vehicle')
+    if (!name) return
+    const match = MOCK_MAP_VEHICLES.find((vehicle) => vehicle.name === name)
+    if (match) setSelected(match)
+    const next = new URLSearchParams(params)
+    next.delete('vehicle')
+    setParams(next, { replace: true })
+  }, [params, setParams])
 
   return (
     <PageShell
       eyebrow="Module A03"
       title={t.title}
       description={t.description}
-      actions={<Badge tone="neutral">{t.vehiclesOnMap(MOCK_MAP_VEHICLES.length)}</Badge>}
+      actions={
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-ok-line bg-ok-soft px-2.5 py-1 text-[12px] font-medium text-ok">
+            <span className="size-1.5 rounded-full bg-ok" aria-hidden="true" />
+            {STRINGS.dashboard.liveNow}
+          </span>
+          <Badge tone="neutral">{t.vehiclesOnMap(MOCK_MAP_VEHICLES.length)}</Badge>
+        </div>
+      }
     >
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <Panel>
-          <div className="relative h-[520px] overflow-hidden bg-surface-2">
+          <div className="relative h-[min(420px,calc(100dvh-14rem))] overflow-hidden bg-[color-mix(in_srgb,var(--color-accent)_5%,var(--color-surface-2))] sm:h-[520px]">
             {HAS_MAPS_KEY ? (
               <FleetMap vehicles={MOCK_MAP_VEHICLES} selected={selected} onSelect={setSelected} />
             ) : (
-              <>
-                <SchematicMap selected={selected} onSelect={setSelected} />
-                <MissingKeyNotice />
-              </>
+              <SchematicMap selected={selected} onSelect={setSelected} />
             )}
           </div>
+          {/* Outside the map box, so it never covers a marker. */}
+          {!HAS_MAPS_KEY && <MissingKeyNotice />}
         </Panel>
 
         <div className="flex flex-col gap-5">
-          <Panel title={selected.name} hint={selected.driver ?? undefined}>
+          <Panel title={selected.name} hint={selected.driver ?? undefined} action={
+            <div className="flex items-center gap-1">
+              {selected.driver && (
+                <Link to={hrefForDriverName(drivers, selected.driver)}>
+                  <Button size="sm" variant="ghost">{t.openDriver}</Button>
+                </Link>
+              )}
+              <Link to={hrefForVehicleName(vehicles, selected.name)}>
+                <Button size="sm" variant="ghost">{t.openVehicle}</Button>
+              </Link>
+            </div>
+          }>
             <dl className="divide-y divide-line">
               <Row label={STRINGS.drivers.columns.status}>
                 <Badge tone={MAP_STATUS_TONE[selected.status]}>
@@ -189,7 +222,7 @@ function SchematicMap({
         </button>
       ))}
 
-      <p className="absolute top-3 right-3 rounded-[6px] bg-surface/90 px-2.5 py-1 text-[11.5px] text-ink-3">
+      <p className="absolute top-3 right-3 rounded-full border border-line bg-surface/90 px-2.5 py-1 text-[11.5px] text-ink-3 shadow-[0_1px_2px_rgba(15,23,42,0.06)]">
         {t.schematicNote}
       </p>
     </>

@@ -101,7 +101,7 @@ export function Modal({
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-8">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-0 sm:items-start sm:p-8">
       <div
         className="fixed inset-0 bg-brand/55 backdrop-blur-[2px]"
         onClick={onClose}
@@ -115,13 +115,13 @@ export function Modal({
         aria-label={title}
         tabIndex={-1}
         className={cn(
-          'relative my-auto w-full rounded-[12px] border border-line bg-surface shadow-2xl shadow-black/25 outline-none',
-          size === 'sm' && 'max-w-md',
-          size === 'md' && 'max-w-xl',
-          size === 'lg' && 'max-w-3xl',
+          'relative flex w-full max-h-[min(92dvh,100%)] flex-col overflow-hidden rounded-t-[16px] border border-line bg-surface shadow-2xl shadow-black/25 outline-none sm:my-auto sm:max-h-[calc(100dvh-4rem)] sm:rounded-[12px]',
+          size === 'sm' && 'sm:max-w-md',
+          size === 'md' && 'sm:max-w-xl',
+          size === 'lg' && 'sm:max-w-3xl',
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
             {description && (
@@ -139,10 +139,10 @@ export function Modal({
           </button>
         </div>
 
-        <div className="px-6 py-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">{children}</div>
 
         {footer && (
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-6 py-4">
+          <div className="flex shrink-0 flex-col gap-2 border-t border-line px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:px-6 [&_button]:w-full sm:[&_button]:w-auto">
             {footer}
           </div>
         )}

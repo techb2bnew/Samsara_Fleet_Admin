@@ -81,7 +81,7 @@ export function DataTable<T>({
                   scope="col"
                   style={col.width ? { width: col.width } : undefined}
                   className={cn(
-                    'border-b border-line bg-surface-2 px-4 py-2.5 text-[11px] font-semibold tracking-[0.07em] text-ink-3 uppercase whitespace-nowrap',
+                    'border-b border-line bg-surface-2/80 px-4 py-3 text-[11px] font-semibold tracking-[0.07em] text-ink-3 uppercase whitespace-nowrap',
                     col.align === 'right' ? 'text-right' : 'text-left',
                     col.secondary && 'hidden lg:table-cell',
                   )}
@@ -105,7 +105,7 @@ export function DataTable<T>({
                   <td
                     key={col.key}
                     className={cn(
-                      'px-4 py-2.5 align-middle text-ink-2',
+                      'px-4 py-3 align-middle text-ink-2',
                       col.align === 'right' && 'text-right',
                       col.secondary && 'hidden lg:table-cell',
                     )}

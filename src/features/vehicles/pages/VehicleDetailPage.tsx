@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { DetailList, DetailRow, DetailShell } from '../../../components/layout/DetailShell'
 import { Panel } from '../../../components/layout/PageShell'
@@ -12,12 +12,13 @@ import {
   WORK_ORDER_TONE,
 } from '../../../mocks/vehicles'
 import { MOCK_INSPECTIONS } from '../../../mocks/compliance'
+import { hrefForDriverName } from '../../../lib/entityLinks'
 
 const t = STRINGS.vehicles
 
 export function VehicleDetailPage() {
   const { vehicleId } = useParams()
-  const { vehicles } = useFleetData()
+  const { vehicles, drivers } = useFleetData()
 
   const vehicle = vehicles.find((v) => v.id === vehicleId)
 
@@ -62,7 +63,13 @@ export function VehicleDetailPage() {
         <Panel title={t.detail.condition}>
           <DetailList>
             <DetailRow label={t.detail.driver}>
-              {vehicle.driver ?? <span className="text-ink-4">{t.unassigned}</span>}
+              {vehicle.driver ? (
+                <Link to={hrefForDriverName(drivers, vehicle.driver)} className="text-accent hover:underline">
+                  {vehicle.driver}
+                </Link>
+              ) : (
+                <span className="text-ink-4">{t.unassigned}</span>
+              )}
             </DetailRow>
             <DetailRow label={t.detail.odometer}>
               <span className="font-mono">{vehicle.odometerKm.toLocaleString()} km</span>
@@ -85,14 +92,19 @@ export function VehicleDetailPage() {
           ) : (
             <ul className="divide-y divide-line">
               {workOrders.map((w) => (
-                <li key={w.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] font-medium text-ink">{w.title}</p>
-                    <p className="font-mono text-[12px] text-ink-3">
-                      {w.reference} · {w.opened}
-                    </p>
-                  </div>
-                  <Badge tone={WORK_ORDER_TONE[w.status]}>{WORK_ORDER_LABEL[w.status]}</Badge>
+                <li key={w.id}>
+                  <Link
+                    to={`/work-orders/${w.id}`}
+                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13.5px] font-medium text-ink">{w.title}</p>
+                      <p className="font-mono text-[12px] text-ink-3">
+                        {w.reference} · {w.opened}
+                      </p>
+                    </div>
+                    <Badge tone={WORK_ORDER_TONE[w.status]}>{WORK_ORDER_LABEL[w.status]}</Badge>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -105,16 +117,21 @@ export function VehicleDetailPage() {
           ) : (
             <ul className="divide-y divide-line">
               {inspections.map((i) => (
-                <li key={i.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] font-medium text-ink">
-                      {i.type} · {i.driver}
-                    </p>
-                    <p className="text-[12.5px] text-ink-3">{i.submitted}</p>
-                  </div>
-                  <Badge tone={i.defects > 0 ? 'danger' : 'success'}>
-                    {i.defects > 0 ? `${i.defects} defects` : 'Clear'}
-                  </Badge>
+                <li key={i.id}>
+                  <Link
+                    to={`/inspections/${i.id}`}
+                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13.5px] font-medium text-ink">
+                        {i.type} · {i.driver}
+                      </p>
+                      <p className="text-[12.5px] text-ink-3">{i.submitted}</p>
+                    </div>
+                    <Badge tone={i.defects > 0 ? 'danger' : 'success'}>
+                      {i.defects > 0 ? `${i.defects} defects` : 'Clear'}
+                    </Badge>
+                  </Link>
                 </li>
               ))}
             </ul>

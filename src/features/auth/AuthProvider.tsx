@@ -34,9 +34,10 @@ type AuthState =
 
 type AuthContextValue = AuthState & {
   signIn: (email: string, password: string, remember: boolean) => Promise<AuthResult>
-  acceptInvite: (email: string, fullName: string) => Promise<AuthResult>
+  acceptInvite: (email: string, fullName: string, password: string) => Promise<AuthResult>
   requestPasswordReset: (email: string) => Promise<{ ok: true }>
   setPassword: (password: string) => Promise<{ ok: true }>
+  updateOrganization: (name: string) => void
   signOut: () => void
 }
 
@@ -108,8 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const acceptInvite = useCallback(
-    async (email: string, fullName: string): Promise<AuthResult> => {
-      const result = await mockAcceptInvite(email, fullName)
+    async (email: string, fullName: string, password: string): Promise<AuthResult> => {
+      const result = await mockAcceptInvite(email, fullName, password)
       if (result.ok) {
         writeStoredSession(result.session, true)
         setState({ status: 'signedIn', session: result.session })
@@ -124,6 +125,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: 'signedOut', session: null })
   }, [])
 
+  const updateOrganization = useCallback((name: string) => {
+    setState((current) => {
+      if (current.status !== 'signedIn') return current
+      const session = {
+        ...current.session,
+        organization: { ...current.session.organization, name },
+      }
+      writeStoredSession(session, true)
+      return { status: 'signedIn', session }
+    })
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       ...state,
@@ -131,9 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       acceptInvite,
       requestPasswordReset: mockRequestPasswordReset,
       setPassword: mockSetPassword,
+      updateOrganization,
       signOut,
     }),
-    [state, signIn, acceptInvite, signOut],
+    [state, signIn, acceptInvite, updateOrganization, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

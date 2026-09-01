@@ -39,7 +39,7 @@ export function AcceptInvitePage() {
     if (Object.keys(next).length > 0) return
 
     setLoading(true)
-    await acceptInvite(email, fullName.trim())
+    await acceptInvite(email, fullName.trim(), password)
     setLoading(false)
     // RedirectIfSignedIn routes to the console once the session exists.
   }

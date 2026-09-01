@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Badge, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
@@ -14,6 +15,7 @@ type Tab = keyof typeof t.tabs
 
 /** Module A07. */
 export function InspectionsPage() {
+  const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
 
@@ -80,7 +82,8 @@ export function InspectionsPage() {
             }))}
           />
         </Toolbar>
-        <DataTable columns={columns} rows={rows} getRowKey={(i) => i.id} empty={
+        <DataTable columns={columns} rows={rows} getRowKey={(i) => i.id}
+          onRowClick={(i) => navigate(`/inspections/${i.id}`)} empty={
             <EmptyState
               title={
                 MOCK_INSPECTIONS.length === 0

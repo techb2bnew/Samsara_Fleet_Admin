@@ -68,6 +68,36 @@ export const MOCK_ROUTE_STOPS: Record<string, RouteStop[]> = {
   ],
 }
 
+const STOP_TEMPLATES = [
+  { name: 'Shreeji Traders', address: 'MIDC Bhosari, Pune' },
+  { name: 'Kalyani Steel', address: 'Chakan, Pune' },
+  { name: 'Deccan Warehousing', address: 'Talegaon, Pune' },
+  { name: 'Sai Logistics Hub', address: 'Hinjawadi, Pune' },
+  { name: 'Ratna Distributors', address: 'Baner, Pune' },
+  { name: 'Ganesh Enterprises', address: 'Kothrud, Pune' },
+  { name: 'Mahalaxmi Stores', address: 'Karve Nagar, Pune' },
+  { name: 'Northline Pune depot', address: 'Hadapsar, Pune' },
+]
+
+/** Planned stops for a route that does not yet have a recorded itinerary. */
+export function stopsForNewRoute(routeId: string, count: number): RouteStop[] {
+  const n = Math.max(1, count)
+  return Array.from({ length: n }, (_, i) => {
+    const template = STOP_TEMPLATES[i % STOP_TEMPLATES.length]
+    const hour = 8 + i
+    const start = `${String(Math.min(hour, 20)).padStart(2, '0')}:00`
+    const end = `${String(Math.min(hour + 1, 21)).padStart(2, '0')}:00`
+    return {
+      id: `${routeId}-st-${i + 1}`,
+      sequence: i + 1,
+      name: template.name,
+      address: template.address,
+      window: `${start} – ${end}`,
+      arrivedAt: null,
+    }
+  })
+}
+
 /* ------------------------------------------------------------------- forms */
 
 export type FormDef = {
@@ -82,16 +112,64 @@ export type FormDef = {
 }
 
 export const MOCK_FORMS: FormDef[] = [
-  { id: 'f1', name: 'Daily pre-trip inspection', fields: 24, version: 4, status: 'published', assignedTo: 'All drivers', submissions: 1_284, updated: '12 Aug' },
+  { id: 'f1', name: 'Daily pre-trip inspection', fields: 8, version: 4, status: 'published', assignedTo: 'All drivers', submissions: 1_284, updated: '12 Aug' },
   { id: 'f2', name: 'Delivery proof', fields: 6, version: 2, status: 'published', assignedTo: 'All drivers', submissions: 3_902, updated: '02 Aug' },
   { id: 'f3', name: 'Fuel receipt', fields: 5, version: 1, status: 'published', assignedTo: 'Pune depot', submissions: 611, updated: '19 Jul' },
-  { id: 'f4', name: 'Incident report', fields: 15, version: 3, status: 'draft', assignedTo: 'Not assigned', submissions: 0, updated: 'Yesterday' },
+  { id: 'f4', name: 'Incident report', fields: 5, version: 3, status: 'draft', assignedTo: 'Not assigned', submissions: 0, updated: 'Yesterday' },
 ]
 
 export const FIELD_TYPES = [
   'Text', 'Number', 'Dropdown', 'Multi-select', 'Checkbox',
   'Date & time', 'Photo', 'Signature', 'Barcode', 'Location',
 ]
+
+export type FormField = {
+  id: string
+  label: string
+  type: string
+  required: boolean
+}
+
+export const DEFAULT_NEW_FORM_FIELDS: Array<Omit<FormField, 'id'>> = [
+  { label: 'Notes', type: 'Text', required: false },
+  { label: 'Photo', type: 'Photo', required: false },
+  { label: 'Signature', type: 'Signature', required: true },
+]
+
+export const MOCK_FORM_FIELDS: Record<string, FormField[]> = {
+  f1: [
+    { id: 'ff1', label: 'Odometer reading', type: 'Number', required: true },
+    { id: 'ff2', label: 'Walk-around complete', type: 'Checkbox', required: true },
+    { id: 'ff3', label: 'Brake check', type: 'Dropdown', required: true },
+    { id: 'ff4', label: 'Tyre condition', type: 'Dropdown', required: true },
+    { id: 'ff5', label: 'Lights and indicators', type: 'Dropdown', required: true },
+    { id: 'ff6', label: 'Defect photos', type: 'Photo', required: false },
+    { id: 'ff7', label: 'Driver signature', type: 'Signature', required: true },
+    { id: 'ff8', label: 'Location at submit', type: 'Location', required: true },
+  ],
+  f2: [
+    { id: 'ff9', label: 'Receiver name', type: 'Text', required: true },
+    { id: 'ff10', label: 'Pieces delivered', type: 'Number', required: true },
+    { id: 'ff11', label: 'Proof photo', type: 'Photo', required: true },
+    { id: 'ff12', label: 'Receiver signature', type: 'Signature', required: true },
+    { id: 'ff13', label: 'Notes', type: 'Text', required: false },
+    { id: 'ff14', label: 'Stop location', type: 'Location', required: true },
+  ],
+  f3: [
+    { id: 'ff15', label: 'Pump reading', type: 'Number', required: true },
+    { id: 'ff16', label: 'Litres', type: 'Number', required: true },
+    { id: 'ff17', label: 'Receipt photo', type: 'Photo', required: true },
+    { id: 'ff18', label: 'Station', type: 'Text', required: true },
+    { id: 'ff19', label: 'Paid by', type: 'Dropdown', required: true },
+  ],
+  f4: [
+    { id: 'ff20', label: 'What happened', type: 'Text', required: true },
+    { id: 'ff21', label: 'When', type: 'Date & time', required: true },
+    { id: 'ff22', label: 'Severity', type: 'Dropdown', required: true },
+    { id: 'ff23', label: 'Photos', type: 'Photo', required: false },
+    { id: 'ff24', label: 'Witnesses', type: 'Text', required: false },
+  ],
+}
 
 /* ---------------------------------------------------------------- messages */
 

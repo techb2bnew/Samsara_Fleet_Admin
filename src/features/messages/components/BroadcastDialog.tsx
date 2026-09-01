@@ -13,7 +13,15 @@ const AUDIENCES = (Object.keys(t.broadcastAudience) as Audience[]).map((key) => 
   label: t.broadcastAudience[key],
 }))
 
-export function BroadcastDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function BroadcastDialog({
+  open,
+  onClose,
+  onSend,
+}: {
+  open: boolean
+  onClose: () => void
+  onSend: (body: string, recipients: string[]) => void
+}) {
   const { drivers } = useFleetData()
   const { show } = useToast()
 
@@ -44,6 +52,7 @@ export function BroadcastDialog({ open, onClose }: { open: boolean; onClose: () 
       setError(t.broadcastEmpty)
       return
     }
+    onSend(message.trim(), recipients.map((driver) => driver.name))
     show(t.broadcastToast(recipients.length))
     setMessage('')
     setError(undefined)

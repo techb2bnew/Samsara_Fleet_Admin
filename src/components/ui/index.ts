@@ -15,6 +15,21 @@ export {
   UserIcon,
   ArrowRightIcon,
   HelpIcon,
+  MenuIcon,
+  PlusIcon,
+  TruckIcon,
+  RouteIcon,
+  MessageIcon,
+  MapIcon,
+  GridIcon,
+  ClockIcon,
+  ClipboardIcon,
+  FileIcon,
+  ShieldIcon,
+  BookIcon,
+  ChartIcon,
+  UsersIcon,
+  FormIcon,
 } from './Icon'
 export { Modal } from './Modal'
 export { ConfirmDialog } from './ConfirmDialog'

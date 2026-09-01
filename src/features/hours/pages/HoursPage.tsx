@@ -1,19 +1,27 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { STRINGS, TONE_SOLID } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Button, ConfirmDialog, EmptyState, useToast } from '../../../components/ui'
 import {
-  LOG_DATES,
+  datesForPeriod,
+  formatLogColumn,
+  formatPeriodLabel,
+  isSameDay,
+  logStateOn,
   LOG_STATE_LABEL,
   LOG_STATE_TONE,
   MOCK_LOGS,
   MOCK_UNASSIGNED,
-  type EditRequest,
-  type Violation,
+  type HoursPeriod,
 } from '../../../mocks/compliance'
 import { useFleetData } from '../../fleet-data'
 import { csvFilename, downloadCsv } from '../../../lib/csv'
+import { hrefForDriverName } from '../../../lib/entityLinks'
+import { ReviewCorrectionDialog, ReviewViolationDialog } from '../components/HoursReviewDialogs'
+import { AssignDrivingDialog } from '../components/AssignDrivingDialog'
+import { LogPeriodControls } from '../components/LogPeriodControls'
 
 const t = STRINGS.hours
 
@@ -24,20 +32,34 @@ const t = STRINGS.hours
  * officer's real question — "is anything not certified?" — across the whole
  * fleet at a glance, rather than one driver at a time.
  *
- * Every action here changes a legal record, so each one confirms first and says
- * plainly what will happen. Approving a correction in particular does not edit
- * the driver's log: it sends the change to their phone for them to accept,
- * because a carrier may not alter a driver's record on their behalf.
+ * Review opens a detail popup, not a bare confirmation. Approving a correction
+ * does not edit the driver's log: it sends the change to their phone for them
+ * to accept, because a carrier may not alter a driver's record on their behalf.
  */
 export function HoursPage() {
-  const { violations, editRequests, reviewViolation, resolveEditRequest } = useFleetData()
+  const { violations, editRequests, resolveViolation, resolveEditRequest, drivers, vehicles } =
+    useFleetData()
   const { show } = useToast()
 
-  const [reviewing, setReviewing] = useState<Violation | null>(null)
-  const [deciding, setDeciding] = useState<{ request: EditRequest; decision: 'approve' | 'reject' } | null>(
+  const [reviewingViolation, setReviewingViolation] = useState<(typeof violations)[number] | null>(
+    null,
+  )
+  const [reviewingRequest, setReviewingRequest] = useState<(typeof editRequests)[number] | null>(
     null,
   )
   const [assigned, setAssigned] = useState<string[]>([])
+  const [assigning, setAssigning] = useState<(typeof MOCK_UNASSIGNED)[number] | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [period, setPeriod] = useState<HoursPeriod>('week')
+  const today = useMemo(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+  const [anchor, setAnchor] = useState(today)
+
+  const dates = useMemo(() => datesForPeriod(period, anchor), [period, anchor])
+  const periodLabel = formatPeriodLabel(period, dates)
 
   const openViolations = violations.filter((v) => v.status === 'open')
   const unassigned = MOCK_UNASSIGNED.filter((u) => !assigned.includes(u.id))
@@ -49,7 +71,11 @@ export function HoursPage() {
    */
   function exportAuditPack() {
     const rows = MOCK_LOGS.flatMap((log) =>
-      log.days.map((state, i) => [log.driver, LOG_DATES[i], LOG_STATE_LABEL[state]]),
+      dates.map((date) => [
+        log.driver,
+        date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }),
+        LOG_STATE_LABEL[logStateOn(log, date)],
+      ]),
     )
     const filename = csvFilename('working-hours-audit')
     downloadCsv(filename, ['Driver', 'Date', 'Status'], rows)
@@ -62,48 +88,80 @@ export function HoursPage() {
       title={t.title}
       description={t.description}
       actions={
-        <Button size="sm" variant="secondary" onClick={exportAuditPack}>
+        <Button size="sm" variant="secondary" onClick={() => setExporting(true)}>
           {t.exportPack}
         </Button>
       }
     >
       <div className="flex flex-col gap-5">
-        <Panel title={t.gridTitle} hint={t.gridHint}>
-          <div className="overflow-x-auto px-5 py-4">
-            <table className="w-full min-w-[640px] border-collapse">
+        <Panel title={t.gridTitle} hint={`${t.gridHints[period]} · ${periodLabel}`}>
+          <LogPeriodControls
+            period={period}
+            onPeriodChange={setPeriod}
+            anchor={anchor}
+            onAnchorChange={setAnchor}
+            today={today}
+            label={periodLabel}
+          />
+          <div className="overflow-x-auto px-4 py-4 sm:px-5">
+            <table
+              className={cn(
+                'w-full border-collapse',
+                period === 'week' && 'min-w-[640px]',
+                period === 'month' && 'min-w-[920px]',
+              )}
+            >
               <thead>
                 <tr>
                   <th className="pb-2 text-left text-[11px] font-semibold tracking-[0.07em] text-ink-3 uppercase">
                     Driver
                   </th>
-                  {LOG_DATES.map((date) => (
-                    <th
-                      key={date}
-                      className="px-1 pb-2 text-center text-[11px] font-medium whitespace-nowrap text-ink-3"
-                    >
-                      {date}
-                    </th>
-                  ))}
+                  {dates.map((date) => {
+                    const todayCol = isSameDay(date, today)
+                    return (
+                      <th
+                        key={date.toISOString()}
+                        className={cn(
+                          'px-1 pb-2 text-center text-[11px] font-medium whitespace-nowrap',
+                          todayCol ? 'font-semibold text-accent' : 'text-ink-3',
+                        )}
+                      >
+                        {formatLogColumn(date, period)}
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
                 {MOCK_LOGS.map((log) => (
                   <tr key={log.driverId} className="border-t border-line">
-                    <td className="py-2 pr-4 text-[13px] font-medium whitespace-nowrap text-ink">
-                      {log.driver}
+                    <td className="py-2 pr-4 text-[13px] font-medium whitespace-nowrap">
+                      <Link to={`/drivers/${log.driverId}?tab=hours`} className="text-ink hover:text-accent">
+                        {log.driver}
+                      </Link>
                     </td>
-                    {log.days.map((state, i) => {
+                    {dates.map((date) => {
+                      const state = logStateOn(log, date)
                       const tone = LOG_STATE_TONE[state]
+                      const todayCol = isSameDay(date, today)
+                      const label = `${formatLogColumn(date, period === 'month' ? 'week' : period)} — ${LOG_STATE_LABEL[state]}`
                       return (
-                        <td key={i} className="px-1 py-2 text-center">
+                        <td key={date.toISOString()} className="px-1 py-2 text-center">
                           <span
-                            title={`${LOG_DATES[i]} — ${LOG_STATE_LABEL[state]}`}
+                            title={label}
                             className={cn(
-                              'inline-block h-6 w-full min-w-[26px] rounded-[4px]',
+                              'inline-block h-6 w-full rounded-[5px]',
+                              period === 'day' ? 'min-w-[72px]' : period === 'month' ? 'min-w-[16px]' : 'min-w-[26px]',
                               tone ? TONE_SOLID[tone] : 'bg-surface-2',
                               tone === 'success' && 'opacity-45',
+                              todayCol && 'ring-1 ring-accent/40 ring-offset-1 ring-offset-surface',
                             )}
                           />
+                          {period === 'day' && (
+                            <span className="mt-1 block text-[11px] text-ink-3">
+                              {LOG_STATE_LABEL[state]}
+                            </span>
+                          )}
                           <span className="sr-only">{LOG_STATE_LABEL[state]}</span>
                         </td>
                       )
@@ -145,7 +203,11 @@ export function HoursPage() {
             ) : (
               <ul className="divide-y divide-line">
                 {openViolations.map((violation) => (
-                  <li key={violation.id} className="flex items-start gap-3 px-5 py-3.5">
+                  <li
+                    key={violation.id}
+                    className="flex flex-col gap-2.5 px-4 py-3.5 transition-colors hover:bg-surface-2 sm:flex-row sm:items-start sm:gap-3 sm:px-5"
+                  >
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
                     <span
                       className={cn('mt-1.5 size-2 shrink-0 rounded-full', TONE_SOLID.danger)}
                       aria-hidden="true"
@@ -153,11 +215,21 @@ export function HoursPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-[13.5px] font-medium text-ink">{violation.type}</p>
                       <p className="mt-0.5 text-[12.5px] text-ink-3">
-                        {violation.driver} · {violation.detail}
+                        <Link to={hrefForDriverName(drivers, violation.driver)} className="hover:text-accent">
+                          {violation.driver}
+                        </Link>
+                        {' · '}
+                        {violation.detail}
                       </p>
                       <p className="mt-1 text-[11.5px] text-ink-4">{violation.occurred}</p>
                     </div>
-                    <Button size="sm" variant="secondary" onClick={() => setReviewing(violation)}>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="self-start"
+                      onClick={() => setReviewingViolation(violation)}
+                    >
                       {t.review}
                     </Button>
                   </li>
@@ -173,25 +245,34 @@ export function HoursPage() {
               ) : (
                 <ul className="divide-y divide-line">
                   {editRequests.map((request) => (
-                    <li key={request.id} className="px-5 py-3.5">
-                      <p className="text-[13.5px] font-medium text-ink">{request.driver}</p>
-                      <p className="mt-0.5 text-[12.5px] text-ink-2">{request.requested}</p>
-                      <p className="mt-0.5 text-[12px] text-ink-3">&ldquo;{request.reason}&rdquo;</p>
-                      <div className="mt-2.5 flex items-center gap-2">
+                    <li
+                      key={request.id}
+                      className="flex flex-col gap-2.5 px-4 py-3.5 transition-colors hover:bg-surface-2 sm:flex-row sm:items-start sm:gap-3 sm:px-5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13.5px] font-medium text-ink">
+                          <Link to={hrefForDriverName(drivers, request.driver)} className="hover:text-accent">
+                            {request.driver}
+                          </Link>
+                        </p>
+                        <p className="mt-0.5 text-[12.5px] text-ink-2">
+                          {t.statusChange(request.fromStatus, request.toStatus)}
+                        </p>
+                        <p className="mt-0.5 text-[12.5px] text-ink-3">
+                          {t.timeRange(request.timeFrom, request.timeTo)}
+                          {' · '}
+                          {request.logDate}
+                        </p>
+                        <p className="mt-1 text-[12px] text-ink-3">&ldquo;{request.reason}&rdquo;</p>
+                      </div>
+                      <div className="flex shrink-0 sm:flex-col sm:items-end">
                         <Button
                           size="sm"
-                          onClick={() => setDeciding({ request, decision: 'approve' })}
+                          variant="secondary"
+                          onClick={() => setReviewingRequest(request)}
                         >
-                          {t.approve}
+                          {t.review}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDeciding({ request, decision: 'reject' })}
-                        >
-                          {t.reject}
-                        </Button>
-                        <span className="ml-auto text-[11.5px] text-ink-4">{request.date}</span>
                       </div>
                     </li>
                   ))}
@@ -205,7 +286,10 @@ export function HoursPage() {
               ) : (
                 <ul className="divide-y divide-line">
                   {unassigned.map((segment) => (
-                    <li key={segment.id} className="flex items-center gap-3 px-5 py-3">
+                    <li
+                      key={segment.id}
+                      className="flex flex-col gap-2.5 px-4 py-3 transition-colors hover:bg-surface-2 sm:flex-row sm:items-center sm:gap-3 sm:px-5"
+                    >
                       <div className="min-w-0 flex-1">
                         <p className="text-[13.5px] font-medium text-ink">{segment.vehicle}</p>
                         <p className="text-[12.5px] text-ink-3">
@@ -215,10 +299,8 @@ export function HoursPage() {
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => {
-                          setAssigned((current) => [...current, segment.id])
-                          show(t.assignedToast)
-                        }}
+                        className="self-start"
+                        onClick={() => setAssigning(segment)}
                       >
                         {t.assign}
                       </Button>
@@ -231,43 +313,55 @@ export function HoursPage() {
         </div>
       </div>
 
-      <ConfirmDialog
-        open={reviewing !== null}
-        onClose={() => setReviewing(null)}
-        onConfirm={() => {
-          if (reviewing) {
-            reviewViolation(reviewing.id)
-            show(t.reviewedToast)
-          }
-          setReviewing(null)
+      <ReviewViolationDialog
+        violation={reviewingViolation}
+        drivers={drivers}
+        vehicles={vehicles}
+        onClose={() => setReviewingViolation(null)}
+        onDecide={(decision) => {
+          if (!reviewingViolation) return
+          resolveViolation(reviewingViolation.id, decision)
+          show(decision === 'approve' ? t.approvedViolationToast : t.dismissedViolationToast)
+          setReviewingViolation(null)
         }}
-        title={t.confirmReviewTitle}
-        message={
-          reviewing ? t.confirmReviewMessage(reviewing.driver, reviewing.type) : ''
-        }
-        confirmLabel={t.confirmReview}
+      />
+
+      <ReviewCorrectionDialog
+        request={reviewingRequest}
+        drivers={drivers}
+        vehicles={vehicles}
+        onClose={() => setReviewingRequest(null)}
+        onDecide={(decision) => {
+          if (!reviewingRequest) return
+          resolveEditRequest(reviewingRequest.id, decision)
+          show(decision === 'approve' ? t.approvedToast : t.rejectedToast)
+          setReviewingRequest(null)
+        }}
+      />
+
+      <AssignDrivingDialog
+        segment={assigning}
+        drivers={drivers}
+        vehicles={vehicles}
+        onClose={() => setAssigning(null)}
+        onAssign={(driverName) => {
+          if (!assigning) return
+          setAssigned((current) => [...current, assigning.id])
+          show(t.assignedToast(driverName))
+          setAssigning(null)
+        }}
       />
 
       <ConfirmDialog
-        open={deciding !== null}
-        onClose={() => setDeciding(null)}
+        open={exporting}
+        onClose={() => setExporting(false)}
         onConfirm={() => {
-          if (deciding) {
-            resolveEditRequest(deciding.request.id, deciding.decision)
-            show(deciding.decision === 'approve' ? t.approvedToast : t.rejectedToast)
-          }
-          setDeciding(null)
+          setExporting(false)
+          exportAuditPack()
         }}
-        title={deciding?.decision === 'reject' ? t.confirmRejectTitle : t.confirmApproveTitle}
-        message={
-          deciding
-            ? deciding.decision === 'reject'
-              ? t.confirmRejectMessage(deciding.request.driver)
-              : t.confirmApproveMessage(deciding.request.driver)
-            : ''
-        }
-        confirmLabel={deciding?.decision === 'reject' ? t.confirmReject : t.confirmApprove}
-        tone={deciding?.decision === 'reject' ? 'danger' : 'primary'}
+        title={t.confirmExportTitle}
+        message={t.confirmExportMessage}
+        confirmLabel={t.confirmExport}
       />
     </PageShell>
   )

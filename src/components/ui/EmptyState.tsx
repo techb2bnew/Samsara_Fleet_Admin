@@ -24,9 +24,9 @@ export function EmptyState({
   clearLabel?: string
 }) {
   return (
-    <div className="flex flex-col items-center px-6 py-14 text-center">
+    <div className="flex flex-col items-center px-6 py-16 text-center">
       {icon && (
-        <span className="mb-3 flex size-10 items-center justify-center rounded-full bg-surface-2 text-ink-4">
+        <span className="mb-3 flex size-11 items-center justify-center rounded-full bg-accent-soft text-accent">
           {icon}
         </span>
       )}

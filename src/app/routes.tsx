@@ -12,18 +12,19 @@ import { NotificationsPage } from '../features/notifications'
 import { DashboardPage } from '../features/dashboard'
 import { LiveMapPage } from '../features/live-map'
 import { DriverDetailPage, DriversPage } from '../features/drivers'
-import { VehicleDetailPage, VehiclesPage } from '../features/vehicles'
+import { VehicleDetailPage, VehiclesPage, WorkOrderDetailPage } from '../features/vehicles'
 import { HoursPage } from '../features/hours'
-import { InspectionsPage } from '../features/inspections'
+import { InspectionDetailPage, InspectionsPage } from '../features/inspections'
 import { DispatchPage, RouteDetailPage } from '../features/dispatch'
-import { FormsPage } from '../features/forms'
+import { FormDetailPage, FormsPage } from '../features/forms'
 import { MessagesPage } from '../features/messages'
-import { SafetyPage } from '../features/safety'
-import { TrainingPage } from '../features/training'
-import { DocumentsPage } from '../features/documents'
+import { SafetyEventDetailPage, SafetyPage } from '../features/safety'
+import { CourseDetailPage, TrainingPage } from '../features/training'
+import { DocumentDetailPage, DocumentsPage } from '../features/documents'
 import { ReportsPage } from '../features/reports'
-import { UsersPage } from '../features/users'
+import { UserDetailPage, UsersPage } from '../features/users'
 import { SettingsPage } from '../features/settings'
+import { HelpPage } from '../features/help'
 
 /**
  * Two guarded groups.
@@ -33,7 +34,8 @@ import { SettingsPage } from '../features/settings'
  * therefore always starts at sign-in until a session exists.
  *
  * Paths match `src/modules.ts`, which drives the sidebar — a route added here
- * without an entry there is unreachable, and vice versa.
+ * without an entry there is unreachable, and vice versa. Help sits outside the
+ * module list because it is support, not a fleet module.
  */
 export function AppRoutes() {
   return (
@@ -54,22 +56,30 @@ export function AppRoutes() {
           <Route path="/drivers/:driverId" element={<DriverDetailPage />} />
           <Route path="/vehicles" element={<VehiclesPage />} />
           <Route path="/vehicles/:vehicleId" element={<VehicleDetailPage />} />
+          <Route path="/work-orders/:workOrderId" element={<WorkOrderDetailPage />} />
 
           <Route path="/hours" element={<HoursPage />} />
           <Route path="/inspections" element={<InspectionsPage />} />
+          <Route path="/inspections/:inspectionId" element={<InspectionDetailPage />} />
 
           <Route path="/dispatch" element={<DispatchPage />} />
           <Route path="/dispatch/:routeId" element={<RouteDetailPage />} />
           <Route path="/forms" element={<FormsPage />} />
+          <Route path="/forms/:formId" element={<FormDetailPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/documents/:documentId" element={<DocumentDetailPage />} />
 
           <Route path="/safety" element={<SafetyPage />} />
+          <Route path="/safety/:eventId" element={<SafetyEventDetailPage />} />
           <Route path="/training" element={<TrainingPage />} />
+          <Route path="/training/:courseId" element={<CourseDetailPage />} />
 
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/users/:userId" element={<UserDetailPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/help" element={<HelpPage />} />
 
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="*" element={<DashboardPage />} />

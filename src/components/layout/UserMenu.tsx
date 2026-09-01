@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { STRINGS } from '../../constants'
 import { useDismissable } from '../../lib/useDismissable'
 import { useAuth } from '../../features/auth/AuthProvider'
-import { ChevronDownIcon, ConfirmDialog, SettingsIcon, SignOutIcon, UserIcon } from '../ui'
+import { ChevronDownIcon, ConfirmDialog, HelpIcon, SettingsIcon, SignOutIcon, UserIcon } from '../ui'
 
 const t = STRINGS.console
 
@@ -30,7 +30,7 @@ export function UserMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t.accountMenu}
-        className="flex items-center gap-2 rounded-[8px] py-1 pr-1.5 pl-1 transition-colors hover:bg-surface-2"
+        className="flex shrink-0 items-center justify-center rounded-[8px] transition-colors hover:bg-surface-2 aria-expanded:bg-surface-2 sm:gap-2 sm:rounded-[9px] sm:py-1 sm:pr-1.5 sm:pl-1"
       >
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-[12.5px] font-semibold text-on-accent">
           {user.initials}
@@ -41,13 +41,13 @@ export function UserMenu() {
           </span>
           <span className="block text-[11.5px] leading-tight text-ink-3">{user.roleName}</span>
         </span>
-        <ChevronDownIcon size={15} className="text-ink-4" />
+        <ChevronDownIcon size={15} className="hidden text-ink-4 sm:block" />
       </button>
 
       {open && (
         <div
           role="menu"
-          className="absolute top-full right-0 z-30 mt-1.5 w-64 overflow-hidden rounded-[10px] border border-line bg-surface shadow-xl shadow-black/20"
+          className="fixed inset-x-3 top-[3.75rem] z-40 overflow-hidden rounded-[12px] border border-line bg-surface shadow-xl shadow-black/10 sm:absolute sm:inset-x-auto sm:right-0 sm:left-auto sm:top-full sm:mt-1.5 sm:w-64"
         >
           {/* Identity first — a menu that signs you out should say who it is
               about, especially on a shared office computer. */}
@@ -70,6 +70,9 @@ export function UserMenu() {
             >
               {t.orgSettings}
             </MenuLink>
+            <MenuLink to="/help" icon={<HelpIcon size={15} />} onClick={() => setOpen(false)}>
+              {t.help}
+            </MenuLink>
           </div>
 
           <div className="border-t border-line py-1">
@@ -79,7 +82,7 @@ export function UserMenu() {
                 setOpen(false)
                 setConfirming(true)
               }}
-              className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13.5px] text-danger transition-colors hover:bg-danger-soft"
+              className="mx-1 flex w-[calc(100%-8px)] items-center gap-2.5 rounded-[7px] px-3 py-2 text-left text-[13.5px] text-danger transition-colors hover:bg-danger-soft"
             >
               <SignOutIcon size={15} />
               {t.signOut}
@@ -117,9 +120,9 @@ function MenuLink({
       role="menuitem"
       to={to}
       onClick={onClick}
-      className="flex items-center gap-2.5 px-4 py-2 text-[13.5px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+      className="group mx-1 flex items-center gap-2.5 rounded-[7px] px-3 py-2 text-[13.5px] text-ink-2 transition-colors hover:bg-accent-soft hover:text-accent"
     >
-      <span className="text-ink-4">{icon}</span>
+      <span className="text-ink-4 group-hover:text-accent">{icon}</span>
       {children}
     </Link>
   )

@@ -1,24 +1,42 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { STRINGS, TONE_SOLID, TONE_TEXT } from '../../../constants'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { STRINGS, TONE_TEXT } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { DetailList, DetailRow, DetailShell } from '../../../components/layout/DetailShell'
 import { Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, EmptyState, FilterChips } from '../../../components/ui'
 import { useFleetData } from '../../fleet-data'
 import { DRIVER_STATUS_LABEL, DRIVER_STATUS_TONE } from '../../../mocks/people'
-import { LOG_DATES, LOG_STATE_LABEL, LOG_STATE_TONE, MOCK_INSPECTIONS, MOCK_LOGS } from '../../../mocks/compliance'
+import { MOCK_INSPECTIONS, MOCK_LOGS } from '../../../mocks/compliance'
 import { MOCK_SAFETY_EVENTS, SEVERITY_TONE } from '../../../mocks/admin'
 import { MOCK_DOCUMENTS } from '../../../mocks/operations'
+import { hrefForDriverThread, hrefForVehicleName } from '../../../lib/entityLinks'
+import { DriverHoursTab } from '../components/DriverHoursTab'
 
 const t = STRINGS.drivers
 type Tab = keyof typeof t.tabsDetail
+const TABS = Object.keys(t.tabsDetail) as Tab[]
+
+function isTab(value: string | null): value is Tab {
+  return TABS.includes(value as Tab)
+}
 
 /** Driver profile, reached from the drivers table or a search result. */
 export function DriverDetailPage() {
   const { driverId } = useParams()
-  const { drivers } = useFleetData()
-  const [tab, setTab] = useState<Tab>('overview')
+  const [params, setParams] = useSearchParams()
+  const { drivers, vehicles } = useFleetData()
+  // Read once into a variable: a type guard narrows the expression it is given,
+  // and calling params.get() a second time produces a fresh `string | null`
+  // that the guard has said nothing about.
+  const tabParam = params.get('tab')
+  const tab: Tab = isTab(tabParam) ? tabParam : 'overview'
+
+  function setTab(next: Tab) {
+    const nextParams = new URLSearchParams(params)
+    if (next === 'overview') nextParams.delete('tab')
+    else nextParams.set('tab', next)
+    setParams(nextParams, { replace: true })
+  }
 
   const driver = drivers.find((d) => d.id === driverId)
 
@@ -45,7 +63,7 @@ export function DriverDetailPage() {
       subtitle={`${driver.employeeNumber} · ${driver.terminal}`}
       badge={<Badge tone={DRIVER_STATUS_TONE[driver.status]}>{DRIVER_STATUS_LABEL[driver.status]}</Badge>}
       actions={
-        <Link to="/messages">
+        <Link to={hrefForDriverThread(driver.name)}>
           <Button size="sm" variant="secondary">
             {t.detail.message}
           </Button>
@@ -54,6 +72,7 @@ export function DriverDetailPage() {
     >
       <div className="mb-4">
         <FilterChips
+          layout="scroll"
           value={tab}
           onChange={setTab}
           options={(Object.keys(t.tabsDetail) as Tab[]).map((key) => ({
@@ -115,7 +134,11 @@ export function DriverDetailPage() {
           <Panel title={t.detail.currentAssignment} className="lg:col-span-2">
             {driver.vehicle ? (
               <DetailList>
-                <DetailRow label={t.detail.vehicle}>{driver.vehicle}</DetailRow>
+                <DetailRow label={t.detail.vehicle}>
+                  <Link to={hrefForVehicleName(vehicles, driver.vehicle)} className="text-accent hover:underline">
+                    {driver.vehicle}
+                  </Link>
+                </DetailRow>
               </DetailList>
             ) : (
               <EmptyState title={t.noVehicle} hint={t.detail.noVehicleHint} />
@@ -124,32 +147,7 @@ export function DriverDetailPage() {
         </div>
       )}
 
-      {tab === 'hours' && (
-        <Panel title={t.detail.recentLogs}>
-          {logs ? (
-            <div className="flex flex-wrap gap-2 px-5 py-4">
-              {logs.days.map((state, i) => {
-                const tone = LOG_STATE_TONE[state]
-                return (
-                  <div key={i} className="flex min-w-[84px] flex-col items-center gap-1.5">
-                    <span className="text-[11.5px] text-ink-3">{LOG_DATES[i]}</span>
-                    <span
-                      className={cn(
-                        'h-7 w-full rounded-[4px]',
-                        tone ? TONE_SOLID[tone] : 'bg-surface-2',
-                        tone === 'success' && 'opacity-45',
-                      )}
-                    />
-                    <span className="text-[11px] text-ink-4">{LOG_STATE_LABEL[state]}</span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <EmptyState title={STRINGS.empty.noneYetTitle} />
-          )}
-        </Panel>
-      )}
+      {tab === 'hours' && <DriverHoursTab driver={driver} logs={logs} />}
 
       {tab === 'inspections' && (
         <Panel>
@@ -158,7 +156,11 @@ export function DriverDetailPage() {
           ) : (
             <ul className="divide-y divide-line">
               {inspections.map((i) => (
-                <li key={i.id} className="flex items-center gap-3 px-5 py-3">
+                <li key={i.id}>
+                  <Link
+                    to={`/inspections/${i.id}`}
+                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2"
+                  >
                   <div className="min-w-0 flex-1">
                     <p className="text-[13.5px] font-medium text-ink">
                       {i.vehicle} · {i.type}
@@ -168,6 +170,7 @@ export function DriverDetailPage() {
                   <Badge tone={i.defects > 0 ? 'danger' : 'success'}>
                     {i.defects > 0 ? `${i.defects} defects` : 'Clear'}
                   </Badge>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -182,14 +185,19 @@ export function DriverDetailPage() {
           ) : (
             <ul className="divide-y divide-line">
               {safety.map((e) => (
-                <li key={e.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] font-medium text-ink">{e.kind}</p>
-                    <p className="text-[12.5px] text-ink-3">
-                      {e.location} · {e.at}
-                    </p>
-                  </div>
-                  <Badge tone={SEVERITY_TONE[e.severity]}>{e.severity}</Badge>
+                <li key={e.id}>
+                  <Link
+                    to={`/safety/${e.id}`}
+                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13.5px] font-medium text-ink">{e.kind}</p>
+                      <p className="text-[12.5px] text-ink-3">
+                        {e.location} · {e.at}
+                      </p>
+                    </div>
+                    <Badge tone={SEVERITY_TONE[e.severity]}>{e.severity}</Badge>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -204,14 +212,19 @@ export function DriverDetailPage() {
           ) : (
             <ul className="divide-y divide-line">
               {documents.map((d) => (
-                <li key={d.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-mono text-[13px] text-ink">{d.name}</p>
-                    <p className="text-[12.5px] text-ink-3">
-                      {d.kind} · {d.uploaded}
-                    </p>
-                  </div>
-                  <span className="font-mono text-[12px] text-ink-4">{d.sizeKb} KB</span>
+                <li key={d.id}>
+                  <Link
+                    to={`/documents/${d.id}`}
+                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-mono text-[13px] text-ink">{d.name}</p>
+                      <p className="text-[12.5px] text-ink-3">
+                        {d.kind} · {d.uploaded}
+                      </p>
+                    </div>
+                    <span className="font-mono text-[12px] text-ink-4">{d.sizeKb} KB</span>
+                  </Link>
                 </li>
               ))}
             </ul>

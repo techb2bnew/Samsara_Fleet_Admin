@@ -201,11 +201,34 @@ body {
 
 html, body, #root { height: 100%; }
 
+.page-wash {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 14rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-accent) 10%, var(--color-ground)),
+    transparent
+  );
+}
+
+.panel-shadow {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
 /* Dispatchers work this console by keyboard. Focus must always be visible. */
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 3px;
+}
+
+/* Sidebar items already have a selected fill. A second outline around the
+   rounded row turns that fill into a cheap box. */
+.console-nav a:focus-visible {
+  outline: none;
 }
 
 /* Match scrollbars to the palette on both platforms. */
@@ -220,6 +243,59 @@ html, body, #root { height: 100%; }
   }
 }
 * { scrollbar-width: thin; scrollbar-color: var(--color-line-strong) transparent; }
+
+/* ===========================================================================
+   Login light theme (scoped)
+   ===========================================================================
+   The rest of the product still follows the system preference. Sign-in is
+   pinned light so the first screen is always a bright card on a cool ground,
+   even when the OS is in dark mode.
+=========================================================================== */
+
+.auth-theme-light {
+  color-scheme: light;
+
+  --color-ground:      #F4F7FB;
+  --color-surface:     #FFFFFF;
+  --color-surface-2:   #EEF2F7;
+  --color-line:        #E2E8F0;
+  --color-line-strong: #CBD5E1;
+
+  --color-ink:         #0F172A;
+  --color-ink-2:       #334155;
+  --color-ink-3:       #64748B;
+  --color-ink-4:       #94A3B8;
+
+  --color-brand:       #F3F6FB;
+  --color-brand-ink:   #0F172A;
+  --color-accent-on-brand: #1D4ED8;
+
+  --color-auth-card:      #FFFFFF;
+  --color-auth-card-edge: #E2E8F0;
+
+  --color-accent:      #1D6FD0;
+  --color-accent-hover:#1A5FB4;
+  --color-on-accent:   #FFFFFF;
+  --color-on-danger:   #FFFFFF;
+  --color-accent-soft: #E8F1FC;
+  --color-accent-line: #B6D3F2;
+
+  --color-ok:          #16794C;
+  --color-ok-soft:     #E1F2EA;
+  --color-ok-line:     #A9D8C1;
+
+  --color-warn:        #9A5B00;
+  --color-warn-soft:   #FBEFDC;
+  --color-warn-line:   #EACFA0;
+
+  --color-danger:      #B3261E;
+  --color-danger-hover:#96201A;
+  --color-danger-soft: #FBE7E5;
+  --color-danger-line: #EFB9B4;
+
+  --color-neutral-soft: #EEF0F3;
+  --color-neutral-line: #D3D8DF;
+}
 
 /* ===========================================================================
    Entrance animation for the signed-out screens
@@ -244,6 +320,21 @@ html, body, #root { height: 100%; }
   to   { opacity: 1; }
 }
 
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(22px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes glow-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(36px, 18px, 0) scale(1.08); }
+}
+
+@keyframes glow-drift-alt {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-30px, -16px, 0) scale(1.06); }
+}
+
 /* Roads draw themselves along their own length. */
 @keyframes draw-road {
   from { stroke-dashoffset: 2400; }
@@ -251,16 +342,118 @@ html, body, #root { height: 100%; }
 }
 
 .animate-rise {
-  animation: rise-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: rise-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .animate-fade {
   animation: fade-in 0.9s ease-out backwards;
 }
 
+.animate-card {
+  animation: card-in 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.animate-glow {
+  animation: glow-drift 16s ease-in-out infinite;
+}
+
+.animate-glow-alt {
+  animation: glow-drift-alt 20s ease-in-out infinite;
+}
+
 .animate-road {
   stroke-dasharray: 2400;
   animation: draw-road 2.4s cubic-bezier(0.33, 1, 0.68, 1) backwards;
+}
+
+/* ===========================================================================
+   Login aurora
+   Vertical curtains of colour, drifting like dawn sky. Sparks twinkle in it.
+=========================================================================== */
+
+.auth-aurora {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 70% at 20% 20%, color-mix(in srgb, var(--color-accent) 8%, white), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 88% 80%, color-mix(in srgb, var(--color-accent) 5%, white), transparent 62%);
+}
+
+.auth-aurora-curtain {
+  position: absolute;
+  top: -30%;
+  height: 160%;
+  border-radius: 999px;
+  filter: blur(40px);
+  opacity: 0.72;
+  transform-origin: center 40%;
+}
+
+.auth-aurora-curtain-a {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-accent) 38%, white) 36%,
+    color-mix(in srgb, #a8d4f6 55%, white) 58%,
+    transparent 100%
+  );
+}
+
+.auth-aurora-curtain-b {
+  background: linear-gradient(
+    180deg,
+    transparent 8%,
+    color-mix(in srgb, #c5e0f8 60%, white) 40%,
+    color-mix(in srgb, var(--color-accent) 28%, white) 68%,
+    transparent 100%
+  );
+  opacity: 0.58;
+}
+
+.auth-aurora-curtain-c {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-accent) 32%, white) 44%,
+    transparent 100%
+  );
+}
+
+.auth-aurora-curtain-d {
+  background: linear-gradient(
+    180deg,
+    transparent 12%,
+    color-mix(in srgb, #d2e8fa 62%, white) 48%,
+    color-mix(in srgb, var(--color-accent) 24%, white) 76%,
+    transparent 100%
+  );
+  opacity: 0.55;
+}
+
+.auth-aurora-curtain.is-live {
+  animation-name: aurora-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes aurora-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-8deg) scaleY(1); }
+  50%      { transform: translate3d(8%, 5%, 0) rotate(10deg) scaleY(1.1); }
+}
+
+.auth-aurora-spark {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 12px 3px color-mix(in srgb, var(--color-accent) 28%, white);
+  animation: aurora-spark 3.6s ease-in-out infinite;
+}
+
+@keyframes aurora-spark {
+  0%, 100% { opacity: 0.15; transform: scale(0.6); }
+  50%      { opacity: 1; transform: scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {

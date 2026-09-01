@@ -1,13 +1,13 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { STRINGS } from '../../../constants'
-import { Alert, Button, Field, FormGrid, FormRow, Modal, Select, Textarea, useToast } from '../../../components/ui'
+import { Alert, Button, ConfirmDialog, Field, FormGrid, FormRow, Modal, Select, Textarea, useToast } from '../../../components/ui'
 import { useFleetData, type NewRoute } from '../../fleet-data'
 
 const t = STRINGS.forms_common
 const d = STRINGS.dialog
 
 export function PlanRouteDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { drivers, vehicles, routes, addRoute } = useFleetData()
+  const { drivers, vehicles, addRoute } = useFleetData()
   const { show } = useToast()
 
   const driverOptions = useMemo(
@@ -32,6 +32,7 @@ export function PlanRouteDialog({ open, onClose }: { open: boolean; onClose: () 
 
   const [values, setValues] = useState<NewRoute>(empty)
   const [errors, setErrors] = useState<Partial<Record<keyof NewRoute, string>>>({})
+  const [confirmHours, setConfirmHours] = useState(false)
 
   const set = (key: keyof NewRoute) => (event: { target: { value: string } }) =>
     setValues((current) => ({ ...current, [key]: event.target.value }))
@@ -54,20 +55,32 @@ export function PlanRouteDialog({ open, onClose }: { open: boolean; onClose: () 
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
-    addRoute(values)
-    show(t.routeToast(`NL-${4500 + routes.length}`))
+    if (noHoursLeft) {
+      setConfirmHours(true)
+      return
+    }
+
+    commit()
+  }
+
+  function commit() {
+    const created = addRoute(values)
+    show(t.routeToast(created.reference))
     setValues(empty)
     setErrors({})
+    setConfirmHours(false)
     onClose()
   }
 
   function handleClose() {
     setValues(empty)
     setErrors({})
+    setConfirmHours(false)
     onClose()
   }
 
   return (
+    <>
     <Modal
       open={open}
       onClose={handleClose}
@@ -129,5 +142,15 @@ export function PlanRouteDialog({ open, onClose }: { open: boolean; onClose: () 
         </FormGrid>
       </form>
     </Modal>
+      <ConfirmDialog
+        open={confirmHours}
+        onClose={() => setConfirmHours(false)}
+        onConfirm={commit}
+        title={t.routeHoursConfirmTitle}
+        message={chosenDriver ? t.routeHoursConfirmMessage(chosenDriver.name) : t.routeHoursConfirmTitle}
+        confirmLabel={t.routeHoursConfirm}
+        tone="danger"
+      />
+    </>
   )
 }

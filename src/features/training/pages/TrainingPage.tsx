@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, DataTable, EmptyState, type Column } from '../../../components/ui'
@@ -11,6 +12,7 @@ const t = STRINGS.training
 /** Module A12. */
 export function TrainingPage() {
   const { courses } = useFleetData()
+  const navigate = useNavigate()
   const [creating, setCreating] = useOpenOnQuery()
 
   const columns: Column<Course>[] = [
@@ -80,7 +82,8 @@ export function TrainingPage() {
       actions={<Button size="sm" onClick={() => setCreating(true)}>{t.newCourse}</Button>}
     >
       <Panel>
-        <DataTable columns={columns} rows={courses} getRowKey={(c) => c.id} empty={
+        <DataTable columns={columns} rows={courses} getRowKey={(c) => c.id}
+          onRowClick={(c) => navigate(`/training/${c.id}`)} empty={
             <EmptyState title={STRINGS.empty.noneYetTitle} hint="Courses you create will appear here." />
           } />
       </Panel>

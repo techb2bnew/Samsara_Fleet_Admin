@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { cn } from '../../lib/cn'
 
 /** Standard page frame: title block, then content. Used by every module. */
 export function PageShell({
@@ -17,24 +18,26 @@ export function PageShell({
   width?: 'wide' | 'narrow'
 }) {
   return (
-    <div
-      className={
-        width === 'narrow' ? 'mx-auto max-w-[820px] px-6 py-7' : 'mx-auto max-w-[1280px] px-6 py-7'
-      }
-    >
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          {eyebrow && (
-            <p className="font-mono text-[10.5px] tracking-[0.12em] text-ink-4 uppercase">
-              {eyebrow}
-            </p>
-          )}
-          <h1 className="mt-0.5 text-[21px] font-semibold tracking-[-0.015em] text-ink">{title}</h1>
-          {description && <p className="mt-1 max-w-2xl text-[13.5px] text-ink-3">{description}</p>}
-        </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
-      </header>
-      {children}
+    <div className="relative">
+      <div className="page-wash" aria-hidden="true" />
+      <div
+        className={cn(
+          'relative px-4 py-6 sm:px-6 sm:py-8',
+          width === 'narrow' ? 'mx-auto max-w-[820px]' : 'mx-auto max-w-[1280px]',
+        )}
+      >
+        <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            {eyebrow && <p className="text-[12.5px] font-medium text-ink-3">{eyebrow}</p>}
+            <h1 className="mt-1 text-[22px] leading-tight font-semibold tracking-[-0.03em] text-ink sm:text-[24px]">
+              {title}
+            </h1>
+            {description && <p className="mt-1.5 max-w-2xl text-[13.5px] text-ink-3">{description}</p>}
+          </div>
+          {actions && <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
+        </header>
+        {children}
+      </div>
     </div>
   )
 }
@@ -54,11 +57,16 @@ export function Panel({
   className?: string
 }) {
   return (
-    <section className={`overflow-hidden rounded-[10px] border border-line bg-surface ${className ?? ''}`}>
+    <section
+      className={cn(
+        'overflow-hidden rounded-[12px] border border-line bg-surface panel-shadow',
+        className,
+      )}
+    >
       {title && (
-        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-3.5">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-4 sm:px-5">
           <div>
-            <h2 className="text-[14.5px] font-semibold text-ink">{title}</h2>
+            <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
             {hint && <p className="mt-0.5 text-[12.5px] text-ink-3">{hint}</p>}
           </div>
           {action}

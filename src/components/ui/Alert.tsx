@@ -12,7 +12,7 @@ export function Alert({
   children?: ReactNode
 }) {
   return (
-    <div className={cn('flex gap-2.5 rounded-[6px] border px-3.5 py-3 text-sm', TONE_SURFACE[tone])}>
+    <div className={cn('flex gap-2.5 rounded-[10px] border px-3.5 py-3 text-sm', TONE_SURFACE[tone])}>
       <span
         className={cn('mt-1.5 size-1.5 shrink-0 rounded-full', TONE_SOLID[tone])}
         aria-hidden="true"

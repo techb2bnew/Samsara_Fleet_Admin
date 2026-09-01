@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, DataTable, EmptyState, type Column } from '../../../components/ui'
@@ -11,6 +12,7 @@ const t = STRINGS.forms
 /** Module A09. */
 export function FormsPage() {
   const { forms } = useFleetData()
+  const navigate = useNavigate()
   const [creating, setCreating] = useOpenOnQuery()
 
   const columns: Column<FormDef>[] = [
@@ -61,7 +63,8 @@ export function FormsPage() {
     >
       <div className="flex flex-col gap-5">
         <Panel>
-          <DataTable columns={columns} rows={forms} getRowKey={(f) => f.id} empty={
+          <DataTable columns={columns} rows={forms} getRowKey={(f) => f.id}
+          onRowClick={(f) => navigate(`/forms/${f.id}`)} empty={
             <EmptyState title={STRINGS.empty.noneYetTitle} hint="Forms you build will appear here." />
           } />
         </Panel>
@@ -71,7 +74,7 @@ export function FormsPage() {
             {FIELD_TYPES.map((type) => (
               <span
                 key={type}
-                className="cursor-grab rounded-[7px] border border-line bg-ground px-3 py-2 text-[13px] text-ink-2 transition-colors hover:border-accent-line hover:bg-accent-soft hover:text-accent"
+                className="rounded-[7px] border border-line bg-ground px-3 py-2 text-[13px] text-ink-2"
               >
                 {type}
               </span>

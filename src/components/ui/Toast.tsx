@@ -50,7 +50,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] flex -translate-x-1/2 flex-col items-center gap-2"
+          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] flex w-[min(24rem,calc(100vw-1.5rem))] -translate-x-1/2 flex-col items-center gap-2"
         >
           {toasts.map((toast) => (
             <div
@@ -61,7 +61,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 className={cn('size-2 shrink-0 rounded-full', TONE_SOLID[toast.tone])}
                 aria-hidden="true"
               />
-              <p className="text-[13.5px] font-medium text-ink">{toast.message}</p>
+              <p className="text-center text-[13.5px] leading-snug font-medium break-words text-ink">{toast.message}</p>
             </div>
           ))}
         </div>,

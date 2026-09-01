@@ -30,6 +30,8 @@ export function ForgotPasswordPage() {
   if (sent) {
     return (
       <AuthLayout
+        forceLight
+        animated
         title={t.sent.title}
         subtitle={t.sent.subtitle(email)}
         footer={
@@ -47,6 +49,8 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthLayout
+      forceLight
+      animated
       title={t.title}
       subtitle={t.subtitle}
       footer={

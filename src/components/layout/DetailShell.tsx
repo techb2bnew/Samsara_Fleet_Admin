@@ -27,27 +27,32 @@ export function DetailShell({
   children: ReactNode
 }) {
   return (
-    <div className="mx-auto max-w-[1180px] px-6 py-7">
-      <Link
-        to={backTo}
-        className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-3 transition-colors hover:text-accent"
-      >
-        <ArrowRightIcon size={13} className="rotate-180" />
-        {backLabel}
-      </Link>
+    <div className="relative">
+      <div className="page-wash" aria-hidden="true" />
+      <div className="relative mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-8">
+        <Link
+          to={backTo}
+          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-3 transition-colors hover:text-accent"
+        >
+          <ArrowRightIcon size={13} className="rotate-180" />
+          {backLabel}
+        </Link>
 
-      <header className="mt-3 mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-ink">{title}</h1>
-            {badge}
+        <header className="mt-3 mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-[22px] leading-tight font-semibold tracking-[-0.03em] text-ink sm:text-[24px]">
+                {title}
+              </h1>
+              {badge}
+            </div>
+            {subtitle && <p className="mt-1.5 text-[13.5px] text-ink-3">{subtitle}</p>}
           </div>
-          {subtitle && <p className="mt-1 text-[13.5px] text-ink-3">{subtitle}</p>}
-        </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
-      </header>
+          {actions && <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
+        </header>
 
-      {children}
+        {children}
+      </div>
     </div>
   )
 }
@@ -59,9 +64,9 @@ export function DetailList({ children }: { children: ReactNode }) {
 
 export function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-5 py-2.5">
+    <div className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <dt className="shrink-0 text-[12.5px] text-ink-3">{label}</dt>
-      <dd className="min-w-0 text-right text-[13px] text-ink">{children}</dd>
+      <dd className="min-w-0 text-[13px] text-ink sm:text-right">{children}</dd>
     </div>
   )
 }

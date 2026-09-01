@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
@@ -19,6 +20,7 @@ const TAB_KIND: Record<Exclude<Tab, 'all'>, DocumentRow['kind']> = {
 /** Module A13. */
 export function DocumentsPage() {
   const { show } = useToast()
+  const navigate = useNavigate()
   const [exporting, setExporting] = useState(false)
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
@@ -93,7 +95,8 @@ export function DocumentsPage() {
             }))}
           />
         </Toolbar>
-        <DataTable columns={columns} rows={rows} getRowKey={(d) => d.id} empty={
+        <DataTable columns={columns} rows={rows} getRowKey={(d) => d.id}
+          onRowClick={(d) => navigate(`/documents/${d.id}`)} empty={
             <EmptyState
               title={
                 MOCK_DOCUMENTS.length === 0

@@ -6,6 +6,7 @@ import { Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, EmptyState } from '../../../components/ui'
 import { useFleetData } from '../../fleet-data'
 import { MOCK_ROUTE_STOPS, ROUTE_LABEL, ROUTE_TONE } from '../../../mocks/operations'
+import { hrefForDriverName, hrefForDriverThread, hrefForVehicleName, hrefForVehicleOnMap } from '../../../lib/entityLinks'
 
 const t = STRINGS.dispatch
 
@@ -19,7 +20,7 @@ const t = STRINGS.dispatch
  */
 export function RouteDetailPage() {
   const { routeId } = useParams()
-  const { routes } = useFleetData()
+  const { routes, routeStops, drivers, vehicles } = useFleetData()
 
   const route = routes.find((r) => r.id === routeId)
 
@@ -33,7 +34,7 @@ export function RouteDetailPage() {
     )
   }
 
-  const stops = MOCK_ROUTE_STOPS[route.id] ?? []
+  const stops = routeStops[route.id] ?? MOCK_ROUTE_STOPS[route.id] ?? []
   const nextIndex = stops.findIndex((stop) => stop.arrivedAt === null)
 
   return (
@@ -45,12 +46,12 @@ export function RouteDetailPage() {
       badge={<Badge tone={ROUTE_TONE[route.status]}>{ROUTE_LABEL[route.status]}</Badge>}
       actions={
         <>
-          <Link to="/map">
+          <Link to={hrefForVehicleOnMap(route.vehicle)}>
             <Button size="sm" variant="secondary">
               {t.detail.viewOnMap}
             </Button>
           </Link>
-          <Link to="/messages">
+          <Link to={hrefForDriverThread(route.driver)}>
             <Button size="sm" variant="secondary">
               {t.detail.messageDriver}
             </Button>
@@ -62,8 +63,16 @@ export function RouteDetailPage() {
         <div className="flex flex-col gap-5">
           <Panel title={t.detail.assignment}>
             <DetailList>
-              <DetailRow label={t.detail.driver}>{route.driver}</DetailRow>
-              <DetailRow label={t.detail.vehicle}>{route.vehicle}</DetailRow>
+              <DetailRow label={t.detail.driver}>
+                <Link to={hrefForDriverName(drivers, route.driver)} className="text-accent hover:underline">
+                  {route.driver}
+                </Link>
+              </DetailRow>
+              <DetailRow label={t.detail.vehicle}>
+                <Link to={hrefForVehicleName(vehicles, route.vehicle)} className="text-accent hover:underline">
+                  {route.vehicle}
+                </Link>
+              </DetailRow>
               <DetailRow label={t.detail.status}>
                 <Badge tone={ROUTE_TONE[route.status]}>{ROUTE_LABEL[route.status]}</Badge>
               </DetailRow>

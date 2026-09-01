@@ -37,17 +37,17 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
     detail: 'Ravi Deshmukh passed the 11-hour limit by 26 minutes on Truck 214.',
     at: '12 min ago',
     read: false,
-    href: '/hours',
+    href: '/drivers/d1',
   },
   {
     id: 'n2',
     kind: 'defect',
     tone: 'danger',
     title: 'Truck 108 marked unsafe to drive',
-    detail: 'Brake fault reported by Kabir Nair on a pre-trip inspection.',
+    detail: 'Brake fault reported by Manoj Pawar on a pre-trip inspection.',
     at: '38 min ago',
     read: false,
-    href: '/inspections',
+    href: '/inspections/i1',
   },
   {
     id: 'n3',
@@ -57,7 +57,7 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
     detail: "Sunita Rao's certificate expires on 9 September. No renewal recorded.",
     at: '2 hours ago',
     read: false,
-    href: '/drivers',
+    href: '/drivers/d3',
   },
   {
     id: 'n4',
@@ -67,7 +67,7 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
     detail: 'Truck 133 is 1,240 km past its 20,000 km service.',
     at: '4 hours ago',
     read: false,
-    href: '/vehicles',
+    href: '/vehicles/v3',
   },
   {
     id: 'n5',
@@ -77,7 +77,7 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
     detail: 'NL-4471 is 40 minutes behind with 3 stops remaining.',
     at: '5 hours ago',
     read: true,
-    href: '/dispatch',
+    href: '/dispatch/r1',
   },
   {
     id: 'n6',
@@ -87,7 +87,7 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
     detail: '"Held up at the Pune depot, gate queue is about an hour."',
     at: 'Yesterday',
     read: true,
-    href: '/messages',
+    href: '/messages?driver=Dev%20Singh',
   },
   {
     id: 'n7',
@@ -97,6 +97,6 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
     detail: "Amit Verma's licence was renewed until March 2031.",
     at: 'Yesterday',
     read: true,
-    href: '/drivers',
+    href: '/drivers/d2',
   },
 ]

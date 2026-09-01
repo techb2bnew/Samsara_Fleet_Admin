@@ -102,7 +102,10 @@ function RecentreOnSelection({ selected }: { selected: MapVehicle }) {
 /** Shown in place of the map when no key is configured. */
 export function MissingKeyNotice() {
   return (
-    <div className="absolute inset-x-0 bottom-0 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur">
+    // Sits below the map rather than over it. Overlaid, it covered the bottom
+    // row of markers — and on a phone, where the map is only a few hundred
+    // pixels tall, it hid a good part of the fleet.
+    <div className="border-t border-line bg-surface px-4 py-3">
       <p className="text-[12.5px] font-medium text-ink">{t.noKeyTitle}</p>
       <p className="mt-0.5 text-[12px] leading-relaxed text-ink-3">{t.noKeyHint}</p>
     </div>

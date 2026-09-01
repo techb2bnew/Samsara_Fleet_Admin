@@ -51,6 +51,8 @@ export function LoginPage() {
 
   return (
     <AuthLayout
+      forceLight
+      animated
       title={t.title}
       subtitle={t.subtitle}
       footer={

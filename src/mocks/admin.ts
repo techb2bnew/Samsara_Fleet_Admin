@@ -50,13 +50,14 @@ export type Course = {
   completed: number
   overdue: number
   status: 'published' | 'draft'
+  assignTo: string
 }
 
 export const MOCK_COURSES: Course[] = [
-  { id: 'c1', name: 'Speed management on national highways', lengthMinutes: 18, assigned: 41, completed: 34, overdue: 3, status: 'published' },
-  { id: 'c2', name: 'Pre-trip inspection walkthrough', lengthMinutes: 12, assigned: 41, completed: 41, overdue: 0, status: 'published' },
-  { id: 'c3', name: 'Safe following distance', lengthMinutes: 9, assigned: 12, completed: 7, overdue: 2, status: 'published' },
-  { id: 'c4', name: 'Monsoon driving refresher', lengthMinutes: 22, assigned: 0, completed: 0, overdue: 0, status: 'draft' },
+  { id: 'c1', name: 'Speed management on national highways', lengthMinutes: 18, assigned: 41, completed: 34, overdue: 3, status: 'published', assignTo: 'All drivers' },
+  { id: 'c2', name: 'Pre-trip inspection walkthrough', lengthMinutes: 12, assigned: 41, completed: 41, overdue: 0, status: 'published', assignTo: 'All drivers' },
+  { id: 'c3', name: 'Safe following distance', lengthMinutes: 9, assigned: 12, completed: 7, overdue: 2, status: 'published', assignTo: 'Pune depot' },
+  { id: 'c4', name: 'Monsoon driving refresher', lengthMinutes: 22, assigned: 0, completed: 0, overdue: 0, status: 'draft', assignTo: 'Nobody yet' },
 ]
 
 /* ----------------------------------------------------------------- reports */
@@ -103,7 +104,15 @@ export const MOCK_AUDIT: AuditEntry[] = [
   { id: 'au6', who: 'Priya Sharma', initials: 'PS', action: 'Changed alert rule', target: 'Speeding · notify safety manager', at: 'Yesterday, 11:02' },
 ]
 
-export const MOCK_ALERT_RULES = [
+export type AlertRule = {
+  id: string
+  name: string
+  detail: string
+  channels: string
+  on: boolean
+}
+
+export const MOCK_ALERT_RULES: AlertRule[] = [
   { id: 'ar1', name: 'Hours violation', detail: 'Notify the compliance officer immediately', channels: 'Email, in-app', on: true },
   { id: 'ar2', name: 'Safety-critical defect', detail: 'Notify the fleet admin and the mechanic', channels: 'Email, in-app, SMS', on: true },
   { id: 'ar3', name: 'Licence expiring', detail: 'Warn 30 days before the expiry date', channels: 'Email', on: true },

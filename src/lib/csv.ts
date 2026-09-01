@@ -32,10 +32,7 @@ export function csvFilename(label: string, date: Date = new Date()): string {
   return `${slug}-${stamp}.csv`
 }
 
-export function downloadCsv(filename: string, headers: string[], rows: Array<Array<unknown>>) {
-  const blob = new Blob(['﻿' + toCsv(headers, rows)], {
-    type: 'text/csv;charset=utf-8;',
-  })
+export function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob)
 
   const link = document.createElement('a')
@@ -48,4 +45,15 @@ export function downloadCsv(filename: string, headers: string[], rows: Array<Arr
   // Freed on the next tick — revoking immediately cancels the download in some
   // browsers before it has started reading the blob.
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+export function downloadCsv(filename: string, headers: string[], rows: Array<Array<unknown>>) {
+  downloadBlob(
+    filename,
+    new Blob(['\uFEFF' + toCsv(headers, rows)], { type: 'text/csv;charset=utf-8;' }),
+  )
+}
+
+export function downloadText(filename: string, body: string) {
+  downloadBlob(filename, new Blob([body], { type: 'text/plain;charset=utf-8' }))
 }

@@ -176,6 +176,7 @@ export function VehiclesPage() {
             columns={woColumns}
             rows={MOCK_WORK_ORDERS}
             getRowKey={(w) => w.id}
+            onRowClick={(w) => navigate(`/work-orders/${w.id}`)}
             empty={
             <EmptyState
               title={

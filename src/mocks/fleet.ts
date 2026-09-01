@@ -52,7 +52,7 @@ export const MOCK_ALERTS: Alert[] = [
     title: 'Ravi Deshmukh exceeded the 11-hour driving limit',
     detail: 'Truck 214 · limit passed by 26 minutes',
     at: '12 min ago',
-    href: '/hours',
+    href: '/drivers/d1',
   },
   {
     id: 'a2',
@@ -60,7 +60,7 @@ export const MOCK_ALERTS: Alert[] = [
     title: 'Truck 108 marked unsafe to drive',
     detail: 'Brake fault found on pre-trip inspection',
     at: '38 min ago',
-    href: '/inspections',
+    href: '/inspections/i1',
   },
   {
     id: 'a3',
@@ -68,7 +68,7 @@ export const MOCK_ALERTS: Alert[] = [
     title: "Sunita Rao's medical certificate expires in 9 days",
     detail: 'Expires 9 September · renewal not recorded',
     at: '2 hours ago',
-    href: '/drivers',
+    href: '/drivers/d3',
   },
   {
     id: 'a4',
@@ -76,7 +76,7 @@ export const MOCK_ALERTS: Alert[] = [
     title: 'Truck 133 service overdue by 1,240 km',
     detail: 'Scheduled every 20,000 km',
     at: '4 hours ago',
-    href: '/vehicles',
+    href: '/vehicles/v3',
   },
   {
     id: 'a5',
@@ -84,7 +84,7 @@ export const MOCK_ALERTS: Alert[] = [
     title: 'Route NL-4471 running 40 minutes late',
     detail: '3 stops remaining · Amit Verma',
     at: '5 hours ago',
-    href: '/dispatch',
+    href: '/dispatch/r1',
   },
 ]
 
@@ -96,14 +96,15 @@ export type ActivityItem = {
   initials: string
   what: string
   at: string
+  href: string
 }
 
 export const MOCK_ACTIVITY: ActivityItem[] = [
-  { id: 'v1', who: 'Priya Sharma', initials: 'PS', what: 'approved a log edit for Ravi Deshmukh', at: '08:42' },
-  { id: 'v2', who: 'Kabir Nair', initials: 'KN', what: 'closed work order WO-2291 on Truck 108', at: '08:15' },
-  { id: 'v3', who: 'Meera Iyer', initials: 'MI', what: 'dispatched route NL-4482 to Dev Singh', at: '07:58' },
-  { id: 'v4', who: 'Amit Verma', initials: 'AV', what: 'submitted a pre-trip inspection for Truck 214', at: '07:31' },
-  { id: 'v5', who: 'Priya Sharma', initials: 'PS', what: 'invited nikhil@northline.example as Dispatcher', at: '07:10' },
+  { id: 'v1', who: 'Priya Sharma', initials: 'PS', what: 'approved a log edit for Ravi Deshmukh', at: '08:42', href: '/hours' },
+  { id: 'v2', who: 'Kabir Nair', initials: 'KN', what: 'closed work order WO-2291 on Truck 108', at: '08:15', href: '/work-orders/w4' },
+  { id: 'v3', who: 'Meera Iyer', initials: 'MI', what: 'dispatched route NL-4482 to Dev Singh', at: '07:58', href: '/dispatch/r2' },
+  { id: 'v4', who: 'Amit Verma', initials: 'AV', what: 'submitted a pre-trip inspection for Truck 214', at: '07:31', href: '/inspections/i3' },
+  { id: 'v5', who: 'Priya Sharma', initials: 'PS', what: 'invited nikhil@northline.example as Dispatcher', at: '07:10', href: '/users' },
 ]
 
 /* ------------------------------------------------------------ notifications */
