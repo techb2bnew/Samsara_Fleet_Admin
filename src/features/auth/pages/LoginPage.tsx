@@ -4,7 +4,7 @@ import { AuthLayout } from '../../../app/layouts/AuthLayout'
 import { Alert, Button, Field } from '../../../components/ui'
 import { STRINGS } from '../../../constants'
 import { useAuth } from '../AuthProvider'
-import { MIN_LOGIN_PASSWORD_LENGTH } from '../../../mocks/auth'
+import { MIN_LOGIN_PASSWORD_LENGTH } from '../session'
 
 const t = STRINGS.auth.login
 
@@ -65,8 +65,6 @@ export function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-        {errors.form && <Alert tone="danger">{errors.form}</Alert>}
-
         <Field
           label={t.emailLabel}
           type="email"
@@ -112,6 +110,16 @@ export function LoginPage() {
           />
           {t.keepSignedIn}
         </label>
+
+        {/* Sits right above the button rather than at the top of the form: a
+            failed sign-in is read where the eye already is after pressing
+            Sign in, instead of above fields that have scrolled out of view on
+            a short screen. role="alert" makes screen readers announce it. */}
+        {errors.form && (
+          <div role="alert">
+            <Alert tone="danger">{errors.form}</Alert>
+          </div>
+        )}
 
         <Button type="submit" size="lg" fullWidth loading={loading}>
           {t.submit}

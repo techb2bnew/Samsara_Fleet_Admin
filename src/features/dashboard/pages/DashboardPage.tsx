@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { STRINGS, TONE_SOLID, TONE_TEXT } from '../../../constants'
 import { useAuth } from '../../auth/AuthProvider'
-import { MOCK_ACTIVITY, MOCK_ALERTS, MOCK_KPIS, type Kpi } from '../../../mocks/fleet'
+import { useDashboard } from '../useDashboard'
+import type { Kpi } from '../types'
 import {
   ArrowRightIcon,
   MapIcon,
@@ -12,6 +13,7 @@ import {
 } from '../../../components/ui'
 import { cn } from '../../../lib/cn'
 import { greetingFor } from '../../../lib/greeting'
+import { Alert as AlertBanner, Button } from '../../../components/ui'
 
 const t = STRINGS.dashboard
 
@@ -31,6 +33,10 @@ const ACTIONS = [
  */
 export function DashboardPage() {
   const { session } = useAuth()
+  const { status, data, error, activityUnavailable, reload } = useDashboard()
+  const kpis = data?.kpis ?? []
+  const alerts = data?.alerts ?? []
+  const activity = data?.activity ?? []
   const name = session?.user.fullName ?? ''
   const greeting = t.greetings[greetingFor()]
   const today = new Date().toLocaleDateString(undefined, {
@@ -75,10 +81,26 @@ export function DashboardPage() {
           </div>
         </header>
 
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-          {MOCK_KPIS.map((kpi) => (
-            <KpiTile key={kpi.id} kpi={kpi} />
-          ))}
+        {status === 'error' && (
+          <div className="mb-5" role="alert">
+            <AlertBanner tone="danger" title={t.live.loadFailed}>
+              <div className="flex flex-wrap items-center gap-3">
+                <span>{error}</span>
+                <Button size="sm" variant="secondary" onClick={reload}>
+                  {STRINGS.common.retry}
+                </Button>
+              </div>
+            </AlertBanner>
+          </div>
+        )}
+
+        {/* auto-fit, not a fixed six: the live tile set varies with what the
+            fleet has, and a hard six-column grid leaves the seventh tile
+            stranded alone on a second row. */}
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(148px,1fr))]">
+          {status === 'loading'
+            ? Array.from({ length: 6 }, (_, i) => <KpiSkeleton key={i} />)
+            : kpis.map((kpi) => <KpiTile key={kpi.id} kpi={kpi} />)}
         </section>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[1.45fr_1fr]">
@@ -89,15 +111,21 @@ export function DashboardPage() {
                 <p className="mt-0.5 text-[12.5px] text-ink-3">{t.needsAttentionHint}</p>
               </div>
               <span className="shrink-0 rounded-full border border-danger-line bg-danger-soft px-2 py-0.5 text-[11.5px] font-semibold text-danger">
-                {MOCK_ALERTS.length}
+                {status === 'ready' ? alerts.length : '—'}
               </span>
             </div>
 
-            {MOCK_ALERTS.length === 0 ? (
+            {status === 'loading' ? (
+              <p className="px-5 py-10 text-center text-[13.5px] text-ink-3">{t.live.loading}</p>
+            ) : status === 'error' ? (
+              <p className="px-5 py-10 text-center text-[13.5px] text-ink-3">
+                {t.live.alertsUnknown}
+              </p>
+            ) : alerts.length === 0 ? (
               <p className="px-5 py-10 text-center text-[13.5px] text-ink-3">{t.allClear}</p>
             ) : (
               <ul>
-                {MOCK_ALERTS.map((alert) => (
+                {alerts.map((alert) => (
                   <li key={alert.id} className="border-b border-line last:border-b-0">
                     <Link
                       to={alert.href}
@@ -140,8 +168,13 @@ export function DashboardPage() {
                 <h2 className="text-[15px] font-semibold text-ink">{t.recentActivity}</h2>
                 <p className="mt-0.5 text-[12.5px] text-ink-3">{t.recentActivityHint}</p>
               </div>
+              {activity.length === 0 ? (
+                <p className="px-5 py-8 text-center text-[13px] text-ink-3">
+                  {activityUnavailable ? t.live.activityUnavailable : t.allClear}
+                </p>
+              ) : (
               <ul className="px-5 py-2">
-                {MOCK_ACTIVITY.map((item) => (
+                {activity.map((item) => (
                   <li key={item.id}>
                     <Link
                       to={item.href}
@@ -158,10 +191,25 @@ export function DashboardPage() {
                   </li>
                 ))}
               </ul>
+              )}
             </section>
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Placeholder tile: same height as a real one, so the grid does not jump. */
+function KpiSkeleton() {
+  return (
+    <div
+      className="rounded-[12px] border border-line bg-surface px-3 py-3 sm:px-4 sm:py-4"
+      aria-hidden="true"
+    >
+      <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2" />
+      <div className="mt-3 h-7 w-1/2 animate-pulse rounded bg-surface-2" />
+      <div className="mt-3 h-2.5 w-3/4 animate-pulse rounded bg-surface-2" />
     </div>
   )
 }

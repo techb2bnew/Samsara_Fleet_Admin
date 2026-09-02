@@ -234,27 +234,43 @@ describe('roles and permissions', () => {
     expect(data?.name).not.toBe('tampered')
   })
 
+  // Per-module permissions moved onto the role itself in the lean pass, so this
+  // is now the same question asked of a JSONB column: can a fleet admin widen
+  // what a system role is allowed to do?
   it('a user cannot widen a system role\'s permissions', async () => {
-    const { data: viewer } = await admin
+    const { data: before } = await admin
       .from('roles')
-      .select('id')
+      .select('id, module_permissions')
       .eq('key', 'viewer')
       .is('org_id', null)
       .single()
 
-    await acmeAdmin
-      .from('permissions')
-      .update({ can_delete: true })
-      .eq('role_id', viewer!.id)
-      .eq('module', 'A04')
+    const widened = {
+      ...(before!.module_permissions as Record<string, unknown>),
+      A04: { view: true, edit: true, delete: true },
+    }
+    await acmeAdmin.from('roles').update({ module_permissions: widened }).eq('id', before!.id)
 
-    const { data } = await admin
-      .from('permissions')
-      .select('can_delete')
-      .eq('role_id', viewer!.id)
-      .eq('module', 'A04')
+    const { data: after } = await admin
+      .from('roles')
+      .select('module_permissions')
+      .eq('id', before!.id)
       .single()
-    expect(data?.can_delete).toBe(false)
+    expect(after?.module_permissions).toEqual(before!.module_permissions)
+  })
+
+  it('a system role carries its module permissions', async () => {
+    const { data } = await acmeAdmin
+      .from('roles')
+      .select('module_permissions')
+      .eq('key', 'viewer')
+      .is('org_id', null)
+      .single()
+
+    const perms = data?.module_permissions as Record<string, { view: boolean; delete: boolean }>
+    expect(Object.keys(perms).length).toBe(15)
+    expect(perms.A04.view).toBe(true)
+    expect(perms.A04.delete).toBe(false)
   })
 })
 
@@ -303,7 +319,6 @@ describe('signed-out visitors', () => {
     'users',
     'user_roles',
     'roles',
-    'permissions',
     'invitations',
   ] as const
 

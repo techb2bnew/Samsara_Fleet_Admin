@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { STRINGS, TONE_SOLID } from '../../../constants'
 import { cn } from '../../../lib/cn'
@@ -6,6 +6,8 @@ import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Button, ConfirmDialog, EmptyState, useToast } from '../../../components/ui'
 import {
   datesForPeriod,
+  dutyClocksFor,
+  dutyLogFor,
   formatLogColumn,
   formatPeriodLabel,
   isSameDay,
@@ -22,6 +24,7 @@ import { hrefForDriverName } from '../../../lib/entityLinks'
 import { ReviewCorrectionDialog, ReviewViolationDialog } from '../components/HoursReviewDialogs'
 import { AssignDrivingDialog } from '../components/AssignDrivingDialog'
 import { LogPeriodControls } from '../components/LogPeriodControls'
+import { HosLogGrid } from '../components/HosLogGrid'
 
 const t = STRINGS.hours
 
@@ -57,6 +60,34 @@ export function HoursPage() {
     return d
   }, [])
   const [anchor, setAnchor] = useState(today)
+
+  /**
+   * Drivers ticked in the grid, whose graphs open above it.
+   *
+   * A Set of ids rather than an array: ticking is a membership question, and
+   * an array would need a filter on every untick and could hold a driver
+   * twice.
+   */
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
+
+  function toggleSelected(driverId: string) {
+    setSelected((current) => {
+      const next = new Set(current)
+      if (!next.delete(driverId)) next.add(driverId)
+      return next
+    })
+  }
+
+  /**
+   * The graph is one day. The grid may be showing a week or a month, so the
+   * anchor date is the day it is centred on — and the panel says which day it
+   * is rather than leaving it to be guessed.
+   */
+  const graphDayLabel = anchor.toLocaleDateString(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
 
   const dates = useMemo(() => datesForPeriod(period, anchor), [period, anchor])
   const periodLabel = formatPeriodLabel(period, dates)
@@ -94,7 +125,17 @@ export function HoursPage() {
       }
     >
       <div className="flex flex-col gap-5">
-        <Panel title={t.gridTitle} hint={`${t.gridHints[period]} · ${periodLabel}`}>
+        <Panel
+          title={t.gridTitle}
+          hint={`${t.gridHints[period]} · ${periodLabel}`}
+          action={
+            selected.size > 0 ? (
+              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+                {t.graphsClear}
+              </Button>
+            ) : undefined
+          }
+        >
           <LogPeriodControls
             period={period}
             onPeriodChange={setPeriod}
@@ -113,6 +154,7 @@ export function HoursPage() {
             >
               <thead>
                 <tr>
+                  <th className="w-7 pb-2" />
                   <th className="pb-2 text-left text-[11px] font-semibold tracking-[0.07em] text-ink-3 uppercase">
                     Driver
                   </th>
@@ -134,7 +176,17 @@ export function HoursPage() {
               </thead>
               <tbody>
                 {MOCK_LOGS.map((log) => (
-                  <tr key={log.driverId} className="border-t border-line">
+                  <Fragment key={log.driverId}>
+                  <tr className="border-t border-line">
+                    <td className="py-2 pr-2">
+                      <input
+                        type="checkbox"
+                        className="size-3.5 rounded-[3px] border-line-strong accent-accent"
+                        checked={selected.has(log.driverId)}
+                        onChange={() => toggleSelected(log.driverId)}
+                        aria-label={t.selectDriverAria(log.driver)}
+                      />
+                    </td>
                     <td className="py-2 pr-4 text-[13px] font-medium whitespace-nowrap">
                       <Link to={`/drivers/${log.driverId}?tab=hours`} className="text-ink hover:text-accent">
                         {log.driver}
@@ -167,6 +219,35 @@ export function HoursPage() {
                       )
                     })}
                   </tr>
+
+                  {/* The graph opens under the row it belongs to, inside the
+                      same table, so the day-by-day colours above it stay in
+                      view while the detail is read. colSpan covers the tick
+                      column, the name column and every date. */}
+                  {selected.has(log.driverId) && (
+                    <tr className="border-t border-line bg-surface-2/40">
+                      <td colSpan={dates.length + 2} className="p-0">
+                        <div className="flex flex-wrap items-center justify-between gap-2 px-3 pt-3 sm:px-4">
+                          <p className="text-[12.5px] font-medium text-ink-2">
+                            {t.graphsDay(log.driver, graphDayLabel)}
+                          </p>
+                          <Link
+                            to={`/drivers/${log.driverId}?tab=hours`}
+                            className="text-[12.5px] text-accent hover:underline"
+                          >
+                            {t.graphsOpenProfile}
+                          </Link>
+                        </div>
+                        <HosLogGrid
+                          segments={dutyLogFor(log.driverId, anchor)}
+                          clocks={dutyClocksFor(
+                            drivers.find((d) => d.id === log.driverId)?.hoursLeft ?? '11:00',
+                          )}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

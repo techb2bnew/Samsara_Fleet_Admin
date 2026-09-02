@@ -16,7 +16,8 @@ import { VehicleDetailPage, VehiclesPage, WorkOrderDetailPage } from '../feature
 import { HoursPage } from '../features/hours'
 import { InspectionDetailPage, InspectionsPage } from '../features/inspections'
 import { DispatchPage, RouteDetailPage } from '../features/dispatch'
-import { FormDetailPage, FormsPage } from '../features/forms'
+// Form builder (A09) — held back for the second build; see src/modules.ts.
+// import { FormDetailPage, FormsPage } from '../features/forms'
 import { MessagesPage } from '../features/messages'
 import { SafetyEventDetailPage, SafetyPage } from '../features/safety'
 import { CourseDetailPage, TrainingPage } from '../features/training'
@@ -64,8 +65,10 @@ export function AppRoutes() {
 
           <Route path="/dispatch" element={<DispatchPage />} />
           <Route path="/dispatch/:routeId" element={<RouteDetailPage />} />
-          <Route path="/forms" element={<FormsPage />} />
-          <Route path="/forms/:formId" element={<FormDetailPage />} />
+          {/* Form builder (A09) — held back for the second build. Until then
+              /forms falls through to the catch-all route below. */}
+          {/* <Route path="/forms" element={<FormsPage />} /> */}
+          {/* <Route path="/forms/:formId" element={<FormDetailPage />} /> */}
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/documents/:documentId" element={<DocumentDetailPage />} />

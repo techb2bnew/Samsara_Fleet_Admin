@@ -41,6 +41,8 @@ export const STRINGS = {
     noResults: 'Nothing matches those filters',
     required: 'Required',
     optional: 'Optional',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
   },
 
   /** Signed-out screens: features/auth */
@@ -74,6 +76,10 @@ export const STRINGS = {
         passwordMissing: 'Enter your password',
         passwordTooShort: (min: number) => `Your password is at least ${min} characters`,
         wrongCredentials: 'That email and password do not match. Check both and try again.',
+        noAccess:
+          'That account has no access to a fleet. Ask your fleet administrator to grant you a role.',
+        inviteFailed:
+          'That invitation could not be completed. Ask your fleet administrator to send a new one.',
         accountLocked:
           'This account is locked after too many attempts. Ask your fleet administrator to unlock it.',
       },
@@ -218,6 +224,50 @@ export const STRINGS = {
       addVehicle: 'Add a vehicle',
       planRoute: 'Plan a route',
       messageFleet: 'Message the fleet',
+    },
+
+    /**
+     * Live dashboard, when the console is reading from Supabase.
+     *
+     * Wording differs from the mock on purpose. The mock promises figures the
+     * schema cannot produce yet — duty status, hours violations, stops
+     * completed — so the live tiles say what is genuinely being counted rather
+     * than borrowing a label the number does not support.
+     */
+    live: {
+      driversActive: 'Active drivers',
+      ofRoster: (total: number) => `of ${total} on the roster`,
+      vehiclesActive: 'Vehicles in service',
+      ofFleet: (total: number) => `of ${total} in the fleet`,
+      outOfService: 'Out of service',
+      outOfServiceHint: 'must not be driven',
+      expiringDocuments: 'Documents expiring',
+      expiringDocumentsHint: 'within 30 days',
+      serviceDue: 'Service due',
+      serviceDueHint: 'past the scheduled interval',
+      openWorkOrders: 'Open work orders',
+      openWorkOrdersHint: 'in the workshop',
+      driversWithoutLogin: 'Not on the app',
+      driversWithoutLoginHint: 'drivers yet to sign in',
+
+      unnamedVehicle: 'A vehicle',
+      serviceOverdue: (vehicle: string, service: string) => `${vehicle} is due for ${service}`,
+      serviceOverdueByKm: (km: number) => `Overdue by ${km.toLocaleString()} km`,
+      serviceDueOn: (day: string) => `Was due ${day}`,
+      documentExpiring: (driver: string, doc: string) => `${driver}'s ${doc} expires soon`,
+      documentExpired: (driver: string, doc: string) => `${driver}'s ${doc} has expired`,
+      expiresOn: (day: string) => `Expires ${day}`,
+      workOrderOpen: (reference: string) => `Work order ${reference} is still open`,
+      workOrderOn: (vehicle: string) => `On ${vehicle}`,
+
+      today: 'today',
+      inDays: (days: number) => `in ${days} ${days === 1 ? 'day' : 'days'}`,
+      daysAgo: (days: number) => `${days} ${days === 1 ? 'day' : 'days'} ago`,
+
+      loading: 'Loading the fleet…',
+      loadFailed: 'The dashboard could not be loaded.',
+      alertsUnknown: 'Alerts could not be loaded, so this list is not complete.',
+      activityUnavailable: 'Activity appears here once the audit trail is recording.',
     },
   },
 
@@ -481,6 +531,17 @@ export const STRINGS = {
     description: 'Driver logs, breaches and the corrections waiting on a decision.',
     exportPack: 'Export audit pack',
     gridTitle: 'Log review',
+
+    /**
+     * Tick a driver in the grid and their graph opens above it. The grid
+     * answers "is anything wrong across the fleet"; the graph answers "what
+     * did this driver's day actually look like" — and comparing two drivers
+     * side by side needed leaving the page until now.
+     */
+    selectDriverAria: (driver: string) => `Show the log graph for ${driver}`,
+    graphsDay: (driver: string, day: string) => `${driver} — ${day}`,
+    graphsClear: 'Clear selection',
+    graphsOpenProfile: 'Open profile',
     gridHints: {
       day: 'One day. Colour marks anything not certified.',
       week: 'Monday to Sunday. Colour marks anything not certified.',

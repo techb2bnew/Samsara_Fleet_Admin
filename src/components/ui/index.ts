@@ -17,6 +17,8 @@ export {
   HelpIcon,
   MenuIcon,
   PlusIcon,
+  EyeIcon,
+  EyeOffIcon,
   TruckIcon,
   RouteIcon,
   MessageIcon,

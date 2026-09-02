@@ -13,7 +13,9 @@
     "db:diff": "npx supabase db diff",
     "fn:deploy": "npx supabase functions deploy",
     "test:rls": "vitest run --config vitest.config.ts",
-    "test:rls:watch": "vitest --config vitest.config.ts"
+    "test:rls:watch": "vitest --config vitest.config.ts",
+    "create-admin": "node scripts/create-admin.mjs",
+    "reset-data": "node scripts/reset-data.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

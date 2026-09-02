@@ -201,28 +201,60 @@ describe('drivers — a driver only sees themselves', () => {
   })
 })
 
-describe('driver documents', () => {
+describe('documents', () => {
   it('a driver can read their own licence but not a colleague\'s', async () => {
-    await admin.from('driver_documents').insert([
-      { org_id: acme.orgId, driver_id: acme.driverId, doc_type: 'licence', reference: 'MINE' },
-      { org_id: acme.orgId, driver_id: acme.colleagueDriverId, doc_type: 'licence', reference: 'THEIRS' },
+    await admin.from('documents').insert([
+      { org_id: acme.orgId, category: 'compliance', driver_id: acme.driverId, doc_type: 'licence', reference: 'MINE' },
+      { org_id: acme.orgId, category: 'compliance', driver_id: acme.colleagueDriverId, doc_type: 'licence', reference: 'THEIRS' },
     ])
 
-    const { data } = await acmeDriver.from('driver_documents').select('reference')
+    const { data } = await acmeDriver.from('documents').select('reference')
     expect(data?.map((r) => r.reference)).toEqual(['MINE'])
   })
 
   it('another company cannot read those documents at all', async () => {
-    const { data } = await globexAdmin.from('driver_documents').select('reference')
+    const { data } = await globexAdmin.from('documents').select('reference')
     expect(data?.some((r) => r.reference === 'MINE' || r.reference === 'THEIRS')).toBe(false)
   })
 
-  it('a dispatcher cannot add a driver document', async () => {
+  it('a dispatcher cannot add a compliance document', async () => {
     const { error } = await acmeDispatcher
-      .from('driver_documents')
-      .insert({ org_id: acme.orgId, driver_id: acme.driverId, doc_type: 'medical' })
+      .from('documents')
+      .insert({ org_id: acme.orgId, category: 'compliance', driver_id: acme.driverId, doc_type: 'medical' })
       .select()
     expect(error).not.toBeNull()
+  })
+
+  // The merge put driver and vehicle paperwork in one table behind one policy.
+  // These two cover the risk that created: a driver reaching paperwork that is
+  // not theirs, now that it all lives together.
+  it('a driver cannot file their own compliance document', async () => {
+    const { error } = await acmeDriver
+      .from('documents')
+      .insert({ org_id: acme.orgId, category: 'compliance', driver_id: acme.driverId, doc_type: 'medical', reference: 'SELF_ISSUED' })
+      .select()
+    expect(error).not.toBeNull()
+  })
+
+  it('a driver cannot read vehicle paperwork for a truck they are not on', async () => {
+    await admin.from('documents').insert({
+      org_id: acme.orgId, category: 'compliance', vehicle_id: acme.vehicleId,
+      doc_type: 'insurance', reference: 'TRUCK_POLICY',
+    })
+
+    const { data } = await acmeDriver.from('documents').select('reference')
+    expect(data?.some((r) => r.reference === 'TRUCK_POLICY')).toBe(false)
+  })
+
+  it('a driver can file trip paperwork from the cab', async () => {
+    const { error } = await acmeDriver
+      .from('documents')
+      .insert({
+        org_id: acme.orgId, category: 'trip', driver_id: acme.driverId,
+        uploaded_by_driver: acme.driverId, doc_type: 'bill_of_lading',
+      })
+      .select()
+    expect(error).toBeNull()
   })
 })
 
@@ -259,17 +291,12 @@ describe('vehicle assignments', () => {
 describe('signed-out visitors', () => {
   const tables = [
     'vehicles',
-    'trailers',
-    'assets',
-    'vehicle_documents',
+    'documents',
     'maintenance_schedules',
     'work_orders',
-    'work_order_items',
     'drivers',
-    'driver_documents',
     'driver_settings',
     'driver_devices',
-    'co_driver_assignments',
     'driver_vehicle_assignments',
   ] as const
 

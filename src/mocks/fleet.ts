@@ -9,20 +9,9 @@
  * trucks, a handful of live problems, not a suspiciously perfect fleet.
  */
 
-import type { Tone } from '../constants'
+import type { ActivityItem, Alert, Kpi } from '../features/dashboard/types'
 
 /* ------------------------------------------------------------------ counts */
-
-export type Kpi = {
-  id: string
-  label: string
-  value: number
-  /** Shown under the number — context, not decoration. */
-  detail: string
-  /** Present only when the number is something to act on. */
-  tone?: Tone
-  href: string
-}
 
 export const MOCK_KPIS: Kpi[] = [
   { id: 'on-duty', label: 'Drivers on duty', value: 27, detail: 'of 41 on the roster', href: '/drivers' },
@@ -34,16 +23,6 @@ export const MOCK_KPIS: Kpi[] = [
 ]
 
 /* ------------------------------------------------------------------ alerts */
-
-export type Alert = {
-  id: string
-  tone: Tone
-  title: string
-  detail: string
-  /** Relative time, pre-formatted. Real data will compute this. */
-  at: string
-  href: string
-}
 
 export const MOCK_ALERTS: Alert[] = [
   {
@@ -89,15 +68,6 @@ export const MOCK_ALERTS: Alert[] = [
 ]
 
 /* -------------------------------------------------------------- activity */
-
-export type ActivityItem = {
-  id: string
-  who: string
-  initials: string
-  what: string
-  at: string
-  href: string
-}
 
 export const MOCK_ACTIVITY: ActivityItem[] = [
   { id: 'v1', who: 'Priya Sharma', initials: 'PS', what: 'approved a log edit for Ravi Deshmukh', at: '08:42', href: '/hours' },

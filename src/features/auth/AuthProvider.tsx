@@ -7,27 +7,27 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import {
-  mockAcceptInvite,
-  mockRequestPasswordReset,
-  mockSetPassword,
-  mockSignIn,
-  type AuthResult,
-  type Session,
-} from '../../mocks/auth'
+import * as api from '../../supabase/api'
+import type { AuthResult, Session } from './session'
+import { STRINGS } from '../../constants'
 
 /**
  * Holds the signed-in session for the whole console.
  *
- * This is the single place that talks to the auth backend. Screens call
- * `useAuth()` and never import the mock, so replacing it with Supabase later
- * means editing this file alone.
+ * The only place that talks to an auth backend. Screens call `useAuth()` and
+ * never reach for Supabase themselves.
+ *
+ * Signing in is always real, and deliberately ignores USE_MOCK_DATA. There is
+ * no fake sign-in path: the only way in is an account that exists in Supabase.
+ * That flag decides where the *data* on each screen comes from — drivers,
+ * vehicles, hours — and has no say over who may open the console.
+ *
+ * Supabase keeps the token itself, in localStorage or sessionStorage depending
+ * on "Keep me signed in" (see supabase/client.ts). Nothing is stored here.
  */
 
-const STORAGE_KEY = 'samsarafleet.session'
-
 type AuthState =
-  /** Reading storage on first paint. Screens must not decide anything yet. */
+  /** Restoring a stored session. Screens must not decide anything yet. */
   | { status: 'loading'; session: null }
   | { status: 'signedIn'; session: Session }
   | { status: 'signedOut'; session: null }
@@ -43,66 +43,40 @@ type AuthContextValue = AuthState & {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-/**
- * Reads a stored session.
- *
- * "Keep me signed in" decides which store is used: localStorage survives
- * closing the browser, sessionStorage does not. Both are read on start-up so a
- * driver-facing tablet and an office desktop can behave differently without any
- * extra flag.
- *
- * Every access is guarded — private windows and locked-down browsers throw
- * rather than returning null.
- */
-function readStoredSession(): Session | null {
-  for (const store of [window.localStorage, window.sessionStorage]) {
-    try {
-      const raw = store.getItem(STORAGE_KEY)
-      if (raw) return JSON.parse(raw) as Session
-    } catch {
-      // Unavailable or unparseable. Treat as signed out.
-    }
-  }
-  return null
-}
-
-function writeStoredSession(session: Session, remember: boolean) {
-  try {
-    const store = remember ? window.localStorage : window.sessionStorage
-    store.setItem(STORAGE_KEY, JSON.stringify(session))
-  } catch {
-    // Storage refused. The session still works for this tab, it just will not
-    // survive a reload — acceptable, and better than failing the sign-in.
-  }
-}
-
-function clearStoredSession() {
-  for (const store of [window.localStorage, window.sessionStorage]) {
-    try {
-      store.removeItem(STORAGE_KEY)
-    } catch {
-      // Nothing to do.
-    }
-  }
-}
+const errors = STRINGS.auth.login.errors
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading', session: null })
 
+  /**
+   * Restore on start-up, then follow onAuthChange for the rest of the session,
+   * so a sign-out in another tab, or an expired refresh token, is noticed here
+   * rather than leaving a dead console on screen.
+   */
   useEffect(() => {
-    const stored = readStoredSession()
-    setState(
-      stored ? { status: 'signedIn', session: stored } : { status: 'signedOut', session: null },
-    )
+    let cancelled = false
+
+    const settle = (session: Session | null) => {
+      if (cancelled) return
+      setState(session ? { status: 'signedIn', session } : { status: 'signedOut', session: null })
+    }
+
+    void api.restoreSession().then(settle)
+    const unsubscribe = api.onAuthChange(settle)
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
   }, [])
 
   const signIn = useCallback(
     async (email: string, password: string, remember: boolean): Promise<AuthResult> => {
-      const result = await mockSignIn(email, password)
-      if (result.ok) {
-        writeStoredSession(result.session, remember)
-        setState({ status: 'signedIn', session: result.session })
-      }
+      const result = await api.signIn(email, password, remember, {
+        wrongCredentials: errors.wrongCredentials,
+        noAccess: errors.noAccess,
+      })
+      if (result.ok) setState({ status: 'signedIn', session: result.session })
       return result
     },
     [],
@@ -110,21 +84,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const acceptInvite = useCallback(
     async (email: string, fullName: string, password: string): Promise<AuthResult> => {
-      const result = await mockAcceptInvite(email, fullName, password)
-      if (result.ok) {
-        writeStoredSession(result.session, true)
-        setState({ status: 'signedIn', session: result.session })
-      }
+      const result = await api.acceptInvite(email, fullName, password, {
+        inviteFailed: errors.inviteFailed,
+        noAccess: errors.noAccess,
+      })
+      if (result.ok) setState({ status: 'signedIn', session: result.session })
       return result
     },
     [],
   )
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    await api.requestPasswordReset(email)
+    return { ok: true } as const
+  }, [])
+
+  const setPassword = useCallback(async (password: string) => {
+    await api.setPassword(password)
+    return { ok: true } as const
+  }, [])
+
   const signOut = useCallback(() => {
-    clearStoredSession()
+    void api.signOut()
     setState({ status: 'signedOut', session: null })
   }, [])
 
+  /** Keeps the header in step after the organisation is renamed in settings. */
   const updateOrganization = useCallback((name: string) => {
     setState((current) => {
       if (current.status !== 'signedIn') return current
@@ -132,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...current.session,
         organization: { ...current.session.organization, name },
       }
-      writeStoredSession(session, true)
+      void api.updateOrganizationName(session.organization.id, name)
       return { status: 'signedIn', session }
     })
   }, [])
@@ -142,12 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...state,
       signIn,
       acceptInvite,
-      requestPasswordReset: mockRequestPasswordReset,
-      setPassword: mockSetPassword,
+      requestPasswordReset,
+      setPassword,
       updateOrganization,
       signOut,
     }),
-    [state, signIn, acceptInvite, updateOrganization, signOut],
+    [state, signIn, acceptInvite, requestPasswordReset, setPassword, updateOrganization, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
