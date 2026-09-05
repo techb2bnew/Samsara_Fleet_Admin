@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Alert, Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
@@ -24,13 +24,29 @@ export function VehiclesPage() {
   const [adding, setAdding] = useOpenOnQuery()
   const [editing, setEditing] = useState<Vehicle | null>(null)
   const navigate = useNavigate()
-  const [tab, setTab] = useState<Tab>('all')
+  /*
+   * The tab can arrive in the URL, so a dashboard tile counting "1 service
+   * due" lands on that one rather than on the whole fleet with the reader left
+   * to find it. Kept in the URL so it survives a reload and can be shared.
+   */
+  const [params, setParams] = useSearchParams()
+  const fromUrl = params.get('tab')
+  const [tab, setTab] = useState<Tab>(fromUrl && fromUrl in t.tabs ? (fromUrl as Tab) : 'all')
+
+  function chooseTab(next: Tab) {
+    setTab(next)
+    if (next === 'all') params.delete('tab')
+    else params.set('tab', next)
+    setParams(params, { replace: true })
+  }
   const [search, setSearch] = useState('')
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
     return vehicles.filter((v) => {
-      if (tab !== 'all' && v.status !== tab) return false
+      /* Service due is derived, not a status — see the tabs comment. */
+      if (tab === 'service_due' && v.serviceOverdueKm <= 0) return false
+      if (tab !== 'all' && tab !== 'service_due' && v.status !== tab) return false
       if (!q) return true
       return (
         v.name.toLowerCase().includes(q) ||
@@ -175,7 +191,11 @@ export function VehiclesPage() {
   ]
 
   const countFor = (key: Tab) =>
-    key === 'all' ? vehicles.length : vehicles.filter((v) => v.status === key).length
+    key === 'all'
+      ? vehicles.length
+      : key === 'service_due'
+        ? vehicles.filter((v) => v.serviceOverdueKm > 0).length
+        : vehicles.filter((v) => v.status === key).length
 
   return (
     <PageShell
@@ -205,7 +225,7 @@ export function VehiclesPage() {
           >
             <FilterChips
               value={tab}
-              onChange={setTab}
+              onChange={chooseTab}
               options={(Object.keys(t.tabs) as Tab[]).map((key) => ({
                 value: key,
                 label: t.tabs[key],
@@ -226,7 +246,7 @@ export function VehiclesPage() {
                 }
                 hint={vehicles.length === 0 ? t.emptyHint : STRINGS.empty.noMatchHint}
                 onClear={
-                  vehicles.length === 0 ? undefined : () => { setTab('all'); setSearch('') }
+                  vehicles.length === 0 ? undefined : () => { chooseTab('all'); setSearch('') }
                 }
                 clearLabel={STRINGS.empty.clearFilters}
               />

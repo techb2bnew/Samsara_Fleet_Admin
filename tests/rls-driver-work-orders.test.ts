@@ -181,6 +181,94 @@ describe('a driver raising a work order', () => {
   })
 })
 
+describe('a driver taking back their own request', () => {
+  /** A fresh open request raised by the driver. */
+  async function raise(): Promise<string> {
+    const { data, error } = await driver
+      .from('work_orders')
+      .insert(base(acme.orgId, acme.vehicleId, acme.driverId))
+      .select('id')
+      .single()
+    if (error) throw new Error(error.message)
+    return data.id
+  }
+
+  it('cancels one that is still open', async () => {
+    const id = await raise()
+    const { data, error } = await driver
+      .from('work_orders')
+      .update({ status: 'cancelled' })
+      .eq('id', id)
+      .select('status')
+    expect(error).toBeNull()
+    expect(data?.[0]?.status).toBe('cancelled')
+  })
+
+  it('refuses once the workshop has picked it up', async () => {
+    const id = await raise()
+    /* The office assigns it — from here on it is a job somebody is holding. */
+    await admin.from('work_orders').update({ status: 'in_progress' }).eq('id', id)
+
+    const attempt = await driver
+      .from('work_orders')
+      .update({ status: 'cancelled' })
+      .eq('id', id)
+      .select('id')
+    /* No rows, not an error: the USING clause simply matches nothing. */
+    expect(attempt.data ?? []).toHaveLength(0)
+  })
+
+  it('refuses a request the office raised', async () => {
+    const { data, error } = await admin
+      .from('work_orders')
+      .insert({
+        org_id: acme.orgId,
+        vehicle_id: acme.vehicleId,
+        title: 'Scheduled service',
+        status: 'open',
+        opened_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+    if (error) throw new Error(error.message)
+
+    const attempt = await driver
+      .from('work_orders')
+      .update({ status: 'cancelled' })
+      .eq('id', data.id)
+      .select('id')
+    expect(attempt.data ?? []).toHaveLength(0)
+  })
+
+  it('refuses completing instead of cancelling', async () => {
+    /*
+      The one that matters most. Without the WITH CHECK clause the USING clause
+      alone would let the person who raised a job mark it done — and a repair
+      that never happened would be on the record as finished.
+    */
+    const id = await raise()
+    const attempt = await driver
+      .from('work_orders')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id')
+    expect((attempt.data ?? []).length === 0 || attempt.error !== null).toBe(true)
+
+    const after = await admin.from('work_orders').select('status').eq('id', id).single()
+    expect(after.data?.status).toBe('open')
+  })
+
+  it('refuses attaching money on the way out', async () => {
+    const id = await raise()
+    const attempt = await driver
+      .from('work_orders')
+      .update({ status: 'cancelled', parts_cost_cents: 100000 })
+      .eq('id', id)
+      .select('id')
+    expect((attempt.data ?? []).length === 0 || attempt.error !== null).toBe(true)
+  })
+})
+
 describe('a driver filing a fault', () => {
   it('allows a defect with no inspection behind it, linked to their own request', async () => {
     const { data: order, error: woErr } = await driver

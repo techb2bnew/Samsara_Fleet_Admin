@@ -2,12 +2,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import type { Notification } from './types'
 import { useFleetData } from '../fleet-data'
+import { useAuth } from '../auth/AuthProvider'
 import { STRINGS } from '../../constants'
 
 /**
@@ -19,11 +21,50 @@ import { STRINGS } from '../../constants'
  * open defects, expiring licences, corrections waiting on a driver, late
  * routes. Nothing is stored twice, and nothing can go stale.
  *
- * The cost is that "read" lives only in this session. Persisting it needs a
- * row per person per notification, which is the one thing a notifications
- * table would genuinely buy — worth adding when push notifications land, and
- * not before.
+ * "Read" is kept in localStorage, keyed by user id. It used to live only in
+ * memory, so marking everything read and signing back in showed the same list
+ * unread again — the console looked like it had ignored the click.
+ *
+ * localStorage rather than a table, because these ids are derived. A thread
+ * with three unread messages is `message-<id>-3`, and when a fourth arrives it
+ * becomes `message-<id>-4` and is unread again — which is the behaviour that is
+ * wanted, and which a stored row per notification would have to reproduce
+ * anyway. The honest cost is that read state is per browser: the same person on
+ * a second machine starts fresh. Worth a table when push notifications land,
+ * and not before.
  */
+
+/** Enough to cover what the console can show; small enough to stay quick. */
+const KEEP = 200;
+
+function storageKey(userId: string): string {
+  return `samsara.console.readNotifications.${userId}`
+}
+
+/**
+ * Read once, and never allowed to throw.
+ *
+ * Safari in private mode and a browser with site data blocked both make
+ * localStorage throw on access rather than returning null, and a notification
+ * bell is not worth a white screen.
+ */
+function loadRead(userId: string): Set<string> {
+  try {
+    const raw = window.localStorage.getItem(storageKey(userId))
+    return new Set(raw ? (JSON.parse(raw) as string[]) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function saveRead(userId: string, ids: Set<string>): void {
+  try {
+    window.localStorage.setItem(storageKey(userId), JSON.stringify([...ids].slice(-KEEP)))
+  } catch {
+    // Nothing to do and nothing worth telling anyone. The list still works
+    // for this session; only the memory of it is lost.
+  }
+}
 
 type NotificationsContextValue = {
   notifications: Notification[]
@@ -37,8 +78,21 @@ const NotificationsContext = createContext<NotificationsContextValue | null>(nul
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { drivers, inspections, inspectionDefects, editRequests, routes, threads } = useFleetData()
 
-  /** Ids marked read in this session. */
+  // AuthContextValue spreads AuthState, so status and session sit on it.
+  const { status, session } = useAuth()
+  const userId = status === 'signedIn' ? session.user.id : null
+
+  /** Ids already marked read, restored from this browser. */
   const [readIds, setReadIds] = useState<ReadonlySet<string>>(new Set())
+
+  /*
+   * Keyed by user, so two people sharing a machine do not clear each other's
+   * bell. Reloaded when the user changes rather than merged: signing in as
+   * somebody else should show their unread list, not the last person's.
+   */
+  useEffect(() => {
+    setReadIds(userId ? loadRead(userId) : new Set())
+  }, [userId])
 
   const derived = useMemo<Notification[]>(() => {
     const t = STRINGS.notifications.derived
@@ -150,14 +204,18 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     [derived, readIds],
   )
 
-  const markRead = useCallback((id: string) => {
-    setReadIds((current) => {
-      if (current.has(id)) return current
-      const next = new Set(current)
-      next.add(id)
-      return next
-    })
-  }, [])
+  const markRead = useCallback(
+    (id: string) => {
+      setReadIds((current) => {
+        if (current.has(id)) return current
+        const next = new Set(current)
+        next.add(id)
+        if (userId) saveRead(userId, next)
+        return next
+      })
+    },
+    [userId],
+  )
 
   const markAllRead = useCallback(() => {
     // Returns the same set when nothing is unread, so the button is a no-op
@@ -167,9 +225,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (unread.length === 0) return current
       const next = new Set(current)
       for (const n of unread) next.add(n.id)
+      if (userId) saveRead(userId, next)
       return next
     })
-  }, [derived])
+  }, [derived, userId])
 
   const value = useMemo<NotificationsContextValue>(
     () => ({

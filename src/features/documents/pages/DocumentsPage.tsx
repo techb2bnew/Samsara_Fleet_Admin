@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Alert, Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
@@ -11,11 +11,19 @@ import { useFleetData } from '../../fleet-data'
 const t = STRINGS.documents
 type Tab = keyof typeof t.tabs
 
-const TAB_KIND: Record<Exclude<Tab, 'all'>, DocumentRow['kind']> = {
-  bol: 'Bill of lading',
-  pod: 'Proof of delivery',
-  receipt: 'Receipt',
-  fuel: 'Fuel docket',
+/*
+  The tabs split by why you are looking, not by document type. Compliance is
+  watched for expiry; trip paperwork is what came back from a job. The type is
+  still a column on every row.
+*/
+const TAB_CATEGORY: Record<'compliance' | 'trip', DocumentRow['category']> = {
+  compliance: 'compliance',
+  trip: 'trip',
+}
+
+/** Expired or within thirty days — the two states the dashboard counts. */
+function isExpiring(d: DocumentRow): boolean {
+  return d.expiryState === 'expired' || d.expiryState === 'soon'
 }
 
 /** Module A13. */
@@ -24,13 +32,33 @@ export function DocumentsPage() {
   const { show } = useToast()
   const navigate = useNavigate()
   const [exporting, setExporting] = useState(false)
-  const [tab, setTab] = useState<Tab>('all')
+  /*
+   * The tab can arrive in the URL. The dashboard's "Documents expiring" tile
+   * links to ?show=expiring, so the list opens on the rows it was counting
+   * rather than on everything with the reader left to find them.
+   */
+  const [params, setParams] = useSearchParams()
+  const fromUrl = params.get('show')
+  const [tab, setTab] = useState<Tab>(
+    fromUrl && fromUrl in t.tabs ? (fromUrl as Tab) : 'all',
+  )
+
+  /* Kept in the URL so the filter survives a reload and can be shared. */
+  function chooseTab(next: Tab) {
+    setTab(next)
+    if (next === 'all') params.delete('show')
+    else params.set('show', next)
+    setParams(params, { replace: true })
+  }
   const [search, setSearch] = useState('')
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
     return documents.filter((d) => {
-      if (tab !== 'all' && d.kind !== TAB_KIND[tab]) return false
+      if (tab === 'expiring' && !isExpiring(d)) return false
+      if (tab === 'compliance' || tab === 'trip') {
+        if (d.category !== TAB_CATEGORY[tab]) return false
+      }
       if (!q) return true
       return (
         d.name.toLowerCase().includes(q) ||
@@ -44,16 +72,41 @@ export function DocumentsPage() {
     {
       key: 'file',
       header: t.columns.file,
-      render: (d) => <span className="font-mono text-[13px] text-ink">{d.name}</span>,
-    },
-    {
-      key: 'kind',
-      header: t.columns.kind,
-      width: '170px',
-      render: (d) => <Badge tone="neutral">{d.kind}</Badge>,
+      /*
+        The type sits under the name rather than in a badge of its own.
+
+        It was a grey pill in its own column, next to a FILE column that
+        usually said the same word — "Insurance" beside a badge reading
+        Insurance, on every row. Two columns to say one thing, and six grey
+        pills of decoration down a table nobody was scanning for type.
+      */
+      render: (d) => (
+        <div className="min-w-0">
+          <span className="font-mono text-[13px] text-ink">{d.name}</span>
+          <p className="text-[12px] text-ink-4">{d.kind}</p>
+        </div>
+      ),
     },
     { key: 'driver', header: t.columns.driver, render: (d) => d.driver },
     { key: 'vehicle', header: t.columns.vehicle, secondary: true, render: (d) => d.vehicle },
+    {
+      key: 'expires',
+      header: t.columns.expires,
+      width: '150px',
+      /*
+        The colour on this table belongs here and nowhere else. An expiry is
+        the only thing on the screen anybody acts on: a licence that ran out
+        last week is a driver who should not be in a truck this morning.
+
+        Trip paperwork does not expire and shows a dash.
+      */
+      render: (d) => {
+        if (!d.expires) return <span className="text-ink-4">{t.noExpiry}</span>
+        if (d.expiryState === 'expired') return <Badge tone="danger">{t.expired}</Badge>
+        if (d.expiryState === 'soon') return <Badge tone="warning">{d.expires}</Badge>
+        return <span className="text-ink">{d.expires}</span>
+      },
+    },
     {
       key: 'uploaded',
       header: t.columns.uploaded,
@@ -77,7 +130,9 @@ export function DocumentsPage() {
   const countFor = (key: Tab) =>
     key === 'all'
       ? documents.length
-      : documents.filter((d) => d.kind === TAB_KIND[key]).length
+      : key === 'expiring'
+        ? documents.filter(isExpiring).length
+        : documents.filter((d) => d.category === TAB_CATEGORY[key]).length
 
   return (
     <PageShell
@@ -106,7 +161,7 @@ export function DocumentsPage() {
         <Toolbar search={search} onSearchChange={setSearch} searchPlaceholder={t.searchPlaceholder}>
           <FilterChips
             value={tab}
-            onChange={setTab}
+            onChange={chooseTab}
             options={(Object.keys(t.tabs) as Tab[]).map((key) => ({
               value: key,
               label: t.tabs[key],
@@ -123,12 +178,16 @@ export function DocumentsPage() {
                   : STRINGS.empty.noMatchTitle
               }
               hint={
-                documents.length === 0
-                  ? 'Paperwork uploaded from the cab will appear here.'
-                  : STRINGS.empty.noMatchHint
+                documents.length > 0
+                  ? STRINGS.empty.noMatchHint
+                  : tab === 'trip'
+                    ? t.emptyTripHint
+                    : tab === 'compliance'
+                      ? t.emptyComplianceHint
+                      : t.emptyTripHint
               }
               onClear={
-                documents.length === 0 ? undefined : () => { setTab('all'); setSearch('') }
+                documents.length === 0 ? undefined : () => { chooseTab('all'); setSearch('') }
               }
               clearLabel={STRINGS.empty.clearFilters}
             />

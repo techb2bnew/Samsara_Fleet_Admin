@@ -3,7 +3,6 @@ import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import {
   Alert,
-  Badge,
   Button,
   ConfirmDialog,
   DataTable,
@@ -23,7 +22,7 @@ const t = STRINGS.settings
 
 /** Module A15. */
 export function SettingsPage() {
-  const { org, saveOrg, alertRules, toggleAlertRule, audit, depots, removeDepot } = useFleetData()
+  const { org, saveOrg, audit, depots, removeDepot } = useFleetData()
   const { updateOrganization } = useAuth()
   const { show } = useToast()
   const [draft, setDraft] = useState(org)
@@ -208,36 +207,21 @@ export function SettingsPage() {
           )}
         </Panel>
 
-        <Panel title={t.alertsTitle} hint={t.alertsHint}>
-          {alertRules.length === 0 ? (
-            <EmptyState title={t.noAlertRules} hint={t.noAlertRulesHint} />
-          ) : (
-            <ul className="divide-y divide-line">
-              {alertRules.map((rule) => (
-              <li key={rule.id} className="flex flex-wrap items-center gap-4 px-5 py-3.5 transition-colors hover:bg-surface-2">
-                <div className="min-w-[200px] flex-1">
-                  <p className="text-[13.5px] font-medium text-ink">{rule.name}</p>
-                  <p className="mt-0.5 text-[12.5px] text-ink-3">{rule.detail}</p>
-                </div>
-                <span className="text-[12px] text-ink-4">
-                  {t.channels}: {rule.channels}
-                </span>
-                <Badge tone={rule.on ? 'success' : 'neutral'}>{rule.on ? t.on : t.off}</Badge>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    toggleAlertRule(rule.id)
-                    show(rule.on ? t.alertOffToast(rule.name) : t.alertOnToast(rule.name))
-                  }}
-                >
-                  {rule.on ? t.turnOff : t.turnOn}
-                </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
+        {/*
+          Alert rules were a panel here. Switched off, like the form builder
+          and safety.
+
+          The table exists and the console could read a rule and toggle it, but
+          nothing ever created one and — the part that matters — nothing SENDS
+          anything. There is no job reading these rules, deciding who to tell,
+          and emailing or pushing it; the only mail path in the whole system is
+          the driver invitation function.
+
+          So the panel said "None are set up, so nothing is being notified",
+          which reads as a promise that setting one up would change that. It
+          would not. The pages, the strings and the alert_rules table are all
+          still here — bring this back with the sender, not before.
+        */}
 
         <Panel title={t.auditTitle} hint={t.auditHint}>
           <DataTable

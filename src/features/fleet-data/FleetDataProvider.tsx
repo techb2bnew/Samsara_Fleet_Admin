@@ -329,8 +329,46 @@ function formatClock(iso: string): string {
 }
 
 /** "harsh_braking" -> "Harsh braking". Free-text keys read badly raw. */
+/**
+ * Acronyms the schema stores in lower case, and how they are read out loud.
+ *
+ * Without this "rc" became "Rc" and "puc" became "Puc" on every badge —
+ * capitalising the first letter is right for a word and wrong for initials,
+ * and these are the ones this fleet actually files.
+ */
+const ACRONYMS: Record<string, string> = {
+  rc: 'RC',
+  puc: 'PUC',
+  vin: 'VIN',
+  pod: 'POD',
+  bol: 'BOL',
+  noc: 'NOC',
+  dvir: 'DVIR',
+  eld: 'ELD',
+}
+
+/**
+ * How close an expiry is, in the three states worth colouring.
+ *
+ * Thirty days because that is roughly how long it takes to renew a licence or
+ * a medical in practice — long enough to act, short enough that everything is
+ * not permanently amber.
+ */
+function expiryStateOf(iso: string | null): 'expired' | 'soon' | 'ok' | null {
+  if (!iso) return null
+  const then = new Date(`${iso}T00:00:00`).getTime()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const days = Math.round((then - today.getTime()) / 86_400_000)
+  if (days < 0) return 'expired'
+  if (days <= 30) return 'soon'
+  return 'ok'
+}
+
 function titleCaseWords(value: string): string {
   const clean = value.replace(/[_-]+/g, ' ').trim()
+  const known = ACRONYMS[clean.toLowerCase()]
+  if (known) return known
   return clean.charAt(0).toUpperCase() + clean.slice(1)
 }
 
@@ -631,6 +669,9 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
             opened: formatWhen(row.openedAt),
             costRupees: row.costRupees,
             requestedByDriverName: row.requestedByDriverName,
+            description: row.description,
+            completed: row.completedAt ? formatWhen(row.completedAt) : null,
+            defects: row.defects,
           })),
         )
         setFleetStatus('ready')
@@ -1050,6 +1091,8 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
             status: defect.status,
             workOrderId: defect.workOrderId,
             correctiveAction: defect.correctiveAction,
+            reportedByName: defect.reportedByName,
+            reportedAt: formatWhen(defect.reportedAt),
           }
           if (defect.submissionId) {
             defectsBySubmission[defect.submissionId] = [
@@ -1180,12 +1223,19 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
         setDocuments(
           docRows.map((row) => ({
             id: row.id,
-            name: row.fileName,
+            // Typed by hand at upload, so it arrives however somebody felt
+            // that day. Same treatment as a person's name: first letter only,
+            // and acronyms left alone.
+            name: titleCaseWords(row.fileName),
             kind: titleCaseWords(row.docType),
+            category: row.category === 'trip' ? 'trip' : 'compliance',
+            expires: row.expiresOn ? formatDate(row.expiresOn) : null,
+            expiryState: expiryStateOf(row.expiresOn),
             driver: row.driverName ?? '—',
             vehicle: row.vehicleName ?? '—',
             uploaded: formatWhen(row.uploadedAt),
             sizeKb: row.sizeBytes === null ? null : Math.round(row.sizeBytes / 1024),
+            mimeType: row.mimeType,
             storagePath: row.storagePath,
           })),
         )

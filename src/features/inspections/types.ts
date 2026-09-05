@@ -38,6 +38,13 @@ export type InspectionDefect = {
   workOrderId: string | null
   /** What was done about it. Null while it is still open. */
   correctiveAction: string | null
+  /**
+   * Who reported it, and when. Null when it came from an inspection the office
+   * already has the driver's name against.
+   */
+  reportedByName: string | null
+  /** Already worded for display. */
+  reportedAt: string
 }
 
 /**

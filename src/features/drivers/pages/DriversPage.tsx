@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { STRINGS, TONE_TEXT } from '../../../constants'
+import { STRINGS } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Alert, Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
@@ -110,29 +110,14 @@ export function DriversPage() {
           </div>
         ),
     },
-    {
-      key: 'score',
-      header: t.columns.score,
-      align: 'right',
-      width: '90px',
-      render: (d) =>
-        d.safetyScore === null ? (
-          <span className="text-ink-4">—</span>
-        ) : (
-          <span
-            className={cn(
-              'font-mono font-semibold',
-              d.safetyScore >= 90
-                ? TONE_TEXT.success
-                : d.safetyScore >= 75
-                  ? 'text-ink'
-                  : TONE_TEXT.warning,
-            )}
-          >
-            {d.safetyScore}
-          </span>
-        ),
-    },
+    /*
+      The safety score column was here. It is computed from safety_events,
+      which nothing fills — the module is switched off, see modules.ts — so it
+      showed a dash on every row, on a table the office reads every day.
+
+      The score itself still exists on the driver record and on their profile,
+      where "Not scored yet" is an answer rather than a column of dashes.
+    */
     {
       key: 'actions',
       header: t.columns.actions,

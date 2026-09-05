@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { DetailList, DetailRow, DetailShell } from '../../../components/layout/DetailShell'
@@ -16,7 +16,47 @@ export function DocumentDetailPage() {
   const [opening, setOpening] = useState(false)
   const [openError, setOpenError] = useState<string | null>(null)
 
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+
   const doc = documents.find((d) => d.id === documentId)
+  const storagePath = doc?.storagePath ?? null
+
+  /*
+    A signed URL for the preview, minted once when the page opens.
+
+    The bucket is private, so there is no src to put in an img up front. Signed
+    for the page view rather than on a click: this one IS the click — somebody
+    opened a document to look at it.
+
+    Cancelled on the way out so a slow sign for a document nobody is looking at
+    any more cannot set state on an unmounted page.
+  */
+  useEffect(() => {
+    if (!storagePath) return
+    let cancelled = false
+    setPreviewUrl(null)
+    setPreviewError(null)
+
+    api
+      .documentDownloadUrl(storagePath)
+      .then((url) => {
+        if (cancelled) return
+        if (url) setPreviewUrl(url)
+        else setPreviewError(t.detail.previewFailed)
+      })
+      .catch(() => {
+        if (!cancelled) setPreviewError(t.detail.previewFailed)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [storagePath])
+
+  const mime = doc?.mimeType ?? ''
+  const isImage = mime.startsWith('image/')
+  const isPdf = mime === 'application/pdf'
 
   if (!doc) {
     return (
@@ -88,11 +128,48 @@ export function DocumentDetailPage() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <Panel title={t.detail.preview} hint={t.detail.previewHint}>
-          <div className="flex min-h-[280px] flex-col items-center justify-center bg-ground px-6 py-16 text-center">
-            <p className="font-mono text-[13.5px] text-ink">{doc.name}</p>
-            <p className="mt-1 text-[12.5px] text-ink-3">
-              {doc.sizeKb === null ? '—' : `${doc.sizeKb} KB`} · {doc.kind}
-            </p>
+          {/*
+            The file, drawn.
+
+            This panel was called Preview and showed a file name, a size and a
+            type — three things already in the panel beside it, and none of
+            them the document. Somebody checking whether a licence had been
+            photographed straight had to download it to find out.
+          */}
+          <div className="flex min-h-[320px] items-center justify-center bg-ground p-4">
+            {!doc.storagePath ? (
+              <p className="text-[13px] text-ink-3">{t.detail.noFile}</p>
+            ) : previewError ? (
+              <p className="text-[13px] text-ink-3">{previewError}</p>
+            ) : !previewUrl ? (
+              <p className="text-[13px] text-ink-3">{t.detail.previewLoading}</p>
+            ) : isImage ? (
+              <img
+                src={previewUrl}
+                alt={doc.name}
+                className="max-h-[560px] w-auto max-w-full rounded-[10px] object-contain"
+              />
+            ) : isPdf ? (
+              /* Browsers render a PDF in an iframe; anything else downloads
+                 itself, which is not a preview. */
+              <iframe
+                src={previewUrl}
+                title={doc.name}
+                className="h-[560px] w-full rounded-[10px] border-0 bg-surface"
+              />
+            ) : (
+              <div className="text-center">
+                <p className="text-[13px] text-ink-3">{t.detail.previewNotDrawable}</p>
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-[13px] font-medium text-accent hover:underline"
+                >
+                  {t.detail.previewOpen}
+                </a>
+              </div>
+            )}
           </div>
         </Panel>
 

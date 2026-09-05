@@ -8,7 +8,6 @@ import { Badge, Button, EmptyState, FilterChips, useToast } from '../../../compo
 import { useFleetData } from '../../fleet-data'
 import { ComplianceDocuments } from '../../documents/components/ComplianceDocuments'
 import { DUTY_LABEL, DUTY_TONE, EMPLOYMENT_LABEL, EMPLOYMENT_TONE } from '../types'
-import { SEVERITY_TONE } from '../../safety/types'
 import { hrefForDriverThread, hrefForVehicleName } from '../../../lib/entityLinks'
 import { DriverHoursTab } from '../components/DriverHoursTab'
 import { AddDriverDialog } from '../components/AddDriverDialog'
@@ -26,7 +25,7 @@ function isTab(value: string | null): value is Tab {
 export function DriverDetailPage() {
   const { driverId } = useParams()
   const [params, setParams] = useSearchParams()
-  const { drivers, vehicles, logs, inspections, documents, safetyEvents, inviteDriver } = useFleetData()
+  const { drivers, vehicles, logs, inspections, documents, inviteDriver } = useFleetData()
   // Read once into a variable: a type guard narrows the expression it is given,
   // and calling params.get() a second time produces a fresh `string | null`
   // that the guard has said nothing about.
@@ -65,7 +64,6 @@ export function DriverDetailPage() {
 
   const driverLog = logs.find((log) => log.driver === record.name)
   const driverInspections = inspections.filter((i) => i.driver === record.name)
-  const safety = safetyEvents.filter((e) => e.driver === record.name)
   const driverDocuments = documents.filter((d) => d.driver === record.name)
 
   async function handleInvite() {
@@ -273,32 +271,6 @@ export function DriverDetailPage() {
         </Panel>
       )}
 
-      {tab === 'safety' && (
-        <Panel>
-          {safety.length === 0 ? (
-            <EmptyState title={t.detail.noSafety} />
-          ) : (
-            <ul className="divide-y divide-line">
-              {safety.map((e) => (
-                <li key={e.id}>
-                  <Link
-                    to={`/safety/${e.id}`}
-                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13.5px] font-medium text-ink">{e.kind}</p>
-                      <p className="text-[12.5px] text-ink-3">
-                        {e.location} · {e.at}
-                      </p>
-                    </div>
-                    <Badge tone={SEVERITY_TONE[e.severity]}>{e.severity}</Badge>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-      )}
 
       {tab === 'documents' && (
         <div className="flex flex-col gap-5">

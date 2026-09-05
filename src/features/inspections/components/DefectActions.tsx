@@ -47,6 +47,11 @@ export function DefectRow({
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px] font-medium text-ink">{defect.area}</p>
         <p className="mt-0.5 text-[12.5px] text-ink-3">{defect.finding}</p>
+        <p className="mt-0.5 text-[12px] text-ink-4">
+          {defect.reportedByName
+            ? t.reportedBy(defect.reportedByName, defect.reportedAt)
+            : t.reportedAt(defect.reportedAt)}
+        </p>
         {defect.correctiveAction && (
           <p className="mt-1 text-[12px] text-ink-3">
             {t.actionTaken}: {defect.correctiveAction}

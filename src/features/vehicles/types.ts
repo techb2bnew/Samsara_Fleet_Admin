@@ -54,6 +54,12 @@ export type WorkOrder = {
   costRupees: number
   /** Set when a driver raised this from the app, rather than the office. */
   requestedByDriverName: string | null
+  /** What was actually written when it was raised. Most of what a request is. */
+  description: string | null
+  /** Already formatted. Null while the job is still open. */
+  completed: string | null
+  /** The faults it was raised against, if any. */
+  defects: Array<{ id: string; area: string; finding: string; severity: string }>
 }
 
 export const VEHICLE_STATUS_LABEL: Record<VehicleStatus, string> = {

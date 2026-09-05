@@ -97,7 +97,7 @@ function toKpis(counts: api.DashboardCounts): Kpi[] {
       value: counts.vehiclesOutOfService,
       detail: t.live.outOfServiceHint,
       tone: counts.vehiclesOutOfService > 0 ? 'danger' : undefined,
-      href: '/vehicles',
+      href: '/vehicles?tab=out_of_service',
     },
     {
       id: 'expiring-docs',
@@ -105,7 +105,15 @@ function toKpis(counts: api.DashboardCounts): Kpi[] {
       value: counts.expiringDocuments,
       detail: t.live.expiringDocumentsHint,
       tone: counts.expiringDocuments > 0 ? 'warning' : undefined,
-      href: '/drivers',
+      /*
+       * Documents, filtered to the ones this tile is counting.
+       *
+       * It pointed at /drivers, which is neither where documents live nor
+       * where an expiry is visible. The query string is read by the page: a
+       * tile that says "1" and then shows a list of six is a tile that made
+       * somebody do the filtering by hand.
+       */
+      href: '/documents?show=expiring',
     },
     {
       id: 'service-due',
@@ -113,7 +121,7 @@ function toKpis(counts: api.DashboardCounts): Kpi[] {
       value: counts.serviceDue,
       detail: t.live.serviceDueHint,
       tone: counts.serviceDue > 0 ? 'warning' : undefined,
-      href: '/vehicles',
+      href: '/vehicles?tab=service_due',
     },
     {
       id: 'work-orders',
@@ -168,11 +176,15 @@ function toAlerts(snapshot: api.DashboardSnapshot): Alert[] {
         : t.live.documentExpiring(doc.ownerName, titleCase(doc.docType)),
       detail: doc.expiresOn ? t.live.expiresOn(formatDay(doc.expiresOn)) : '',
       at: doc.expiresOn ? relativeDays(doc.expiresOn) : '',
-      href: doc.driverId
-        ? `/drivers/${doc.driverId}`
-        : doc.vehicleId
-          ? `/vehicles/${doc.vehicleId}`
-          : '/documents',
+      /*
+       * The document itself, not the driver or the truck it belongs to.
+       *
+       * This used to land on the owner's page, leaving somebody to find the
+       * expiring document among everything else filed against them — which is
+       * the one thing they already knew when they clicked. The detail page
+       * shows the file, so the answer to "is this the right one" is on screen.
+       */
+      href: `/documents/${doc.id}`,
     }
   })
 
@@ -182,7 +194,8 @@ function toAlerts(snapshot: api.DashboardSnapshot): Alert[] {
     title: t.live.workOrderOpen(order.reference ?? order.title),
     detail: order.vehicleName ? t.live.workOrderOn(order.vehicleName) : order.title,
     at: relativeDays(order.openedAt),
-    href: '/vehicles',
+    /* The job, not the vehicle list. /work-orders/:id has existed all along. */
+    href: `/work-orders/${order.id}`,
   }))
 
   const byTone = { danger: 0, warning: 1, accent: 2, success: 3, neutral: 4 }

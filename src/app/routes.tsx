@@ -19,7 +19,6 @@ import { DispatchPage, RouteDetailPage } from '../features/dispatch'
 // Form builder (A09) — held back for the second build; see src/modules.ts.
 // import { FormDetailPage, FormsPage } from '../features/forms'
 import { MessagesPage } from '../features/messages'
-import { SafetyEventDetailPage, SafetyPage } from '../features/safety'
 import { CourseDetailPage, TrainingPage } from '../features/training'
 import { DocumentDetailPage, DocumentsPage } from '../features/documents'
 import { ReportsPage } from '../features/reports'
@@ -73,8 +72,11 @@ export function AppRoutes() {
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/documents/:documentId" element={<DocumentDetailPage />} />
 
-          <Route path="/safety" element={<SafetyPage />} />
-          <Route path="/safety/:eventId" element={<SafetyEventDetailPage />} />
+          {/* Safety & coaching (A11) — held back until there is telematics
+              hardware feeding safety_events. Until then /safety falls through
+              to the catch-all route below. See src/modules.ts. */}
+          {/* <Route path="/safety" element={<SafetyPage />} /> */}
+          {/* <Route path="/safety/:eventId" element={<SafetyEventDetailPage />} /> */}
           <Route path="/training" element={<TrainingPage />} />
           <Route path="/training/:courseId" element={<CourseDetailPage />} />
 

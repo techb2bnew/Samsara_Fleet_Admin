@@ -2,6 +2,7 @@ import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase, setRememberMe } from './client'
 import { CONSOLE_ROLES } from '../config'
 import type { AuthResult, Session } from '../features/auth/session'
+import { displayName, personName } from '../lib/names'
 
 /**
  * Every Supabase call the console makes lives in this file.
@@ -61,7 +62,10 @@ export async function loadProfile(userId: string, email: string): Promise<Sessio
   )
   if (!grant?.organizations) return null
 
-  const fullName = profile?.full_name?.trim() || email.split('@')[0]
+  // Capitalised on the way out, like a driver's. A colleague who typed
+  // their own name in lower case at invitation time should not be shown
+  // that way to everyone else.
+  const fullName = displayName(profile?.full_name) || email.split('@')[0]
 
   // Records the visit, so the users screen can show when a colleague was last
   // here. Deliberately not awaited: the sign-in must not wait on it, and a
@@ -458,7 +462,7 @@ export async function loadDashboard(orgId: string): Promise<DashboardSnapshot> {
         driverId: row.driver_id,
         vehicleId: row.vehicle_id,
         ownerName: driver
-          ? `${driver.first_name} ${driver.last_name}`.trim()
+          ? personName(driver.first_name, driver.last_name)
           : vehicleLabel(row.vehicles as EmbeddedVehicle),
       }
     }),
@@ -535,7 +539,7 @@ export async function loadMapVehicles(orgId: string): Promise<MapVehicleRow[]> {
   for (const row of assignments.data ?? []) {
     const driver = row.drivers as { first_name: string; last_name: string } | null
     if (!driver || !row.vehicle_id) continue
-    driverByVehicle.set(row.vehicle_id, `${driver.first_name} ${driver.last_name}`.trim())
+    driverByVehicle.set(row.vehicle_id, personName(driver.first_name, driver.last_name))
   }
 
   return (vehicles.data ?? []).map((v) => ({
@@ -912,6 +916,17 @@ export type WorkOrderRow = {
    * a scheduled service — so the origin has to survive onto the screen.
    */
   requestedByDriverName: string | null
+  /**
+   * What the person who raised it actually wrote.
+   *
+   * The console never showed this. A driver typed "blows warm on both
+   * settings, started this morning" into the app and the workshop saw a title
+   * and nothing else — which is most of what a repair request IS.
+   */
+  description: string | null
+  completedAt: string | null
+  /** The faults this job was raised against, if any. */
+  defects: Array<{ id: string; area: string; finding: string; severity: string }>
 }
 
 /** Distance between services, in kilometres, when the office does not pick one. */
@@ -968,7 +983,7 @@ export async function loadVehicles(orgId: string): Promise<VehicleRow[]> {
     if (!driver || !row.vehicle_id || !row.driver_id) continue
     driverByVehicle.set(row.vehicle_id, {
       id: row.driver_id,
-      name: `${driver.first_name} ${driver.last_name}`.trim(),
+      name: personName(driver.first_name, driver.last_name),
     })
   }
 
@@ -1014,7 +1029,7 @@ export async function loadWorkOrders(orgId: string): Promise<WorkOrderRow[]> {
   const { data, error } = await supabase
     .from('work_orders')
     .select(
-      'id, reference, title, status, opened_at, labour_cost_cents, parts_cost_cents, vehicles(name, plate), users!work_orders_assigned_to_fkey(full_name), drivers(first_name, last_name)',
+      'id, reference, title, description, status, opened_at, completed_at, labour_cost_cents, parts_cost_cents, vehicles(name, plate), users!work_orders_assigned_to_fkey(full_name), drivers(first_name, last_name), defects(id, area, finding, severity)',
     )
     .eq('org_id', orgId)
     .is('deleted_at', null)
@@ -1035,12 +1050,25 @@ export async function loadWorkOrders(orgId: string): Promise<WorkOrderRow[]> {
       title: w.title,
       status: w.status,
       vehicleName: vehicle?.name?.trim() || vehicle?.plate || '—',
-      mechanicName: mechanic?.full_name ?? null,
+      mechanicName: displayName(mechanic?.full_name) || null,
       openedAt: w.opened_at,
       costRupees: Math.round(paise / 100),
       requestedByDriverName: requester
-        ? `${requester.first_name} ${requester.last_name}`.trim()
+        ? personName(requester.first_name, requester.last_name)
         : null,
+      description: w.description,
+      completedAt: w.completed_at,
+      defects: ((w.defects ?? []) as Array<{
+        id: string
+        area: string
+        finding: string
+        severity: string
+      }>).map((d) => ({
+        id: d.id,
+        area: d.area,
+        finding: d.finding,
+        severity: d.severity,
+      })),
     }
   })
 }
@@ -1701,7 +1729,7 @@ export async function loadStaff(orgId: string): Promise<StaffRow[]> {
 
     staff.push({
       id: row.user_id,
-      name: user.full_name,
+      name: displayName(user.full_name) || null,
       email: user.email,
       roleName: (row.roles as { name: string } | null)?.name ?? '',
       fleetName: (row.fleets as { name: string } | null)?.name ?? null,
@@ -1852,21 +1880,21 @@ export async function loadHours(
       return {
         id: e.id,
         driverId: e.driver_id,
-        driverName: driver ? `${driver.first_name} ${driver.last_name}`.trim() : '',
+        driverName: driver ? personName(driver.first_name, driver.last_name) : '',
         status: e.status,
         startedAt: e.started_at,
         vehicleName: vehicle?.name?.trim() || vehicle?.plate || null,
         editOfId: e.edit_of_id,
         editStatus: e.edit_status,
         editReason: e.edit_reason,
-        proposedByName: proposer?.full_name ?? null,
+        proposedByName: displayName(proposer?.full_name) || null,
       }
     }),
     logs: (logs.data ?? []).map((l) => {
       const driver = l.drivers as { first_name: string; last_name: string } | null
       return {
         driverId: l.driver_id,
-        driverName: driver ? `${driver.first_name} ${driver.last_name}`.trim() : '',
+        driverName: driver ? personName(driver.first_name, driver.last_name) : '',
         logDate: l.log_date,
         certifiedAt: l.certified_at,
       }
@@ -1924,6 +1952,16 @@ export type DefectRow = {
   /** The repair job raised for it, when one was. */
   workOrderId: string | null
   correctiveAction: string | null
+  /**
+   * Who reported it, and when.
+   *
+   * The console showed neither. For a fault a driver raised on its own —
+   * "brakes feel soft", typed from a lay-by — who said it and when is most of
+   * what the office needs: the fault itself is one line, and the person who
+   * felt it is the one to ask about it.
+   */
+  reportedByName: string | null
+  reportedAt: string
 }
 
 export async function loadInspections(
@@ -1938,7 +1976,9 @@ export async function loadInspections(
 
     supabase
       .from('defects')
-      .select('id, submission_id, area, finding, severity, status, work_order_id, corrective_action, vehicles(name, plate)')
+      .select(
+        'id, submission_id, area, finding, severity, status, work_order_id, corrective_action, created_at, vehicles(name, plate), drivers(first_name, last_name)',
+      )
       .eq('org_id', orgId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false }),
@@ -1956,7 +1996,7 @@ export async function loadInspections(
         id: row.id,
         formName: form?.name ?? '',
         formKind: form?.kind ?? 'custom',
-        driverName: driver ? `${driver.first_name} ${driver.last_name}`.trim() : null,
+        driverName: driver ? personName(driver.first_name, driver.last_name) : null,
         vehicleName: vehicle?.name?.trim() || vehicle?.plate || null,
         submittedAt: row.submitted_at,
         status: row.status,
@@ -1964,6 +2004,7 @@ export async function loadInspections(
     }),
     defects: (defects.data ?? []).map((row) => {
       const vehicle = row.vehicles as { name: string | null; plate: string } | null
+      const reporter = row.drivers as { first_name: string; last_name: string } | null
       return {
         id: row.id,
         submissionId: row.submission_id,
@@ -1974,6 +2015,10 @@ export async function loadInspections(
         status: row.status,
         workOrderId: row.work_order_id,
         correctiveAction: row.corrective_action,
+        reportedByName: reporter
+          ? personName(reporter.first_name, reporter.last_name)
+          : null,
+        reportedAt: row.created_at,
       }
     }),
   }
@@ -2259,7 +2304,7 @@ export async function loadRoutes(
         reference: r.reference,
         driverId: r.driver_id,
         vehicleId: r.vehicle_id,
-        driverName: driver ? `${driver.first_name} ${driver.last_name}`.trim() : null,
+        driverName: driver ? personName(driver.first_name, driver.last_name) : null,
         vehicleName: vehicle?.name?.trim() || vehicle?.plate || null,
         status: r.status,
         plannedStartAt: r.planned_start_at,
@@ -2501,7 +2546,7 @@ export async function loadMessages(orgId: string): Promise<MessageRow[]> {
     return {
       id: m.id,
       driverId: m.driver_id,
-      driverName: driver ? `${driver.first_name} ${driver.last_name}`.trim() : '',
+      driverName: driver ? personName(driver.first_name, driver.last_name) : '',
       direction: m.direction,
       body: m.body,
       sentAt: m.sent_at,
@@ -2700,10 +2745,25 @@ export type TripDocumentRow = {
   id: string
   fileName: string
   docType: string
+  /**
+   * Compliance paperwork or something that came back from a job.
+   *
+   * This loader used to fetch only 'trip', so the Documents screen showed
+   * nothing while the organisation had six licences and insurance
+   * certificates on file — they were reachable from a driver or a vehicle and
+   * nowhere else. Both kinds belong on the screen that is called Documents;
+   * the category is what separates them into tabs rather than what decides
+   * whether they exist.
+   */
+  category: 'compliance' | 'trip' | 'vehicle'
   driverName: string | null
   vehicleName: string | null
   uploadedAt: string
+  /** Compliance paperwork expires; trip paperwork does not. */
+  expiresOn: string | null
   sizeBytes: number | null
+  /** What kind of file it is, so a preview knows whether it can draw it. */
+  mimeType: string | null
   /** Where the file sits in storage. Null when only a record was filed. */
   storagePath: string | null
 }
@@ -2711,9 +2771,10 @@ export type TripDocumentRow = {
 export async function loadTripDocuments(orgId: string): Promise<TripDocumentRow[]> {
   const { data, error } = await supabase
     .from('documents')
-    .select('id, doc_type, title, storage_path, size_bytes, created_at, drivers!documents_driver_id_fkey(first_name, last_name), vehicles!documents_vehicle_id_fkey(name, plate)')
+    .select(
+      'id, category, doc_type, title, storage_path, size_bytes, mime_type, expires_on, created_at, drivers!documents_driver_id_fkey(first_name, last_name), vehicles!documents_vehicle_id_fkey(name, plate)',
+    )
     .eq('org_id', orgId)
-    .eq('category', 'trip')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
@@ -2727,10 +2788,13 @@ export async function loadTripDocuments(orgId: string): Promise<TripDocumentRow[
       // The title if somebody set one, else the file name out of the path.
       fileName: row.title?.trim() || row.storage_path?.split('/').pop() || row.doc_type,
       docType: row.doc_type,
-      driverName: driver ? `${driver.first_name} ${driver.last_name}`.trim() : null,
+      category: row.category,
+      driverName: driver ? personName(driver.first_name, driver.last_name) : null,
       vehicleName: vehicle?.name?.trim() || vehicle?.plate || null,
       uploadedAt: row.created_at,
+      expiresOn: row.expires_on,
       sizeBytes: row.size_bytes === null ? null : Number(row.size_bytes),
+      mimeType: row.mime_type,
       storagePath: row.storage_path,
     }
   })
@@ -2927,7 +2991,7 @@ export async function loadSafetyEvents(orgId: string): Promise<SafetyEventRow[]>
     const driver = row.drivers as { first_name: string; last_name: string } | null
     return {
       id: row.id,
-      driverName: driver ? `${driver.first_name} ${driver.last_name}`.trim() : '',
+      driverName: driver ? personName(driver.first_name, driver.last_name) : '',
       eventType: row.event_type,
       severity: row.severity,
       locationName: row.location_name,
@@ -3040,7 +3104,7 @@ export async function loadCourses(orgId: string): Promise<CourseRow[]> {
         return {
           assignmentId: a.id,
           driverId: a.driver_id,
-          driverName: driver ? `${driver.first_name} ${driver.last_name}`.trim() : '—',
+          driverName: driver ? personName(driver.first_name, driver.last_name) : '—',
           // Overdue outranks whatever the row says: a course due last week is
           // overdue whether the driver started it or not.
           status: overdue ? ('overdue' as const) : a.status,

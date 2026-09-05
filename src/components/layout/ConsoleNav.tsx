@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { GROUPS, MODULES, type Module } from '../../modules'
+import { GROUPS, MODULES, UNGROUPED, type Module } from '../../modules'
 import { STRINGS } from '../../constants'
 import {
   BookIcon,
@@ -70,6 +70,36 @@ export function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <nav className="console-nav flex-1 overflow-y-auto px-3 py-3.5">
+        {/*
+          The home page sits above the first heading, with none of its own.
+          A group of one is a header that labels nothing.
+        */}
+        {UNGROUPED.length > 0 && (
+          <div className="mb-5 flex flex-col gap-0.5">
+            {UNGROUPED.map((m) => {
+              const Icon = NAV_ICON[m.id]
+              return (
+                <NavLink
+                  key={m.id}
+                  to={m.path}
+                  end={m.path === '/'}
+                  onClick={onNavigate}
+                  className={({ isActive }) => itemClass(isActive)}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span className={iconWrapClass(isActive)}>
+                        <Icon size={15} />
+                      </span>
+                      <span className="min-w-0 truncate">{m.name}</span>
+                    </>
+                  )}
+                </NavLink>
+              )
+            })}
+          </div>
+        )}
+
         {GROUPS.map((group) => {
           const items = MODULES.filter((m) => m.group === group)
           if (items.length === 0) return null

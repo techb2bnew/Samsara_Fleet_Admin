@@ -595,7 +595,12 @@ export const STRINGS = {
       overview: 'Overview',
       hours: 'Hours',
       inspections: 'Inspections',
-      safety: 'Safety',
+      /*
+        Safety was a tab here. It read from safety_events, which nothing fills
+        — see modules.ts — so on every driver, forever, it said "no safety
+        events recorded". Removed with the module rather than left as a tab
+        that can only disappoint.
+      */
       documents: 'Documents',
     },
     detail: {
@@ -700,7 +705,12 @@ export const STRINGS = {
     description: 'Trucks, trailers and the work needed to keep them on the road.',
     add: 'Add a vehicle',
     searchPlaceholder: 'Search by name, plate or VIN',
-    tabs: { all: 'All', active: 'Active', in_maintenance: 'In maintenance', out_of_service: 'Out of service' },
+    /*
+      "Service due" is not a vehicle status — it is worked out from the
+      odometer against the interval. It is a tab because the dashboard counts
+      it and links here, and a tile that says "1" should land on that one.
+    */
+    tabs: { all: 'All', service_due: 'Service due', active: 'Active', in_maintenance: 'In maintenance', out_of_service: 'Out of service' },
     columns: { vehicle: 'Vehicle', makeModel: 'Make & model', depot: 'Depot', status: 'Status', driver: 'Current driver', odometer: 'Odometer', service: 'Next service', actions: '' },
     empty: 'No vehicles match those filters.',
     back: 'All vehicles',
@@ -755,6 +765,33 @@ export const STRINGS = {
       opened: 'Opened',
       cost: 'Cost so far',
       openVehicle: 'Open vehicle',
+      completed: 'Completed',
+      raisedBy: 'Raised by',
+      byOffice: 'The office',
+      /* What was written when it was raised. The console showed a title and
+         nothing else, which is most of a request thrown away. */
+      details: 'What was reported',
+      noDetails: 'Nothing written beyond the job title.',
+      faults: 'Faults on this job',
+      noFaults: 'Raised on its own, not against a reported fault.',
+      severity: { minor: 'Minor', major: 'Major', out_of_service: 'Unsafe to drive' },
+
+      /* Moving the job on. Nothing in the console could do this — the api and
+         the provider both had it, and no screen ever called them. */
+      actions: 'Move this on',
+      start: 'Start work',
+      assign: 'Mark assigned',
+      complete: 'Mark completed',
+      cancel: 'Cancel this job',
+      reopen: 'Reopen',
+      confirmCompleteTitle: 'Mark this job completed?',
+      confirmCompleteMessage:
+        'The driver sees it as done straight away. Reopen it if work is still outstanding.',
+      confirmCancelTitle: 'Cancel this job?',
+      confirmCancelMessage:
+        'The driver sees it as cancelled. The fault it was raised against stays open.',
+      statusToast: (status: string) => `Moved to ${status.toLowerCase()}`,
+      statusFailed: 'That could not be changed.',
     },
   },
 
@@ -874,6 +911,11 @@ export const STRINGS = {
     defectActions: {
       raise: 'Raise work order',
       close: 'Close',
+      /* Who felt it and when. For a fault raised from a lay-by this is most of
+         what the office needs — the fault is one line, the person who felt it
+         is the one to ask. */
+      reportedBy: (name: string, when: string) => `${name} · ${when}`,
+      reportedAt: (when: string) => when,
       actionTaken: 'Action taken',
       onWorkOrder: (reference: string) => `Work order ${reference}`,
 
@@ -1269,7 +1311,7 @@ export const STRINGS = {
     nothingToExport: 'No documents match those filters',
     loadFailed: 'Documents could not be loaded.',
     title: 'Documents',
-    description: 'Paperwork captured from the cab, filed and searchable.',
+    description: 'Compliance paperwork and everything that comes back from a job.',
     searchPlaceholder: 'Search by file, driver or vehicle',
     exportAll: 'Export selection',
     confirmExportTitle: 'Export documents?',
@@ -1277,15 +1319,59 @@ export const STRINGS = {
       `${n} ${n === 1 ? 'document' : 'documents'} will be packaged as a ZIP and emailed to you when it is ready.`,
     confirmExport: 'Start export',
     exportToast: 'Export started — you will get an email when it is ready',
-    tabs: { all: 'All', bol: 'Bills of lading', pod: 'Proof of delivery', receipt: 'Receipts', fuel: 'Fuel dockets' },
-    columns: { file: 'File', kind: 'Type', driver: 'Driver', vehicle: 'Vehicle', uploaded: 'Uploaded', size: 'Size' },
+    /*
+      Two tabs, not five.
+
+      This used to split by document TYPE — bills of lading, proof of delivery,
+      receipts, fuel dockets — all four of them trip paperwork, while the
+      screen loaded nothing else. So an organisation with six licences and
+      insurance certificates on file saw four empty tabs and no way to reach
+      the paperwork it actually had.
+
+      The split that matters is why you are looking: compliance is what keeps a
+      driver and a truck legal and is watched for expiry; trip paperwork is
+      what came back from a job. The type is still on every row.
+    */
+    /*
+      "Expiring" is a fourth tab rather than a hidden state, because the
+      dashboard links straight into it — and a filter applied by a link that
+      the page does not show is a list somebody cannot get back out of.
+    */
+    tabs: {
+      all: 'All',
+      expiring: 'Expiring',
+      compliance: 'Compliance',
+      trip: 'Trip paperwork',
+    },
+    columns: {
+      file: 'File',
+      // No `kind` header any more: the type reads under the file name instead
+      // of taking a column of its own next to one that usually said the same
+      // word. The detail screen still labels it.
+      driver: 'Driver',
+      vehicle: 'Vehicle',
+      expires: 'Expires',
+      uploaded: 'Uploaded',
+      size: 'Size',
+    },
+    noExpiry: '—',
+    expired: 'Expired',
     empty: 'No documents match those filters.',
+    emptyTrip: 'Nothing from the cab yet',
+    emptyTripHint: 'Paperwork a driver photographs at a stop appears here.',
+    emptyCompliance: 'No compliance paperwork filed',
+    emptyComplianceHint: 'Licences, medicals and insurance are filed from a driver or a vehicle.',
     back: 'All documents',
     notFound: 'That document no longer exists.',
     detail: {
       about: 'File',
       preview: 'Preview',
-      previewHint: 'Captured from the cab.',
+      previewHint: 'The file itself, without downloading it.',
+      previewLoading: 'Loading the file…',
+      previewFailed: 'That file could not be loaded.',
+      /* A PDF or anything else the browser will not draw inline. */
+      previewNotDrawable: 'This file opens in a new tab.',
+      previewOpen: 'Open it',
       noFile: 'No file was uploaded with this record',
       openFailed: 'That file could not be opened.',
       file: 'File name',
@@ -1304,7 +1390,13 @@ export const STRINGS = {
     nothingToRun: (name: string) => `${name} has no data to export yet`,
     title: 'Reports',
     description: 'Eleven standard reports. Filter by depot, then export a spreadsheet.',
-    run: 'Run',
+    /*
+      "Download CSV", not "Run". Nothing runs and nothing appears on screen —
+      the button builds a spreadsheet and saves it, immediately. "Run" reads
+      as "show me", so people pressed it and then looked around for a result
+      that had already gone to their downloads folder.
+    */
+    run: 'Download CSV',
     depotAria: 'Depot',
     depots: { all: 'All depots' },
     scheduleTitle: 'Scheduled delivery',
@@ -1428,18 +1520,21 @@ export const STRINGS = {
       { to: '/vehicles', title: 'Vehicles', body: 'The fleet, service due and work orders.' },
       { to: '/dispatch', title: 'Dispatch', body: 'Today’s routes and who is on them.' },
       { to: '/messages', title: 'Messages', body: 'Conversations with drivers, and a fleet broadcast.' },
-      { to: '/safety', title: 'Safety', body: 'Events from the road and coaching assigned.' },
       { to: '/settings', title: 'Settings', body: 'Organisation, alert rules and the audit log.' },
     ],
   },
 
   /** Sidebar section headings. */
+  /*
+    Four headings. Overview and People were dropped — see modules.ts: one was a
+    label over two pages that answer different questions, the other held a
+    single item once Safety was switched off, and a group of one is a header
+    labelling nothing.
+  */
   moduleGroups: {
-    Overview: 'Overview',
     Fleet: 'Fleet',
     Compliance: 'Compliance',
     Operations: 'Operations',
-    People: 'People',
     Admin: 'Admin',
   },
 } as const
