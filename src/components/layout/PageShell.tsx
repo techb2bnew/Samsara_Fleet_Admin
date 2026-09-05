@@ -29,7 +29,7 @@ export function PageShell({
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             {eyebrow && <p className="text-[12.5px] font-medium text-ink-3">{eyebrow}</p>}
-            <h1 className="mt-1 text-[22px] leading-tight font-semibold tracking-[-0.03em] text-ink sm:text-[24px]">
+            <h1 className="mt-1 text-[22px] leading-tight font-semibold tracking-[-0.035em] text-ink sm:text-[26px]">
               {title}
             </h1>
             {description && <p className="mt-1.5 max-w-2xl text-[13.5px] text-ink-3">{description}</p>}
@@ -59,14 +59,14 @@ export function Panel({
   return (
     <section
       className={cn(
-        'overflow-hidden rounded-[12px] border border-line bg-surface panel-shadow',
+        'overflow-hidden rounded-[14px] border border-line bg-surface panel-shadow',
         className,
       )}
     >
       {title && (
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-4 sm:px-5">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line bg-surface-2/45 px-4 py-4 sm:px-5">
           <div>
-            <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
+            <h2 className="text-[15px] font-semibold tracking-[-0.02em] text-ink">{title}</h2>
             {hint && <p className="mt-0.5 text-[12.5px] text-ink-3">{hint}</p>}
           </div>
           {action}

@@ -1,24 +1,28 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { DetailList, DetailRow, DetailShell } from '../../../components/layout/DetailShell'
 import { Panel } from '../../../components/layout/PageShell'
-import { Badge, EmptyState } from '../../../components/ui'
+import { Badge, Button, EmptyState } from '../../../components/ui'
 import { useFleetData } from '../../fleet-data'
+import { AssignDriverDialog } from '../components/AssignDriverDialog'
+import { AddVehicleDialog } from '../components/AddVehicleDialog'
+import { ComplianceDocuments } from '../../documents/components/ComplianceDocuments'
 import {
-  MOCK_WORK_ORDERS,
   VEHICLE_STATUS_LABEL,
   VEHICLE_STATUS_TONE,
   WORK_ORDER_LABEL,
   WORK_ORDER_TONE,
-} from '../../../mocks/vehicles'
-import { MOCK_INSPECTIONS } from '../../../mocks/compliance'
+} from '../types'
 import { hrefForDriverName } from '../../../lib/entityLinks'
 
 const t = STRINGS.vehicles
 
 export function VehicleDetailPage() {
   const { vehicleId } = useParams()
-  const { vehicles, drivers } = useFleetData()
+  const { vehicles, drivers, workOrders, inspections } = useFleetData()
+  const [assigning, setAssigning] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   const vehicle = vehicles.find((v) => v.id === vehicleId)
 
@@ -32,10 +36,10 @@ export function VehicleDetailPage() {
     )
   }
 
-  const workOrders = MOCK_WORK_ORDERS.filter(
+  const openWorkOrders = workOrders.filter(
     (w) => w.vehicle === vehicle.name && w.status !== 'completed',
   )
-  const inspections = MOCK_INSPECTIONS.filter((i) => i.vehicle === vehicle.name)
+  const vehicleInspections = inspections.filter((i) => i.vehicle === vehicle.name)
 
   return (
     <DetailShell
@@ -48,6 +52,11 @@ export function VehicleDetailPage() {
           {VEHICLE_STATUS_LABEL[vehicle.status]}
         </Badge>
       }
+      actions={
+        <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+          {t.detail.edit}
+        </Button>
+      }
     >
       <div className="grid gap-5 lg:grid-cols-2">
         <Panel title={t.detail.identity}>
@@ -55,12 +64,40 @@ export function VehicleDetailPage() {
             <DetailRow label={t.detail.plate}>
               <span className="font-mono">{vehicle.plate}</span>
             </DetailRow>
+            <DetailRow label={t.detail.vin}>
+              {vehicle.vin ? (
+                <span className="font-mono">{vehicle.vin}</span>
+              ) : (
+                <span className="text-ink-4">—</span>
+              )}
+            </DetailRow>
             <DetailRow label={t.detail.makeModel}>{vehicle.makeModel}</DetailRow>
-            <DetailRow label={t.detail.year}>{vehicle.year}</DetailRow>
+            <DetailRow label={t.detail.year}>
+              {vehicle.year ?? <span className="text-ink-4">—</span>}
+            </DetailRow>
+            <DetailRow label={t.detail.kind}>
+              {vehicle.kind === 'trailer' ? t.kindTrailer : t.kindTruck}
+            </DetailRow>
+            <DetailRow label={t.detail.depot}>
+              {vehicle.depot?.name ?? <span className="text-ink-4">—</span>}
+            </DetailRow>
           </DetailList>
         </Panel>
 
-        <Panel title={t.detail.condition}>
+        <Panel
+          title={t.detail.condition}
+          action={
+            // A trailer has no driver of its own — it is towed by one that has.
+            vehicle.kind === 'trailer' ? undefined : (
+              <Button size="sm" variant="secondary" onClick={() => setAssigning(true)}>
+                {vehicle.driver ? t.detail.changeDriver : t.detail.assignDriver}
+              </Button>
+            )
+          }
+        >
+          {vehicle.kind === 'trailer' ? (
+            <EmptyState title={t.detail.trailerCondition} hint={t.detail.trailerConditionHint} />
+          ) : (
           <DetailList>
             <DetailRow label={t.detail.driver}>
               {vehicle.driver ? (
@@ -75,8 +112,8 @@ export function VehicleDetailPage() {
               <span className="font-mono">{vehicle.odometerKm.toLocaleString()} km</span>
             </DetailRow>
             <DetailRow label={t.detail.nextService}>
-              {vehicle.nextServiceKm === 0 ? (
-                <span className="text-ink-4">—</span>
+              {vehicle.nextServiceKm === null ? (
+                <span className="text-ink-3">{t.detail.noSchedule}</span>
               ) : vehicle.serviceOverdueKm > 0 ? (
                 <span className="font-medium text-warn">{t.overdueBy(vehicle.serviceOverdueKm)}</span>
               ) : (
@@ -84,14 +121,15 @@ export function VehicleDetailPage() {
               )}
             </DetailRow>
           </DetailList>
+          )}
         </Panel>
 
         <Panel title={t.detail.openWorkOrders}>
-          {workOrders.length === 0 ? (
+          {openWorkOrders.length === 0 ? (
             <EmptyState title={t.detail.noWorkOrders} />
           ) : (
             <ul className="divide-y divide-line">
-              {workOrders.map((w) => (
+              {openWorkOrders.map((w) => (
                 <li key={w.id}>
                   <Link
                     to={`/work-orders/${w.id}`}
@@ -111,12 +149,14 @@ export function VehicleDetailPage() {
           )}
         </Panel>
 
+        <ComplianceDocuments owner={{ vehicleId: vehicle.id, name: vehicle.name }} />
+
         <Panel title={t.detail.recentInspections}>
-          {inspections.length === 0 ? (
+          {vehicleInspections.length === 0 ? (
             <EmptyState title={t.detail.noInspections} />
           ) : (
             <ul className="divide-y divide-line">
-              {inspections.map((i) => (
+              {vehicleInspections.map((i) => (
                 <li key={i.id}>
                   <Link
                     to={`/inspections/${i.id}`}
@@ -138,6 +178,15 @@ export function VehicleDetailPage() {
           )}
         </Panel>
       </div>
+
+      {vehicle.kind === 'truck' && (
+        <AssignDriverDialog
+          open={assigning}
+          vehicle={vehicle}
+          onClose={() => setAssigning(false)}
+        />
+      )}
+      <AddVehicleDialog open={editing} vehicle={vehicle} onClose={() => setEditing(false)} />
     </DetailShell>
   )
 }

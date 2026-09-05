@@ -17,10 +17,8 @@ import { STRINGS } from '../../constants'
  * The only place that talks to an auth backend. Screens call `useAuth()` and
  * never reach for Supabase themselves.
  *
- * Signing in is always real, and deliberately ignores USE_MOCK_DATA. There is
- * no fake sign-in path: the only way in is an account that exists in Supabase.
- * That flag decides where the *data* on each screen comes from — drivers,
- * vehicles, hours — and has no say over who may open the console.
+ * There is no fake sign-in path: the only way in is an account that exists in
+ * Supabase.
  *
  * Supabase keeps the token itself, in localStorage or sessionStorage depending
  * on "Keep me signed in" (see supabase/client.ts). Nothing is stored here.

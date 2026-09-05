@@ -1,0 +1,23 @@
+-- ============================================================================
+-- Dropping driver_commitments, which should never have been written
+-- ============================================================================
+-- It was added one migration ago to tell the dispatch screen which truck a
+-- driver is on and which route they still have open, so the office could be
+-- warned before double-booking somebody.
+--
+-- The console already had both. It loads routes with driver_id, vehicle_id and
+-- status, and vehicles with their current driver, and it reloads them live.
+-- The warning is a filter over data the browser is already holding, and a
+-- round trip to work it out again would be slower and could disagree with the
+-- list rendered next to it.
+--
+-- Dropped rather than left in place. An unused function in a schema reads as
+-- something with a caller, and the next person to touch dispatch would go
+-- looking for one.
+--
+-- taken_vehicle_ids and sign_on_to_vehicle from that migration stay: the
+-- driver app genuinely cannot answer either question, because dva_select_self
+-- hides other drivers' assignments from it.
+-- ============================================================================
+
+drop function if exists public.driver_commitments(uuid);

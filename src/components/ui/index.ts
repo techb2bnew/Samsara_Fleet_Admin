@@ -31,9 +31,10 @@ export {
   BookIcon,
   ChartIcon,
   UsersIcon,
+  CheckIcon,
   FormIcon,
 } from './Icon'
 export { Modal } from './Modal'
 export { ConfirmDialog } from './ConfirmDialog'
 export { ToastProvider, useToast } from './Toast'
-export { FormGrid, FormRow, Select, Textarea } from './FormFields'
+export { FormGrid, FormRow, Select, Textarea, FileField } from './FormFields'

@@ -4,33 +4,51 @@ import { cn } from '../../../lib/cn'
 import { Panel } from '../../../components/layout/PageShell'
 import { ArrowRightIcon, Button, EmptyState } from '../../../components/ui'
 import { HosLogGrid } from '../../hours/components/HosLogGrid'
+import { dayRecap, drivingMinutes, onDutyMinutes, formatClock } from '../../hours/totals'
+import { datesForPeriod, formatLogColumn, fromIsoDate, isSameDay, shiftAnchor, toIsoDate } from '../../hours/dates'
 import {
-  datesForPeriod,
-  dutyClocksFor,
-  dutyLogFor,
-  formatLogColumn,
-  fromIsoDate,
-  isSameDay,
   logStateOn,
   LOG_STATE_LABEL,
   LOG_STATE_TONE,
-  shiftAnchor,
-  toIsoDate,
   type DailyLog,
-} from '../../../mocks/compliance'
-import type { Driver } from '../../../mocks/people'
+} from '../../hours/types'
+import type { Driver } from '../types'
+import { useFleetData } from '../../fleet-data'
 
 const t = STRINGS.drivers
 
 export function DriverHoursTab({ driver, logs }: { driver: Driver; logs: DailyLog | undefined }) {
+  const { dutySegmentsFor, cycleWindowFor } = useFleetData()
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     return d
   }, [])
   const [day, setDay] = useState(today)
-  const segments = dutyLogFor(driver.id, day)
-  const clocks = dutyClocksFor(driver.hoursLeft)
+  const segments = dutySegmentsFor(driver.id, day)
+
+  /*
+   * All four recap figures are measured from the duty events — hours used, not
+   * hours left. Remaining time needs a limit, the limit depends on the
+   * regulator, and mixing the two is how a recap ends up reading backwards.
+   *
+   * Null on a day with nothing recorded: that is not a day of zeroes, and the
+   * grid shows dashes for it.
+   */
+  const clocks = useMemo(
+    () => dayRecap(segments, cycleWindowFor(driver.id, day)),
+    [segments, cycleWindowFor, driver.id, day],
+  )
+
+  /** The week's totals, from the same events the graph draws. */
+  const week = useMemo(() => {
+    const days = datesForPeriod('week', day).map((date) => dutySegmentsFor(driver.id, date))
+    return {
+      driving: days.reduce((sum, segs) => sum + drivingMinutes(segs), 0),
+      onDuty: days.reduce((sum, segs) => sum + onDutyMinutes(segs), 0),
+      worked: days.filter((segs) => onDutyMinutes(segs) > 0).length,
+    }
+  }, [dutySegmentsFor, driver.id, day])
   const label = day.toLocaleDateString(undefined, {
     weekday: 'long',
     day: 'numeric',
@@ -73,6 +91,30 @@ export function DriverHoursTab({ driver, logs }: { driver: Driver; logs: DailyLo
           </Button>
         </div>
         <HosLogGrid segments={segments} clocks={clocks} />
+      </Panel>
+
+      {/* The week beside the day. A single day answers "was yesterday legal";
+          the week answers "is this driver being worked too hard", which is the
+          question that turns up in a roster review. */}
+      <Panel title={t.detail.weekTitle} hint={t.detail.weekHint}>
+        <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-3">
+          {(
+            [
+              [t.detail.weekDriving, formatClock(week.driving)],
+              [t.detail.weekOnDuty, formatClock(week.onDuty)],
+              [t.detail.weekDays, String(week.worked)],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label} className="bg-surface px-5 py-3.5">
+              <p className="text-[11px] font-medium tracking-[0.05em] text-ink-4 uppercase">
+                {label}
+              </p>
+              <p className="mt-0.5 font-mono text-[19px] font-semibold tabular-nums text-ink">
+                {value}
+              </p>
+            </div>
+          ))}
+        </div>
       </Panel>
 
       <Panel title={t.detail.recentLogs}>

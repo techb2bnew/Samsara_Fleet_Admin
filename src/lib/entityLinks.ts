@@ -1,5 +1,6 @@
-import type { Driver, StaffUser } from '../mocks/people'
-import type { Vehicle } from '../mocks/vehicles'
+import type { StaffUser } from '../features/users/types'
+import type { Driver } from '../features/drivers/types'
+import type { Vehicle } from '../features/vehicles/types'
 
 export function hrefForDriverName(drivers: Driver[], name: string | null | undefined) {
   if (!name) return '/drivers'
@@ -34,4 +35,8 @@ export function hrefForDriverThread(name: string | null | undefined) {
 export function hrefForVehicleOnMap(name: string | null | undefined) {
   if (!name) return '/map'
   return `/map?vehicle=${encodeURIComponent(name)}`
+}
+
+export function hrefForRouteOnMap(routeId: string) {
+  return `/map?route=${encodeURIComponent(routeId)}`
 }

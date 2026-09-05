@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { STRINGS, TONE_TEXT } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
-import { Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
-import { DRIVER_STATUS_LABEL, DRIVER_STATUS_TONE, type Driver } from '../../../mocks/people'
+import { Alert, Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
+import { EMPLOYMENT_LABEL, EMPLOYMENT_TONE, type Driver } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
 import { AddDriverDialog } from '../components/AddDriverDialog'
@@ -14,9 +14,10 @@ type Tab = keyof typeof t.tabs
 
 /** Module A04. */
 export function DriversPage() {
-  const { drivers } = useFleetData()
+  const { drivers, driversStatus, driversError, reloadDrivers } = useFleetData()
   // Opened directly by the dashboard quick action, which links to ?new=1.
   const [adding, setAdding] = useOpenOnQuery()
+  const [editing, setEditing] = useState<Driver | null>(null)
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
@@ -24,10 +25,13 @@ export function DriversPage() {
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
     return drivers.filter((d) => {
-      if (tab !== 'all' && d.status !== tab) return false
+      if (tab !== 'all' && d.employment !== tab) return false
       if (!q) return true
       return (
-        d.name.toLowerCase().includes(q) || d.employeeNumber.toLowerCase().includes(q)
+        d.name.toLowerCase().includes(q) ||
+        d.employeeNumber.toLowerCase().includes(q) ||
+        d.email.toLowerCase().includes(q) ||
+        (d.vehicle ? d.vehicle.toLowerCase().includes(q) : false)
       )
     })
   }, [drivers, tab, search])
@@ -43,18 +47,18 @@ export function DriversPage() {
           </span>
           <div className="min-w-0">
             <p className="truncate font-medium text-ink">{d.name}</p>
-            <p className="truncate font-mono text-[11.5px] text-ink-4">{d.employeeNumber}</p>
+            <p className="truncate font-mono text-[11.5px] text-ink-4">{d.employeeNumber || '—'}</p>
           </div>
         </div>
       ),
     },
-    { key: 'terminal', header: t.columns.terminal, secondary: true, render: (d) => d.terminal },
+    { key: 'depot', header: t.columns.depot, secondary: true, render: (d) => d.depot?.name ?? '—' },
     {
       key: 'status',
       header: t.columns.status,
       width: '130px',
       render: (d) => (
-        <Badge tone={DRIVER_STATUS_TONE[d.status]}>{DRIVER_STATUS_LABEL[d.status]}</Badge>
+        <Badge tone={EMPLOYMENT_TONE[d.employment]}>{EMPLOYMENT_LABEL[d.employment]}</Badge>
       ),
     },
     {
@@ -68,54 +72,89 @@ export function DriversPage() {
       header: t.columns.hoursLeft,
       align: 'right',
       width: '100px',
-      render: (d) => (
-        <span
-          className={cn(
-            'font-mono',
-            d.hoursLeft === '0:00' ? 'font-semibold text-danger' : 'text-ink-2',
-          )}
-        >
-          {d.hoursLeft}
-        </span>
-      ),
+      render: (d) =>
+        d.hoursLeft === null ? (
+          <span className="text-ink-4">—</span>
+        ) : (
+          <span
+            className={cn(
+              'font-mono',
+              d.hoursLeft === '0:00' ? 'font-semibold text-danger' : 'text-ink-2',
+            )}
+          >
+            {d.hoursLeft}
+          </span>
+        ),
     },
     {
       key: 'licence',
       header: t.columns.licence,
       secondary: true,
-      render: (d) => (
-        <div>
-          <p className={d.licenceWarning ? 'font-medium text-warn' : ''}>{d.licenceExpires}</p>
-          {d.licenceWarning && (
-            <p className="text-[11.5px] text-warn">{t.licenceWarning}</p>
-          )}
-        </div>
-      ),
+      render: (d) =>
+        d.licenceExpires === null ? (
+          <span className="text-ink-4">—</span>
+        ) : (
+          <div>
+            <p
+              className={cn(
+                d.licenceExpired && 'font-semibold text-danger',
+                d.licenceWarning && 'font-medium text-warn',
+              )}
+            >
+              {d.licenceExpires}
+            </p>
+            {d.licenceExpired && (
+              <p className="text-[11.5px] font-medium text-danger">{t.licenceExpired}</p>
+            )}
+            {d.licenceWarning && <p className="text-[11.5px] text-warn">{t.licenceWarning}</p>}
+          </div>
+        ),
     },
     {
       key: 'score',
       header: t.columns.score,
       align: 'right',
       width: '90px',
+      render: (d) =>
+        d.safetyScore === null ? (
+          <span className="text-ink-4">—</span>
+        ) : (
+          <span
+            className={cn(
+              'font-mono font-semibold',
+              d.safetyScore >= 90
+                ? TONE_TEXT.success
+                : d.safetyScore >= 75
+                  ? 'text-ink'
+                  : TONE_TEXT.warning,
+            )}
+          >
+            {d.safetyScore}
+          </span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: t.columns.actions,
+      width: '72px',
+      align: 'right',
       render: (d) => (
-        <span
-          className={cn(
-            'font-mono font-semibold',
-            d.safetyScore >= 90
-              ? TONE_TEXT.success
-              : d.safetyScore >= 75
-                ? 'text-ink'
-                : TONE_TEXT.warning,
-          )}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(event) => {
+            event.stopPropagation()
+            setEditing(d)
+          }}
         >
-          {d.safetyScore}
-        </span>
+          {STRINGS.common.edit}
+        </Button>
       ),
     },
   ]
 
   const countFor = (key: Tab) =>
-    key === 'all' ? drivers.length : drivers.filter((d) => d.status === key).length
+    key === 'all' ? drivers.length : drivers.filter((d) => d.employment === key).length
 
   return (
     <PageShell
@@ -124,6 +163,19 @@ export function DriversPage() {
       description={t.description}
       actions={<Button size="sm" onClick={() => setAdding(true)}>{t.add}</Button>}
     >
+      {driversStatus === 'error' && (
+        <div className="mb-5" role="alert">
+          <Alert tone="danger" title={t.loadFailed}>
+            <div className="flex flex-wrap items-center gap-3">
+              <span>{driversError}</span>
+              <Button size="sm" variant="secondary" onClick={reloadDrivers}>
+                {STRINGS.common.retry}
+              </Button>
+            </div>
+          </Alert>
+        </div>
+      )}
+
       <Panel>
         <Toolbar search={search} onSearchChange={setSearch} searchPlaceholder={t.searchPlaceholder}>
           <FilterChips
@@ -138,26 +190,35 @@ export function DriversPage() {
         </Toolbar>
         <DataTable columns={columns} rows={rows} getRowKey={(d) => d.id}
           onRowClick={(d) => navigate(`/drivers/${d.id}`)} empty={
-            <EmptyState
-              title={
-                drivers.length === 0
-                  ? STRINGS.empty.noneYetTitle
-                  : STRINGS.empty.noMatchTitle
-              }
-              hint={
-                drivers.length === 0
-                  ? 'Drivers added to the fleet will appear here.'
-                  : STRINGS.empty.noMatchHint
-              }
-              onClear={
-                drivers.length === 0 ? undefined : () => { setTab('all'); setSearch('') }
-              }
-              clearLabel={STRINGS.empty.clearFilters}
-            />
+            driversStatus === 'loading' ? (
+              <EmptyState title={t.loading} />
+            ) : (
+              <EmptyState
+                title={
+                  drivers.length === 0
+                    ? STRINGS.empty.noneYetTitle
+                    : STRINGS.empty.noMatchTitle
+                }
+                hint={
+                  drivers.length === 0 ? t.emptyHint : STRINGS.empty.noMatchHint
+                }
+                onClear={
+                  drivers.length === 0 ? undefined : () => { setTab('all'); setSearch('') }
+                }
+                clearLabel={STRINGS.empty.clearFilters}
+              />
+            )
           } />
       </Panel>
 
-      <AddDriverDialog open={adding} onClose={() => setAdding(false)} />
+      <AddDriverDialog
+        open={adding || editing !== null}
+        driver={editing}
+        onClose={() => {
+          setAdding(false)
+          setEditing(null)
+        }}
+      />
     </PageShell>
   )
 }

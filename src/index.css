@@ -7,8 +7,8 @@
    legible dense data, state readable at a glance, nothing decorative that
    competes with the information.
 
-   Neutrals carry a slight blue bias so they sit with the accent rather than
-   looking like unconsidered grey. Semantic colours are separate from the
+   Neutrals carry a warm cream bias so they sit with the saffron accent rather
+   than looking like unconsidered grey. Semantic colours are separate from the
    accent - "danger" must never be mistaken for "primary action".
 =========================================================================== */
 
@@ -23,64 +23,79 @@
     monospace;
 
   /* -- neutrals --------------------------------------------------------- */
-  --color-ground:     #F5F6F8;
-  --color-surface:    #FFFFFF;
-  --color-surface-2:  #EFF1F4;
-  --color-line:       #DFE3E8;
-  --color-line-strong:#C4CAD3;
+  /* Warm cream, not office grey. The bias sits with the saffron accent so the
+     console reads as one product rather than a white sheet with a blue button. */
+  --color-ground:     #F4EFE6;
+  --color-surface:    #FFFBF4;
+  --color-surface-2:  #EDE6D9;
+  --color-line:       #DDD4C5;
+  --color-line-strong:#C9BDAA;
 
-  --color-ink:        #0F1419;
-  --color-ink-2:      #414B57;
-  --color-ink-3:      #6B7482;
-  --color-ink-4:      #98A1AD;
+  --color-ink:        #1A1612;
+  --color-ink-2:      #433C34;
+  --color-ink-3:      #6F675C;
+  --color-ink-4:      #9A9286;
 
   /* -- brand ------------------------------------------------------------ */
   /* Ground for the signed-out screens. It follows the theme rather than being
      pinned dark, so the sign-in page matches the console the user is about to
      enter. `brand-ink` is the text that sits on it, and `accent-on-brand` is a
      link colour picked to stay readable against that ground in each theme. */
-  --color-brand:      #E4EBF4;
-  --color-brand-ink:  #12161C;
-  --color-accent-on-brand: #1A5FB4;
+  --color-brand:      #EBE4D6;
+  --color-brand-ink:  #1A1612;
+  --color-accent-on-brand: #BE5A22;
   /* The sign-in card floats above the brand ground and needs to read as
-     lifted, which takes a different value in each theme: white on a tinted
+     lifted, which takes a different value in each theme: cream on a tinted
      light ground, and a raised dark surface with a brighter edge on a dark
      one. */
-  --color-auth-card:      #FFFFFF;
-  --color-auth-card-edge: #D3DAE4;
+  --color-auth-card:      #FFFBF4;
+  --color-auth-card-edge: #D8CFC0;
 
   /* -- accent ----------------------------------------------------------- */
-  --color-accent:      #1D6FD0;
-  --color-accent-hover:#1A5FB4;
-  /* Text sitting ON a solid accent or danger fill. White works here because
+  /* Saffron copper: warm enough to feel designed, bright enough to read as
+     the action colour, and distinct from warning (duller brown-gold) and
+     danger (red). */
+  --color-accent:      #D96B2B;
+  --color-accent-hover:#BE5A22;
+  /* Text sitting ON a solid accent or danger fill. Cream works here because
      the light-theme accent is dark. In dark mode the accent lightens, so this
      flips to a dark ink — see the dark blocks below. White text on the dark
      mode accent would fall to roughly 2.4:1, well under the readable floor. */
-  --color-on-accent:   #FFFFFF;
+  --color-on-accent:   #FFF8F0;
   --color-on-danger:   #FFFFFF;
-  --color-accent-soft: #E8F1FC;
-  --color-accent-line: #B6D3F2;
+  --color-accent-soft: #F8E9DC;
+  --color-accent-line: #E8C4A4;
+
+  /* -- rail ------------------------------------------------------------- */
+  /* The sidebar is a navy wall. Content stays on the warm cream so the
+     lists a dispatcher actually reads stay the brightest surface. */
+  --color-rail:        #121826;
+  --color-rail-ink:    #F4EFE6;
+  --color-rail-muted:  #9AA0AE;
+  --color-rail-line:   #242A38;
+  --color-rail-hover:  #1C2230;
+  --color-rail-active: #1E2638;
 
   /* -- semantic --------------------------------------------------------- */
-  --color-ok:        #16794C;
-  --color-ok-soft:   #E1F2EA;
-  --color-ok-line:   #A9D8C1;
+  --color-ok:        #1A7A4C;
+  --color-ok-soft:   #E2F3EA;
+  --color-ok-line:   #A8D4B8;
 
-  --color-warn:      #9A5B00;
-  --color-warn-soft: #FBEFDC;
-  --color-warn-line: #EACFA0;
+  --color-warn:      #A15A12;
+  --color-warn-soft: #F8ECD8;
+  --color-warn-line: #E4C896;
 
   --color-danger:      #B3261E;
   --color-danger-hover:#96201A;
   --color-danger-soft: #FBE7E5;
   --color-danger-line: #EFB9B4;
 
-  --color-neutral-soft: #EEF0F3;
-  --color-neutral-line: #D3D8DF;
+  --color-neutral-soft: #EDE8DC;
+  --color-neutral-line: #D4CBBA;
 
   /* -- radii ------------------------------------------------------------ */
-  --radius-control: 6px;
-  --radius-panel:   8px;
+  --radius-control: 7px;
+  --radius-panel:   12px;
 }
 
 /* --- dark theme -----------------------------------------------------------
@@ -89,29 +104,29 @@
 -------------------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-ground:      #0E1116;
-    --color-surface:     #161A21;
-    --color-surface-2:   #1E232B;
-    --color-line:        #2A3039;
-    --color-line-strong: #3A424D;
+    --color-ground:      #12110F;
+    --color-surface:     #1C1916;
+    --color-surface-2:   #26221D;
+    --color-line:        #35302A;
+    --color-line-strong: #4A433A;
 
-    --color-ink:         #E8EBEF;
-    --color-ink-2:       #B0B8C2;
-    --color-ink-3:       #828B97;
-    --color-ink-4:       #626B77;
+    --color-ink:         #F3EDE4;
+    --color-ink-2:       #C4B8A8;
+    --color-ink-3:       #8F8578;
+    --color-ink-4:       #6E675C;
 
-    --color-accent:      #549BEC;
-    --color-accent-hover:#6FAEF3;
-    --color-on-accent:   #08111C;
+    --color-accent:      #E89A5C;
+    --color-accent-hover:#F0B07A;
+    --color-on-accent:   #1A1410;
     --color-on-danger:   #2A0B08;
-    --color-accent-soft: #14243A;
-    --color-accent-line: #26456B;
+    --color-accent-soft: #3A2418;
+    --color-accent-line: #6B4030;
 
     --color-ok:          #4FBE8B;
     --color-ok-soft:     #12271D;
     --color-ok-line:     #235C43;
 
-    --color-warn:        #DFA659;
+    --color-warn:        #E0B05A;
     --color-warn-soft:   #2A2113;
     --color-warn-line:   #5C482A;
 
@@ -120,42 +135,49 @@
     --color-danger-soft: #2C1715;
     --color-danger-line: #5E2E2A;
 
-    --color-neutral-soft:#1E232B;
-    --color-neutral-line:#333B45;
+    --color-neutral-soft:#26221D;
+    --color-neutral-line:#3A342C;
 
-    --color-brand:      #10151C;
-    --color-brand-ink:  #FFFFFF;
-    --color-accent-on-brand: #7FB6E8;
+    --color-brand:      #12110F;
+    --color-brand-ink:  #F4EFE6;
+    --color-accent-on-brand: #E89A5C;
 
-    --color-auth-card:      #1B2029;
-    --color-auth-card-edge: #363F4C;
+    --color-auth-card:      #1C1916;
+    --color-auth-card-edge: #3A342C;
+
+    --color-rail:        #10141C;
+    --color-rail-ink:    #F4EFE6;
+    --color-rail-muted:  #9AA0AE;
+    --color-rail-line:   #242A38;
+    --color-rail-hover:  #1C2230;
+    --color-rail-active: #1E2638;
   }
 }
 
 :root[data-theme="dark"] {
-  --color-ground:      #0E1116;
-  --color-surface:     #161A21;
-  --color-surface-2:   #1E232B;
-  --color-line:        #2A3039;
-  --color-line-strong: #3A424D;
+  --color-ground:      #12110F;
+  --color-surface:     #1C1916;
+  --color-surface-2:   #26221D;
+  --color-line:        #35302A;
+  --color-line-strong: #4A433A;
 
-  --color-ink:         #E8EBEF;
-  --color-ink-2:       #B0B8C2;
-  --color-ink-3:       #828B97;
-  --color-ink-4:       #626B77;
+  --color-ink:         #F3EDE4;
+  --color-ink-2:       #C4B8A8;
+  --color-ink-3:       #8F8578;
+  --color-ink-4:       #6E675C;
 
-  --color-accent:      #549BEC;
-  --color-accent-hover:#6FAEF3;
-  --color-accent-soft: #14243A;
-  --color-accent-line: #26456B;
-  --color-on-accent:   #08111C;
+  --color-accent:      #E89A5C;
+  --color-accent-hover:#F0B07A;
+  --color-accent-soft: #3A2418;
+  --color-accent-line: #6B4030;
+  --color-on-accent:   #1A1410;
   --color-on-danger:   #2A0B08;
 
   --color-ok:          #4FBE8B;
   --color-ok-soft:     #12271D;
   --color-ok-line:     #235C43;
 
-  --color-warn:        #DFA659;
+  --color-warn:        #E0B05A;
   --color-warn-soft:   #2A2113;
   --color-warn-line:   #5C482A;
 
@@ -164,15 +186,22 @@
   --color-danger-soft: #2C1715;
   --color-danger-line: #5E2E2A;
 
-  --color-neutral-soft:#1E232B;
-  --color-neutral-line:#333B45;
+  --color-neutral-soft:#26221D;
+  --color-neutral-line:#3A342C;
 
-  --color-brand:      #10151C;
-  --color-brand-ink:  #FFFFFF;
-  --color-accent-on-brand: #7FB6E8;
+  --color-brand:      #12110F;
+  --color-brand-ink:  #F4EFE6;
+  --color-accent-on-brand: #E89A5C;
 
-  --color-auth-card:      #1B2029;
-  --color-auth-card-edge: #363F4C;
+  --color-auth-card:      #1C1916;
+  --color-auth-card-edge: #3A342C;
+
+  --color-rail:        #10141C;
+  --color-rail-ink:    #F4EFE6;
+  --color-rail-muted:  #9AA0AE;
+  --color-rail-line:   #242A38;
+  --color-rail-hover:  #1C2230;
+  --color-rail-active: #1E2638;
 }
 
 /* ===========================================================================
@@ -215,7 +244,9 @@ html, body, #root { height: 100%; }
 }
 
 .panel-shadow {
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow:
+    0 1px 2px rgba(22, 20, 16, 0.04),
+    0 10px 28px -18px rgba(22, 20, 16, 0.18);
 }
 
 /* Dispatchers work this console by keyboard. Focus must always be visible. */
@@ -255,30 +286,30 @@ html, body, #root { height: 100%; }
 .auth-theme-light {
   color-scheme: light;
 
-  --color-ground:      #F4F7FB;
-  --color-surface:     #FFFFFF;
-  --color-surface-2:   #EEF2F7;
-  --color-line:        #E2E8F0;
-  --color-line-strong: #CBD5E1;
+  --color-ground:      #F4EFE6;
+  --color-surface:     #FFFBF4;
+  --color-surface-2:   #EDE6D9;
+  --color-line:        #DDD4C5;
+  --color-line-strong: #C9BDAA;
 
-  --color-ink:         #0F172A;
-  --color-ink-2:       #334155;
-  --color-ink-3:       #64748B;
-  --color-ink-4:       #94A3B8;
+  --color-ink:         #1A1612;
+  --color-ink-2:       #433C34;
+  --color-ink-3:       #6F675C;
+  --color-ink-4:       #9A9286;
 
-  --color-brand:       #F3F6FB;
-  --color-brand-ink:   #0F172A;
-  --color-accent-on-brand: #1D4ED8;
+  --color-brand:       #EBE4D6;
+  --color-brand-ink:   #1A1612;
+  --color-accent-on-brand: #BE5A22;
 
-  --color-auth-card:      #FFFFFF;
-  --color-auth-card-edge: #E2E8F0;
+  --color-auth-card:      #FFFBF4;
+  --color-auth-card-edge: #D8CFC0;
 
-  --color-accent:      #1D6FD0;
-  --color-accent-hover:#1A5FB4;
-  --color-on-accent:   #FFFFFF;
+  --color-accent:      #D96B2B;
+  --color-accent-hover:#BE5A22;
+  --color-on-accent:   #FFF8F0;
   --color-on-danger:   #FFFFFF;
-  --color-accent-soft: #E8F1FC;
-  --color-accent-line: #B6D3F2;
+  --color-accent-soft: #F8E9DC;
+  --color-accent-line: #E8C4A4;
 
   --color-ok:          #16794C;
   --color-ok-soft:     #E1F2EA;
@@ -394,7 +425,7 @@ html, body, #root { height: 100%; }
     180deg,
     transparent 0%,
     color-mix(in srgb, var(--color-accent) 38%, white) 36%,
-    color-mix(in srgb, #a8d4f6 55%, white) 58%,
+    color-mix(in srgb, #f0c49a 55%, white) 58%,
     transparent 100%
   );
 }
@@ -403,7 +434,7 @@ html, body, #root { height: 100%; }
   background: linear-gradient(
     180deg,
     transparent 8%,
-    color-mix(in srgb, #c5e0f8 60%, white) 40%,
+    color-mix(in srgb, #f3d4b0 60%, white) 40%,
     color-mix(in srgb, var(--color-accent) 28%, white) 68%,
     transparent 100%
   );
@@ -423,7 +454,7 @@ html, body, #root { height: 100%; }
   background: linear-gradient(
     180deg,
     transparent 12%,
-    color-mix(in srgb, #d2e8fa 62%, white) 48%,
+    color-mix(in srgb, #f6e2c8 62%, white) 48%,
     color-mix(in srgb, var(--color-accent) 24%, white) 76%,
     transparent 100%
   );

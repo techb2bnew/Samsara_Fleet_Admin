@@ -1,16 +1,18 @@
+import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { STRINGS, TONE_TEXT } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { DetailList, DetailRow, DetailShell } from '../../../components/layout/DetailShell'
 import { Panel } from '../../../components/layout/PageShell'
-import { Badge, Button, EmptyState, FilterChips } from '../../../components/ui'
+import { Badge, Button, EmptyState, FilterChips, useToast } from '../../../components/ui'
 import { useFleetData } from '../../fleet-data'
-import { DRIVER_STATUS_LABEL, DRIVER_STATUS_TONE } from '../../../mocks/people'
-import { MOCK_INSPECTIONS, MOCK_LOGS } from '../../../mocks/compliance'
-import { MOCK_SAFETY_EVENTS, SEVERITY_TONE } from '../../../mocks/admin'
-import { MOCK_DOCUMENTS } from '../../../mocks/operations'
+import { ComplianceDocuments } from '../../documents/components/ComplianceDocuments'
+import { DUTY_LABEL, DUTY_TONE, EMPLOYMENT_LABEL, EMPLOYMENT_TONE } from '../types'
+import { SEVERITY_TONE } from '../../safety/types'
 import { hrefForDriverThread, hrefForVehicleName } from '../../../lib/entityLinks'
 import { DriverHoursTab } from '../components/DriverHoursTab'
+import { AddDriverDialog } from '../components/AddDriverDialog'
+import { InviteHandover } from '../components/InviteHandover'
 
 const t = STRINGS.drivers
 type Tab = keyof typeof t.tabsDetail
@@ -24,12 +26,21 @@ function isTab(value: string | null): value is Tab {
 export function DriverDetailPage() {
   const { driverId } = useParams()
   const [params, setParams] = useSearchParams()
-  const { drivers, vehicles } = useFleetData()
+  const { drivers, vehicles, logs, inspections, documents, safetyEvents, inviteDriver } = useFleetData()
   // Read once into a variable: a type guard narrows the expression it is given,
   // and calling params.get() a second time produces a fresh `string | null`
   // that the guard has said nothing about.
   const tabParam = params.get('tab')
   const tab: Tab = isTab(tabParam) ? tabParam : 'overview'
+  const [editing, setEditing] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  const [handover, setHandover] = useState<{
+    name: string
+    email: string
+    password: string
+    reason?: string
+  } | null>(null)
+  const { show } = useToast()
 
   function setTab(next: Tab) {
     const nextParams = new URLSearchParams(params)
@@ -50,24 +61,72 @@ export function DriverDetailPage() {
     )
   }
 
-  const logs = MOCK_LOGS.find((log) => log.driver === driver.name)
-  const inspections = MOCK_INSPECTIONS.filter((i) => i.driver === driver.name)
-  const safety = MOCK_SAFETY_EVENTS.filter((e) => e.driver === driver.name)
-  const documents = MOCK_DOCUMENTS.filter((d) => d.driver === driver.name)
+  const record = driver
+
+  const driverLog = logs.find((log) => log.driver === record.name)
+  const driverInspections = inspections.filter((i) => i.driver === record.name)
+  const safety = safetyEvents.filter((e) => e.driver === record.name)
+  const driverDocuments = documents.filter((d) => d.driver === record.name)
+
+  async function handleInvite() {
+    if (!record.email || record.onApp) return
+    setInviting(true)
+    try {
+      const result = await inviteDriver(record.id)
+      if (result.password) {
+        setHandover({
+          name: record.name,
+          email: result.email || record.email,
+          password: result.password,
+          reason: result.reason,
+        })
+        return
+      }
+      show(t.detail.inviteToast(record.name))
+    } catch (error) {
+      show(error instanceof Error ? error.message : t.detail.inviteFailed)
+    } finally {
+      setInviting(false)
+    }
+  }
 
   return (
     <DetailShell
       backTo="/drivers"
       backLabel={t.back}
       title={driver.name}
-      subtitle={`${driver.employeeNumber} · ${driver.terminal}`}
-      badge={<Badge tone={DRIVER_STATUS_TONE[driver.status]}>{DRIVER_STATUS_LABEL[driver.status]}</Badge>}
+      subtitle={
+        [driver.employeeNumber, driver.depot?.name].filter((part) => part && part !== '—').join(' · ') ||
+        undefined
+      }
+      badge={
+        <Badge tone={EMPLOYMENT_TONE[driver.employment]}>
+          {EMPLOYMENT_LABEL[driver.employment]}
+        </Badge>
+      }
       actions={
-        <Link to={hrefForDriverThread(driver.name)}>
-          <Button size="sm" variant="secondary">
-            {t.detail.message}
+        <>
+          {!driver.onApp && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void handleInvite()}
+              loading={inviting}
+              disabled={!driver.email}
+              title={driver.email ? undefined : t.detail.inviteNeedEmail}
+            >
+              {t.detail.inviteApp}
+            </Button>
+          )}
+          <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+            {t.detail.edit}
           </Button>
-        </Link>
+          <Link to={hrefForDriverThread(driver.name)}>
+            <Button size="sm" variant="secondary">
+              {t.detail.message}
+            </Button>
+          </Link>
+        </>
       }
     >
       <div className="mb-4">
@@ -86,47 +145,83 @@ export function DriverDetailPage() {
         <div className="grid gap-5 lg:grid-cols-2">
           <Panel title={t.detail.employment}>
             <DetailList>
-              <DetailRow label={t.detail.employeeNumber}>{driver.employeeNumber}</DetailRow>
-              <DetailRow label={t.detail.terminal}>{driver.terminal}</DetailRow>
-              <DetailRow label={t.detail.status}>
-                <Badge tone={DRIVER_STATUS_TONE[driver.status]}>
-                  {DRIVER_STATUS_LABEL[driver.status]}
+              <DetailRow label={t.detail.employeeNumber}>
+                {driver.employeeNumber || '—'}
+              </DetailRow>
+              <DetailRow label={t.detail.depot}>{driver.depot?.name ?? '—'}</DetailRow>
+              <DetailRow label={t.detail.email}>
+                {driver.email || <span className="text-ink-3">—</span>}
+              </DetailRow>
+              <DetailRow label={t.detail.phone}>
+                {driver.phone || <span className="text-ink-3">—</span>}
+              </DetailRow>
+              <DetailRow label={t.detail.employmentStatus}>
+                <Badge tone={EMPLOYMENT_TONE[driver.employment]}>
+                  {EMPLOYMENT_LABEL[driver.employment]}
                 </Badge>
+              </DetailRow>
+              <DetailRow label={t.detail.onApp}>
+                {driver.onApp ? t.detail.onAppYes : t.detail.onAppNo}
               </DetailRow>
             </DetailList>
           </Panel>
 
           <Panel title={t.detail.compliance}>
             <DetailList>
+              <DetailRow label={t.detail.status}>
+                {driver.duty ? (
+                  <Badge tone={DUTY_TONE[driver.duty]}>{DUTY_LABEL[driver.duty]}</Badge>
+                ) : (
+                  <span className="text-ink-3">{t.detail.notRecorded}</span>
+                )}
+              </DetailRow>
               <DetailRow label={t.detail.hoursLeft}>
-                <span
-                  className={cn(
-                    'font-mono',
-                    driver.hoursLeft === '0:00' ? 'font-semibold text-danger' : 'text-ink',
-                  )}
-                >
-                  {driver.hoursLeft}
-                </span>
+                {driver.hoursLeft === null ? (
+                  <span className="text-ink-3">{t.detail.notRecorded}</span>
+                ) : (
+                  <span
+                    className={cn(
+                      'font-mono',
+                      driver.hoursLeft === '0:00' ? 'font-semibold text-danger' : 'text-ink',
+                    )}
+                  >
+                    {driver.hoursLeft}
+                  </span>
+                )}
               </DetailRow>
               <DetailRow label={t.detail.licence}>
-                <span className={driver.licenceWarning ? 'font-medium text-warn' : ''}>
-                  {driver.licenceExpires}
-                  {driver.licenceWarning && ` · ${t.licenceWarning}`}
-                </span>
+                {driver.licenceExpires === null ? (
+                  <span className="text-ink-3">{t.detail.noLicence}</span>
+                ) : (
+                  <span
+                    className={cn(
+                      driver.licenceExpired && 'font-semibold text-danger',
+                      driver.licenceWarning && 'font-medium text-warn',
+                    )}
+                  >
+                    {driver.licenceExpires}
+                    {driver.licenceExpired && ` · ${t.licenceExpired}`}
+                    {driver.licenceWarning && ` · ${t.licenceWarning}`}
+                  </span>
+                )}
               </DetailRow>
               <DetailRow label={t.detail.safetyScore}>
-                <span
-                  className={cn(
-                    'font-mono font-semibold',
-                    driver.safetyScore >= 90
-                      ? TONE_TEXT.success
-                      : driver.safetyScore >= 75
-                        ? 'text-ink'
-                        : TONE_TEXT.warning,
-                  )}
-                >
-                  {driver.safetyScore}
-                </span>
+                {driver.safetyScore === null ? (
+                  <span className="text-ink-3">{t.detail.notScored}</span>
+                ) : (
+                  <span
+                    className={cn(
+                      'font-mono font-semibold',
+                      driver.safetyScore >= 90
+                        ? TONE_TEXT.success
+                        : driver.safetyScore >= 75
+                          ? 'text-ink'
+                          : TONE_TEXT.warning,
+                    )}
+                  >
+                    {driver.safetyScore}
+                  </span>
+                )}
               </DetailRow>
             </DetailList>
           </Panel>
@@ -147,15 +242,15 @@ export function DriverDetailPage() {
         </div>
       )}
 
-      {tab === 'hours' && <DriverHoursTab driver={driver} logs={logs} />}
+      {tab === 'hours' && <DriverHoursTab driver={driver} logs={driverLog} />}
 
       {tab === 'inspections' && (
         <Panel>
-          {inspections.length === 0 ? (
+          {driverInspections.length === 0 ? (
             <EmptyState title={t.detail.noInspections} />
           ) : (
             <ul className="divide-y divide-line">
-              {inspections.map((i) => (
+              {driverInspections.map((i) => (
                 <li key={i.id}>
                   <Link
                     to={`/inspections/${i.id}`}
@@ -206,12 +301,18 @@ export function DriverDetailPage() {
       )}
 
       {tab === 'documents' && (
-        <Panel>
-          {documents.length === 0 ? (
+        <div className="flex flex-col gap-5">
+          {/* Two lists, because they are two different things: compliance
+              paperwork the office files, and trip paperwork that came back
+              from the cab. Same table, different category. */}
+          <ComplianceDocuments owner={{ driverId: driver.id, name: driver.name }} />
+
+          <Panel title={t.detail.tripDocuments} hint={t.detail.tripDocumentsHint}>
+          {driverDocuments.length === 0 ? (
             <EmptyState title={t.detail.noDocuments} />
           ) : (
             <ul className="divide-y divide-line">
-              {documents.map((d) => (
+              {driverDocuments.map((d) => (
                 <li key={d.id}>
                   <Link
                     to={`/documents/${d.id}`}
@@ -229,7 +330,19 @@ export function DriverDetailPage() {
               ))}
             </ul>
           )}
-        </Panel>
+          </Panel>
+        </div>
+      )}
+      <AddDriverDialog open={editing} driver={driver} onClose={() => setEditing(false)} />
+      {handover && (
+        <InviteHandover
+          open
+          name={handover.name}
+          email={handover.email}
+          password={handover.password}
+          reason={handover.reason}
+          onClose={() => setHandover(null)}
+        />
       )}
     </DetailShell>
   )

@@ -2,10 +2,10 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { Alert, ArrowRightIcon, Button, Modal } from '../../../components/ui'
-import type { EditRequest, Violation } from '../../../mocks/compliance'
+import type { EditRequest, Violation } from '../types'
 import { hrefForDriverName, hrefForVehicleName } from '../../../lib/entityLinks'
-import type { Driver } from '../../../mocks/people'
-import type { Vehicle } from '../../../mocks/vehicles'
+import type { Driver } from '../../drivers/types'
+import type { Vehicle } from '../../vehicles/types'
 
 const t = STRINGS.hours
 

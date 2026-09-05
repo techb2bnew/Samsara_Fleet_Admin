@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { STRINGS, TONE_SOLID } from '../../../constants'
 import { cn } from '../../../lib/cn'
-import type { Notification } from '../../../mocks/notifications'
+import type { Notification } from '../types'
 import { useNotifications } from '../NotificationsProvider'
 
 const t = STRINGS.notifications

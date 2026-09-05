@@ -81,7 +81,7 @@ export function DataTable<T>({
                   scope="col"
                   style={col.width ? { width: col.width } : undefined}
                   className={cn(
-                    'border-b border-line bg-surface-2/80 px-4 py-3 text-[11px] font-semibold tracking-[0.07em] text-ink-3 uppercase whitespace-nowrap',
+                    'border-b border-line bg-surface-2/70 px-4 py-3.5 text-[11px] font-semibold tracking-[0.08em] text-ink-3 uppercase whitespace-nowrap first:pl-5 last:pr-5',
                     col.align === 'right' ? 'text-right' : 'text-left',
                     col.secondary && 'hidden lg:table-cell',
                   )}
@@ -98,14 +98,16 @@ export function DataTable<T>({
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={cn(
                   'border-b border-line last:border-b-0',
-                  onRowClick && 'cursor-pointer transition-colors hover:bg-surface-2',
+                  onRowClick &&
+                    'cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--color-accent)_7%,var(--color-surface))]',
                 )}
               >
-                {columns.map((col) => (
+                {columns.map((col, index) => (
                   <td
                     key={col.key}
                     className={cn(
-                      'px-4 py-3 align-middle text-ink-2',
+                      'px-4 py-3.5 align-middle text-ink-2 first:pl-5 last:pr-5',
+                      index === 0 && 'font-medium text-ink',
                       col.align === 'right' && 'text-right',
                       col.secondary && 'hidden lg:table-cell',
                     )}
@@ -151,7 +153,7 @@ function Pagination({
   return (
     <nav
       aria-label={t.pagination}
-      className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-2.5"
+      className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface-2/35 px-4 py-2.5"
     >
       <p className="text-[12.5px] text-ink-3">{t.showing(first, last, total)}</p>
 
@@ -177,7 +179,7 @@ function Pagination({
               className={cn(
                 'min-w-[28px] rounded-[6px] px-2 py-1 font-mono text-[12.5px] transition-colors',
                 entry === page
-                  ? 'bg-accent-soft font-semibold text-accent'
+                  ? 'bg-accent font-semibold text-on-accent'
                   : 'text-ink-3 hover:bg-surface-2 hover:text-ink',
               )}
             >

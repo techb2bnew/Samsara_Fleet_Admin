@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
-import { Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
-import { MOCK_DOCUMENTS, type DocumentRow } from '../../../mocks/operations'
+import { Alert, Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
+import { type DocumentRow } from '../types'
 import { ConfirmDialog, useToast } from '../../../components/ui'
 import { csvFilename, downloadCsv } from '../../../lib/csv'
+import { useFleetData } from '../../fleet-data'
 
 const t = STRINGS.documents
 type Tab = keyof typeof t.tabs
@@ -19,6 +20,7 @@ const TAB_KIND: Record<Exclude<Tab, 'all'>, DocumentRow['kind']> = {
 
 /** Module A13. */
 export function DocumentsPage() {
+  const { documents, opsStatus, opsError, reloadOps } = useFleetData()
   const { show } = useToast()
   const navigate = useNavigate()
   const [exporting, setExporting] = useState(false)
@@ -27,7 +29,7 @@ export function DocumentsPage() {
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return MOCK_DOCUMENTS.filter((d) => {
+    return documents.filter((d) => {
       if (tab !== 'all' && d.kind !== TAB_KIND[tab]) return false
       if (!q) return true
       return (
@@ -63,14 +65,19 @@ export function DocumentsPage() {
       header: t.columns.size,
       align: 'right',
       width: '90px',
-      render: (d) => <span className="font-mono text-ink-3">{d.sizeKb} KB</span>,
+      render: (d) =>
+        d.sizeKb === null ? (
+          <span className="text-ink-4">—</span>
+        ) : (
+          <span className="font-mono text-ink-3">{d.sizeKb} KB</span>
+        ),
     },
   ]
 
   const countFor = (key: Tab) =>
     key === 'all'
-      ? MOCK_DOCUMENTS.length
-      : MOCK_DOCUMENTS.filter((d) => d.kind === TAB_KIND[key]).length
+      ? documents.length
+      : documents.filter((d) => d.kind === TAB_KIND[key]).length
 
   return (
     <PageShell
@@ -83,6 +90,19 @@ export function DocumentsPage() {
         </Button>
       }
     >
+      {opsStatus === 'error' && (
+        <div className="mb-5" role="alert">
+          <Alert tone="danger" title={t.loadFailed}>
+            <div className="flex flex-wrap items-center gap-3">
+              <span>{opsError}</span>
+              <Button size="sm" variant="secondary" onClick={reloadOps}>
+                {STRINGS.common.retry}
+              </Button>
+            </div>
+          </Alert>
+        </div>
+      )}
+
       <Panel>
         <Toolbar search={search} onSearchChange={setSearch} searchPlaceholder={t.searchPlaceholder}>
           <FilterChips
@@ -99,17 +119,17 @@ export function DocumentsPage() {
           onRowClick={(d) => navigate(`/documents/${d.id}`)} empty={
             <EmptyState
               title={
-                MOCK_DOCUMENTS.length === 0
+                documents.length === 0
                   ? STRINGS.empty.noneYetTitle
                   : STRINGS.empty.noMatchTitle
               }
               hint={
-                MOCK_DOCUMENTS.length === 0
+                documents.length === 0
                   ? 'Paperwork uploaded from the cab will appear here.'
                   : STRINGS.empty.noMatchHint
               }
               onClear={
-                MOCK_DOCUMENTS.length === 0 ? undefined : () => { setTab('all'); setSearch('') }
+                documents.length === 0 ? undefined : () => { setTab('all'); setSearch('') }
               }
               clearLabel={STRINGS.empty.clearFilters}
             />
@@ -121,11 +141,15 @@ export function DocumentsPage() {
         onClose={() => setExporting(false)}
         onConfirm={() => {
           setExporting(false)
+          if (rows.length === 0) {
+            show(t.nothingToExport)
+            return
+          }
           const filename = csvFilename('documents')
           downloadCsv(
             filename,
             ['File', 'Type', 'Driver', 'Vehicle', 'Uploaded', 'Size (KB)'],
-            rows.map((d) => [d.name, d.kind, d.driver, d.vehicle, d.uploaded, d.sizeKb]),
+            rows.map((d) => [d.name, d.kind, d.driver, d.vehicle, d.uploaded, d.sizeKb ?? '']),
           )
           show(STRINGS.export.started(filename))
         }}

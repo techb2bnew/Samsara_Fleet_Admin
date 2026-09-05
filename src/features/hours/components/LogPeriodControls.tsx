@@ -2,15 +2,7 @@ import type { ReactNode } from 'react'
 import { STRINGS } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { ArrowRightIcon, Button, ChevronDownIcon, FilterChips } from '../../../components/ui'
-import {
-  fromIsoDate,
-  fromIsoMonth,
-  isCurrentPeriod,
-  shiftAnchor,
-  toIsoDate,
-  toIsoMonth,
-  type HoursPeriod,
-} from '../../../mocks/compliance'
+import { fromIsoDate, fromIsoMonth, isCurrentPeriod, shiftAnchor, toIsoDate, toIsoMonth, type HoursPeriod } from '../dates'
 
 const t = STRINGS.hours
 

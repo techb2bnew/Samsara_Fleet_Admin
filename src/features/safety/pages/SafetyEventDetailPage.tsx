@@ -5,7 +5,8 @@ import { DetailList, DetailRow, DetailShell } from '../../../components/layout/D
 import { Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, ConfirmDialog, EmptyState, useToast } from '../../../components/ui'
 import { useFleetData } from '../../fleet-data'
-import { SAFETY_STATUS_LABEL, SEVERITY_TONE } from '../../../mocks/admin'
+import { SAFETY_STATUS_LABEL } from '../types'
+import { SEVERITY_TONE } from '../types'
 import { hrefForDriverName } from '../../../lib/entityLinks'
 
 const t = STRINGS.safety

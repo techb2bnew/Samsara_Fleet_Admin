@@ -4,21 +4,16 @@ import { DetailList, DetailRow, DetailShell } from '../../../components/layout/D
 import { Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, EmptyState } from '../../../components/ui'
 import { useFleetData } from '../../fleet-data'
-import {
-  DEFECT_TONE,
-  INSPECTION_LABEL,
-  INSPECTION_TONE,
-  MOCK_INSPECTION_DEFECTS,
-  MOCK_INSPECTIONS,
-} from '../../../mocks/compliance'
+import { INSPECTION_LABEL, INSPECTION_TONE } from '../types'
+import { DefectRow } from '../components/DefectActions'
 import { hrefForPerson, hrefForVehicleName } from '../../../lib/entityLinks'
 
 const t = STRINGS.inspections
 
 export function InspectionDetailPage() {
   const { inspectionId } = useParams()
-  const { drivers, vehicles, staff } = useFleetData()
-  const inspection = MOCK_INSPECTIONS.find((i) => i.id === inspectionId)
+  const { drivers, vehicles, staff, inspections, inspectionDefects } = useFleetData()
+  const inspection = inspections.find((i) => i.id === inspectionId)
 
   if (!inspection) {
     return (
@@ -30,7 +25,7 @@ export function InspectionDetailPage() {
     )
   }
 
-  const defects = MOCK_INSPECTION_DEFECTS[inspection.id] ?? []
+  const defects = inspectionDefects[inspection.id] ?? []
   const personHref = hrefForPerson(drivers, staff, inspection.driver)
   const personIsDriver = drivers.some((d) => d.name === inspection.driver)
 
@@ -77,13 +72,7 @@ export function InspectionDetailPage() {
           ) : (
             <ul className="divide-y divide-line">
               {defects.map((d) => (
-                <li key={d.id} className="flex items-start gap-3 px-5 py-3.5">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] font-medium text-ink">{d.area}</p>
-                    <p className="mt-0.5 text-[12.5px] text-ink-3">{d.finding}</p>
-                  </div>
-                  <Badge tone={DEFECT_TONE[d.severity]}>{d.severity}</Badge>
-                </li>
+                <DefectRow key={d.id} defect={d} vehicleName={inspection.vehicle} />
               ))}
             </ul>
           )}

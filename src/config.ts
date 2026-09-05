@@ -1,27 +1,11 @@
 /**
- * Switch between the mock data the console was built on and the real Supabase
- * backend.
+ * Console-wide configuration.
  *
- *   VITE_USE_MOCK_DATA=true    screens read from src/mocks  (default)
- *   VITE_USE_MOCK_DATA=false   screens read from Supabase
- *
- * This flag covers SCREEN DATA ONLY — drivers, vehicles, hours, inspections and
- * the rest. It has no say over signing in. Auth is always real: the only way
- * into the console is an account that exists in Supabase, whatever this is set
- * to. See features/auth/AuthProvider.
- *
- * Set it in `.env.local` and restart the dev server — Vite reads env at build
- * time, so changing it while the server is running has no effect.
- *
- * It defaults to mock when unset. A missing or misspelled variable then leaves
- * the console working on mock data, rather than silently pointing a half-wired
- * screen at a live database.
- *
- * Nothing about the mocks is deleted while this exists. Each module is switched
- * over as its backend lands, and the mocks come out only once every screen is
- * reading from Supabase.
+ * There is no mock-data switch any more. Every screen reads from Supabase, and
+ * a screen with nothing behind it shows an empty state rather than invented
+ * rows. Nothing in the console can be reached with data that did not come out
+ * of the database.
  */
-export const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA !== 'false'
 
 /**
  * Which roles may sign into the admin console.

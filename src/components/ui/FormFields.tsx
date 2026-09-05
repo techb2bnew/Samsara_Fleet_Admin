@@ -25,6 +25,12 @@ export function Select({ label, hint, error, options, className, id, ...rest }: 
     <div className="flex flex-col gap-1.5">
       <label htmlFor={selectId} className="text-[13px] font-medium text-ink">
         {label}
+        {rest.required ? (
+          <span className="text-danger" aria-hidden="true">
+            {' '}
+            *
+          </span>
+        ) : null}
       </label>
       <select
         {...rest}
@@ -79,6 +85,53 @@ export function Textarea({ label, hint, error, className, id, ...rest }: Textare
           'min-h-[84px] w-full rounded-[6px] border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-4',
           error ? 'border-danger' : 'border-line-strong focus:border-accent',
           className,
+        )}
+      />
+      {error ? (
+        <p className="text-[13px] text-danger">{error}</p>
+      ) : hint ? (
+        <p className="text-[13px] text-ink-3">{hint}</p>
+      ) : null}
+    </div>
+  )
+}
+
+type FileFieldProps = {
+  label: string
+  hint?: string
+  error?: string
+  /** Comma-joined MIME types, straight from the bucket's own allow-list. */
+  accept?: string
+  id?: string
+  onChange: (file: File | null) => void
+}
+
+/**
+ * A file picker that looks like the other fields.
+ *
+ * Uncontrolled on purpose: a file input's value cannot be set from code, so
+ * holding it in state would only give two sources of truth for one thing. The
+ * chosen file is handed up through onChange instead.
+ */
+export function FileField({ label, hint, error, accept, id, onChange }: FileFieldProps) {
+  const generated = useId()
+  const inputId = id ?? generated
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={inputId} className="text-[13px] font-medium text-ink">
+        {label}
+      </label>
+      <input
+        id={inputId}
+        type="file"
+        accept={accept}
+        aria-invalid={error ? true : undefined}
+        onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+        className={cn(
+          'rounded-[6px] border bg-surface px-3 py-2 text-[13px] text-ink',
+          'file:mr-3 file:rounded-[5px] file:border-0 file:bg-surface-2 file:px-2.5 file:py-1 file:text-[12.5px] file:text-ink-2',
+          error ? 'border-danger' : 'border-line-strong focus:border-accent',
         )}
       />
       {error ? (

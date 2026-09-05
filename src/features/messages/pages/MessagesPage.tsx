@@ -1,20 +1,16 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
-import { ArrowRightIcon, Button, EmptyState, useToast } from '../../../components/ui'
+import { Alert, ArrowRightIcon, Button, EmptyState, useToast } from '../../../components/ui'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
-import { MOCK_MESSAGES, MOCK_THREADS, type Message, type Thread } from '../../../mocks/operations'
+import { type Thread } from '../types'
 import { BroadcastDialog } from '../components/BroadcastDialog'
+import { useFleetData } from '../../fleet-data'
 
 const t = STRINGS.messages
 
-function initialsOf(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  return (parts[0]?.slice(0, 2) ?? '??').toUpperCase()
-}
 
 /** Module A10. Inbox on the left, conversation on the right. */
 export function MessagesPage() {
@@ -22,95 +18,70 @@ export function MessagesPage() {
   const [params, setParams] = useSearchParams()
   const [broadcasting, setBroadcasting] = useOpenOnQuery()
 
-  const [threads, setThreads] = useState<Thread[]>(MOCK_THREADS)
-  const [conversations, setConversations] = useState<Record<string, Message[]>>(MOCK_MESSAGES)
-  const [selectedId, setSelectedId] = useState<string>(MOCK_THREADS[0]?.id ?? '')
+  const {
+    threads,
+    messagesByThread,
+    drivers,
+    sendToDriver,
+    broadcast,
+    markThreadRead,
+    opsStatus,
+    opsError,
+    reloadOps,
+  } = useFleetData()
+
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [showThread, setShowThread] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
-  const nextMessageId = useRef(1)
-  const nextThreadId = useRef(1)
-  const threadsRef = useRef(threads)
-  const conversationsRef = useRef(conversations)
-  threadsRef.current = threads
-  conversationsRef.current = conversations
 
-  const selected = threads.find((thread) => thread.id === selectedId) ?? threads[0]
-  const messages = selected ? (conversations[selected.id] ?? []) : []
+  /**
+   * A conversation is a driver — see the messaging migration — so a driver with
+   * no messages yet is a thread with an empty list rather than something that
+   * has to be created first.
+   */
+  const inbox = useMemo<Thread[]>(() => {
+    const known = new Set(threads.map((thread) => thread.id))
+    const rest = drivers
+      .filter((driver) => !known.has(driver.id))
+      .map<Thread>((driver) => ({
+        id: driver.id,
+        driver: driver.name,
+        initials: driver.initials,
+        preview: t.newThreadPreview,
+        at: '',
+        unreadCount: 0,
+      }))
+    return [...threads, ...rest]
+  }, [threads, drivers])
 
-  const visibleThreads = threads.filter((thread) => {
+  const selected = inbox.find((thread) => thread.id === selectedId) ?? inbox[0] ?? null
+  const messages = selected ? (messagesByThread[selected.id] ?? []) : []
+
+  const visibleThreads = inbox.filter((thread) => {
     const q = search.trim().toLowerCase()
     if (!q) return true
     return thread.driver.toLowerCase().includes(q) || thread.preview.toLowerCase().includes(q)
   })
 
-  function applyMessages(driverNames: string[], body: string) {
-    const at = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    let nextThreads = threadsRef.current
-    let nextConversations = { ...conversationsRef.current }
-    const created: string[] = []
-
-    for (const name of driverNames) {
-      let thread = nextThreads.find((item) => item.driver === name)
-      if (!thread) {
-        thread = {
-          id: `t-new-${nextThreadId.current++}`,
-          driver: name,
-          initials: initialsOf(name),
-          preview: body,
-          at,
-          unread: false,
-        }
-        nextThreads = [thread, ...nextThreads]
-      } else {
-        nextThreads = nextThreads.map((item) =>
-          item.id === thread!.id ? { ...item, preview: body, at, unread: false } : item,
-        )
-      }
-      created.push(thread.id)
-      const message: Message = { id: `sent-${nextMessageId.current++}`, from: 'office', body, at }
-      nextConversations[thread.id] = [...(nextConversations[thread.id] ?? []), message]
-    }
-
-    threadsRef.current = nextThreads
-    conversationsRef.current = nextConversations
-    setThreads(nextThreads)
-    setConversations(nextConversations)
-    return created[0]
-  }
-
+  // Arriving from a link like /messages?driver=Dev%20Singh.
   useEffect(() => {
     const name = params.get('driver')
-    if (!name) return
+    if (!name || inbox.length === 0) return
 
-    const existing = threadsRef.current.find((thread) => thread.driver === name)
-    if (existing) {
-      setSelectedId(existing.id)
-    } else {
-      const id = `t-new-${nextThreadId.current++}`
-      const thread: Thread = {
-        id,
-        driver: name,
-        initials: initialsOf(name),
-        preview: t.newThreadPreview,
-        at: 'Now',
-        unread: false,
-      }
-      const nextThreads = [thread, ...threadsRef.current]
-      const nextConversations = { ...conversationsRef.current, [id]: conversationsRef.current[id] ?? [] }
-      threadsRef.current = nextThreads
-      conversationsRef.current = nextConversations
-      setThreads(nextThreads)
-      setConversations(nextConversations)
-      setSelectedId(id)
+    const match = inbox.find((thread) => thread.driver === name)
+    if (match) {
+      setSelectedId(match.id)
+      setShowThread(true)
     }
-    setShowThread(true)
     const next = new URLSearchParams(params)
     next.delete('driver')
     setParams(next, { replace: true })
-  }, [params, setParams])
+  }, [params, setParams, inbox])
 
   // Keep the newest message in view, both on send and when switching threads.
   useEffect(() => {
@@ -122,28 +93,25 @@ export function MessagesPage() {
   function openThread(thread: Thread) {
     setSelectedId(thread.id)
     setShowThread(true)
-    setThreads((current) =>
-      current.map((item) => (item.id === thread.id ? { ...item, unread: false } : item)),
-    )
+    if (thread.unreadCount > 0) markThreadRead(thread.id)
   }
 
-  function sendMessage(event: FormEvent) {
+  async function sendMessage(event: FormEvent) {
     event.preventDefault()
     const body = draft.trim()
     if (!body || !selected) return
 
-    const at = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    const message: Message = { id: `sent-${nextMessageId.current++}`, from: 'office', body, at }
+    setSending(true)
+    setSendError(null)
+    try {
+      await sendToDriver(selected.id, body)
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : t.sendFailed)
+      return
+    } finally {
+      setSending(false)
+    }
 
-    setConversations((current) => ({
-      ...current,
-      [selected.id]: [...(current[selected.id] ?? []), message],
-    }))
-    setThreads((current) =>
-      current.map((thread) =>
-        thread.id === selected.id ? { ...thread, preview: body, at, unread: false } : thread,
-      ),
-    )
     setDraft('')
     show(t.sentToast(selected.driver))
   }
@@ -159,6 +127,19 @@ export function MessagesPage() {
         </Button>
       }
     >
+      {opsStatus === 'error' && (
+        <div className="mb-5" role="alert">
+          <Alert tone="danger" title={t.loadFailed}>
+            <div className="flex flex-wrap items-center gap-3">
+              <span>{opsError}</span>
+              <Button size="sm" variant="secondary" onClick={reloadOps}>
+                {STRINGS.common.retry}
+              </Button>
+            </div>
+          </Alert>
+        </div>
+      )}
+
       <Panel className="grid h-[min(560px,calc(100dvh-12rem))] grid-cols-1 md:grid-cols-[300px_1fr]">
         {/* inbox */}
         <div
@@ -200,7 +181,9 @@ export function MessagesPage() {
                           <span
                             className={cn(
                               'truncate text-[13px]',
-                              thread.unread ? 'font-semibold text-ink' : 'font-medium text-ink-2',
+                              thread.unreadCount > 0
+                                ? 'font-semibold text-ink'
+                                : 'font-medium text-ink-2',
                             )}
                           >
                             {thread.driver}
@@ -211,11 +194,15 @@ export function MessagesPage() {
                           {thread.preview}
                         </span>
                       </span>
-                      {thread.unread && (
+                      {/* A count, not a dot. How many are waiting is the
+                          thing a dispatcher is deciding between threads on. */}
+                      {thread.unreadCount > 0 && (
                         <span
-                          className="mt-1.5 size-2 shrink-0 rounded-full bg-accent"
-                          aria-hidden="true"
-                        />
+                          className="mt-1 flex min-w-5 shrink-0 items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-semibold text-on-accent"
+                          aria-label={t.unreadCount(thread.unreadCount)}
+                        >
+                          {thread.unreadCount > 99 ? '99+' : thread.unreadCount}
+                        </span>
                       )}
                     </button>
                   </li>
@@ -227,7 +214,18 @@ export function MessagesPage() {
 
         {/* conversation */}
         {selected ? (
-          <div className={cn('min-w-0 flex-col', showThread ? 'flex' : 'hidden md:flex')}>
+          /*
+           * min-h-0 is load-bearing. A grid item's min-height defaults to
+           * auto, so without it this column grows to fit every message — the
+           * inner overflow-y-auto never gets a bounded height, and the
+           * composer is pushed past the panel's overflow-hidden and vanishes.
+           */
+          <div
+            className={cn(
+              'min-h-0 min-w-0 flex-col',
+              showThread ? 'flex' : 'hidden md:flex',
+            )}
+          >
             <div className="flex items-center gap-2.5 border-b border-line px-4 py-3 sm:px-5">
               <button
                 type="button"
@@ -278,7 +276,13 @@ export function MessagesPage() {
               )}
             </div>
 
-            <form onSubmit={sendMessage} className="flex items-center gap-2 border-t border-line bg-ground/50 px-4 py-3">
+            <form onSubmit={sendMessage} className="border-t border-line bg-ground/50 px-4 py-3">
+              {sendError && (
+                <p className="mb-2 text-[12.5px] text-danger" role="alert">
+                  {sendError}
+                </p>
+              )}
+              <div className="flex items-center gap-2">
               <input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
@@ -286,9 +290,10 @@ export function MessagesPage() {
                 aria-label={t.composePlaceholder}
                 className="h-10 flex-1 rounded-[9px] border border-line bg-surface px-3.5 text-[13.5px] text-ink placeholder:text-ink-4 focus:border-accent"
               />
-              <Button size="sm" type="submit" disabled={!draft.trim()}>
+              <Button size="sm" type="submit" loading={sending} disabled={!draft.trim()}>
                 {t.send}
               </Button>
+              </div>
             </form>
           </div>
         ) : (
@@ -299,12 +304,10 @@ export function MessagesPage() {
       <BroadcastDialog
         open={broadcasting}
         onClose={() => setBroadcasting(false)}
-        onSend={(body, recipients) => {
-          const first = applyMessages(recipients, body)
-          if (first) {
-            setSelectedId(first)
-            setShowThread(true)
-          }
+        onSend={async (body) => {
+          // Every driver gets their own copy, so each has its own read
+          // receipt — see broadcastMessage in supabase/api.
+          await broadcast(body)
         }}
       />
     </PageShell>

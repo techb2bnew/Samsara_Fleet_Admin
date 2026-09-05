@@ -192,6 +192,13 @@ export const UsersIcon = (p: Props) => (
   </svg>
 )
 
+export const CheckIcon = (p: Props) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="8" />
+    <path d="m8.5 12.2 2.3 2.3 4.7-5" />
+  </svg>
+)
+
 export const FormIcon = (p: Props) => (
   <svg {...base(p)}>
     <rect x="5" y="4" width="14" height="16" rx="2" />

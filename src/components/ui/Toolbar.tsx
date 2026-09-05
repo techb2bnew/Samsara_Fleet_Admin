@@ -17,7 +17,7 @@ export function Toolbar({
   actions?: ReactNode
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3.5">
+    <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-2/35 px-4 py-3.5">
       {onSearchChange && (
         <div className="relative min-w-0 flex-1 sm:min-w-[200px]">
           <SearchIcon
@@ -77,13 +77,13 @@ export function FilterChips<T extends string>({
           className={cn(
             'rounded-full px-3 py-1.5 text-[12.5px] font-medium whitespace-nowrap transition-colors',
             value === option.value
-              ? 'bg-accent-soft text-accent'
+              ? 'bg-accent text-on-accent'
               : 'text-ink-3 hover:bg-surface-2 hover:text-ink',
           )}
         >
           {option.label}
           {option.count !== undefined && (
-            <span className={cn('ml-1.5', value === option.value ? 'text-accent/60' : 'text-ink-4')}>
+            <span className={cn('ml-1.5', value === option.value ? 'text-on-accent/70' : 'text-ink-4')}>
               {option.count}
             </span>
           )}

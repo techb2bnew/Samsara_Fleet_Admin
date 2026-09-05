@@ -4,12 +4,8 @@ import { STRINGS } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
-import {
-  MOCK_SCOREBOARD,
-  SAFETY_STATUS_LABEL,
-  SEVERITY_TONE,
-  type SafetyEvent,
-} from '../../../mocks/admin'
+import { SAFETY_STATUS_LABEL } from '../types'
+import { SEVERITY_TONE, type SafetyEvent } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { ConfirmDialog, useToast } from '../../../components/ui'
 import { hrefForDriverName } from '../../../lib/entityLinks'
@@ -19,7 +15,7 @@ type Tab = keyof typeof t.tabs
 
 /** Module A11. */
 export function SafetyPage() {
-  const { safetyEvents, setSafetyEventStatus, drivers } = useFleetData()
+  const { safetyEvents, setSafetyEventStatus, drivers, scoreboard } = useFleetData()
   const navigate = useNavigate()
   const { show } = useToast()
   const [tab, setTab] = useState<Tab>('all')
@@ -127,8 +123,11 @@ export function SafetyPage() {
         </Panel>
 
         <Panel title={t.scoreboardTitle} hint={t.scoreboardHint}>
+          {scoreboard.length === 0 ? (
+            <EmptyState title={t.noScores} hint={t.noScoresHint} />
+          ) : (
           <ul className="divide-y divide-line">
-            {MOCK_SCOREBOARD.map((row) => (
+            {scoreboard.map((row) => (
               <li key={row.rank}>
                 <Link
                   to={hrefForDriverName(drivers, row.driver)}
@@ -154,6 +153,7 @@ export function SafetyPage() {
               </li>
             ))}
           </ul>
+          )}
         </Panel>
       </div>
 

@@ -4,8 +4,8 @@ import { COLORS } from '../../constants'
  * A tractor unit in profile. The product is about trucks, so the mark says so
  * rather than being an abstract shape.
  *
- * The mark sits on a solid accent tile, so the strokes use `onAccent` — white
- * in the light console — rather than brand ink, which reads as black on blue.
+ * The mark sits on a solid accent tile, so the strokes use `onAccent` — cream
+ * in the light console — rather than brand ink, which reads as black on saffron.
  */
 export function Logo({ size = 28 }: { size?: number }) {
   return (

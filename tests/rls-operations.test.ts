@@ -212,6 +212,69 @@ describe('duty status events — who may change a log', () => {
     expect(error).not.toBeNull()
   })
 
+  /*
+   * The line the whole design turns on.
+   *
+   * A correction the DRIVER asked for is the office's to decide — that is the
+   * console's "Correction requests" queue. A correction the OFFICE proposed is
+   * the driver's alone. Both are pending rows on the same table, and `source`
+   * is the only thing separating them, so both directions are checked.
+   */
+  it('the office CAN decide a correction the driver asked for', async () => {
+    const { data: request } = await admin
+      .from('duty_status_events')
+      .insert({
+        org_id: acme.orgId,
+        driver_id: acme.driverId,
+        status: 'sleeper_berth',
+        started_at: new Date().toISOString(),
+        // The driver's own request, from the phone.
+        source: 'manual',
+        edit_of_id: dutyEventId,
+        edit_status: 'pending',
+        edit_reason: 'I was in the bunk, not off duty',
+      })
+      .select('id')
+      .single()
+
+    const { error } = await acmeAdmin
+      .from('duty_status_events')
+      .update({ edit_status: 'accepted', reviewed_at: new Date().toISOString() })
+      .eq('id', request!.id)
+    expect(error).toBeNull()
+
+    const { data: after } = await admin
+      .from('duty_status_events').select('edit_status').eq('id', request!.id).single()
+    expect(after?.edit_status).toBe('accepted')
+  })
+
+  it('the office CANNOT decide a correction it proposed itself', async () => {
+    const { data: proposal } = await admin
+      .from('duty_status_events')
+      .insert({
+        org_id: acme.orgId,
+        driver_id: acme.driverId,
+        status: 'on_duty_not_driving',
+        started_at: new Date().toISOString(),
+        // Proposed by the carrier — only the driver may accept this.
+        source: 'carrier_edit',
+        edit_of_id: dutyEventId,
+        edit_status: 'pending',
+        edit_reason: 'office correction',
+      })
+      .select('id')
+      .single()
+
+    await acmeAdmin
+      .from('duty_status_events')
+      .update({ edit_status: 'accepted', reviewed_at: new Date().toISOString() })
+      .eq('id', proposal!.id)
+
+    const { data: after } = await admin
+      .from('duty_status_events').select('edit_status').eq('id', proposal!.id).single()
+    expect(after?.edit_status).toBe('pending')
+  })
+
   it('a driver cannot write an event onto a colleague', async () => {
     const { error } = await acmeDriver
       .from('duty_status_events')

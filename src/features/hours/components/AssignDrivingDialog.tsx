@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { STRINGS } from '../../../constants'
 import { Button, FormGrid, Modal, Select } from '../../../components/ui'
-import type { Driver } from '../../../mocks/people'
-import type { Vehicle } from '../../../mocks/vehicles'
+import type { Driver } from '../../drivers/types'
+import type { Vehicle } from '../../vehicles/types'
 
 const t = STRINGS.hours
 

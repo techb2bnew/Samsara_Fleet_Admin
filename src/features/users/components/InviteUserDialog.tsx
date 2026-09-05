@@ -1,49 +1,82 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { STRINGS } from '../../../constants'
-import { Button, Field, FormGrid, Modal, Select, useToast } from '../../../components/ui'
-import { useFleetData, type NewInvite } from '../../fleet-data'
-import { ROLE_SUMMARY } from '../../../mocks/people'
+import { Alert, Button, Field, FormGrid, Modal, Select, useToast } from '../../../components/ui'
+import { useDepotOptions, useFleetData, type NewInvite } from '../../fleet-data'
 
 const t = STRINGS.forms_common
 const d = STRINGS.dialog
+const u = STRINGS.users
 
-const ROLES = ROLE_SUMMARY.map((r) => ({ value: r.name, label: r.name }))
-const FLEETS = [
-  { value: 'All fleets', label: 'All fleets' },
-  { value: 'Pune depot', label: 'Pune depot' },
-  { value: 'Nashik depot', label: 'Nashik depot' },
-]
-
-const EMPTY: NewInvite = { name: '', email: '', role: ROLES[1].value, fleet: FLEETS[0].value }
-
+/**
+ * Invites a colleague to the console.
+ *
+ * The role and depot lists come from the database, not from a constant in this
+ * file. A hardcoded list drifts the first time somebody adds a depot, and the
+ * invitation would then be written against a fleet that does not exist.
+ */
 export function InviteUserDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { inviteUser } = useFleetData()
+  const { inviteUser, roles } = useFleetData()
   const { show } = useToast()
-  const [values, setValues] = useState<NewInvite>(EMPTY)
+
+  const roleOptions = useMemo(
+    () => roles.map((role) => ({ value: role.name, label: role.name })),
+    [roles],
+  )
+
+  /** Empty means every depot — a null fleet_id, not a depot of its own. */
+  const depotOptions = useDepotOptions(u.allDepots)
+
+  const empty = useMemo<NewInvite>(
+    () => ({
+      name: '',
+      email: '',
+      // Dispatcher is the common case; falling back to whatever came first
+      // keeps the form usable if the roles are still loading.
+      role: roleOptions.find((r) => r.value === 'Dispatcher')?.value ?? roleOptions[0]?.value ?? '',
+      depotId: '',
+    }),
+    [roleOptions],
+  )
+
+  const [values, setValues] = useState<NewInvite>(empty)
   const [errors, setErrors] = useState<Partial<Record<keyof NewInvite, string>>>({})
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const set = (key: keyof NewInvite) => (event: { target: { value: string } }) =>
     setValues((current) => ({ ...current, [key]: event.target.value }))
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     const next: typeof errors = {}
     if (!values.name.trim()) next.name = d.required
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) next.email = d.invalidEmail
+    if (!values.role) next.role = d.required
 
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
-    inviteUser(values)
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await inviteUser(values)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : u.inviteFailed)
+      return
+    } finally {
+      setSaving(false)
+    }
+
     show(t.inviteToast(values.email.trim().toLowerCase()))
-    setValues(EMPTY)
+    setValues(empty)
     setErrors({})
     onClose()
   }
 
   function handleClose() {
-    setValues(EMPTY)
+    setValues(empty)
     setErrors({})
+    setSaveError(null)
     onClose()
   }
 
@@ -58,13 +91,25 @@ export function InviteUserDialog({ open, onClose }: { open: boolean; onClose: ()
           <Button variant="ghost" onClick={handleClose}>
             {d.cancel}
           </Button>
-          <Button type="submit" form="invite-user-form">
+          <Button type="submit" form="invite-user-form" loading={saving}>
             {t.inviteSubmit}
           </Button>
         </>
       }
     >
       <form id="invite-user-form" onSubmit={handleSubmit} noValidate>
+        {saveError && (
+          <div className="mb-4" role="alert">
+            <Alert tone="danger">{saveError}</Alert>
+          </div>
+        )}
+
+        {/* Said plainly rather than left to be discovered: the row is recorded
+            and the person shows as Invited, but nothing has been emailed. */}
+        <div className="mb-4">
+          <Alert tone="accent">{u.inviteNotEmailed}</Alert>
+        </div>
+
         <FormGrid>
           <Field
             label={t.inviteFields.name}
@@ -82,15 +127,15 @@ export function InviteUserDialog({ open, onClose }: { open: boolean; onClose: ()
           />
           <Select
             label={t.inviteFields.role}
-            options={ROLES}
+            options={roleOptions}
             value={values.role}
             onChange={set('role')}
           />
           <Select
-            label={t.inviteFields.fleet}
-            options={FLEETS}
-            value={values.fleet}
-            onChange={set('fleet')}
+            label={t.inviteFields.depot}
+            options={depotOptions}
+            value={values.depotId}
+            onChange={set('depotId')}
           />
         </FormGrid>
       </form>

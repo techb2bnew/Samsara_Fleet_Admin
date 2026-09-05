@@ -16,7 +16,7 @@ import { STRINGS } from '../../constants'
  */
 export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface/90 px-3 backdrop-blur-md sm:gap-3 sm:px-6">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface/88 px-3 backdrop-blur-md sm:gap-3 sm:px-6">
       <button
         type="button"
         onClick={onOpenNav}

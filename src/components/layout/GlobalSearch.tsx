@@ -6,9 +6,9 @@ import { useDismissable } from '../../lib/useDismissable'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { SearchIcon } from '../ui'
 import { useFleetData } from '../../features/fleet-data'
-import { DRIVER_STATUS_TONE, DRIVER_STATUS_LABEL } from '../../mocks/people'
-import { VEHICLE_STATUS_TONE, VEHICLE_STATUS_LABEL } from '../../mocks/vehicles'
-import { ROUTE_TONE, ROUTE_LABEL } from '../../mocks/operations'
+import { EMPLOYMENT_LABEL, EMPLOYMENT_TONE } from '../../features/drivers/types'
+import { VEHICLE_STATUS_LABEL, VEHICLE_STATUS_TONE } from '../../features/vehicles/types'
+import { ROUTE_TONE, ROUTE_LABEL } from '../../features/dispatch/types'
 
 const t = STRINGS.console
 
@@ -55,15 +55,19 @@ export function GlobalSearch() {
           id: `d-${driver.id}`,
           group: 'drivers',
           label: driver.name,
-          detail: `${driver.employeeNumber} · ${DRIVER_STATUS_LABEL[driver.status]}`,
-          tone: TONE_SOLID[DRIVER_STATUS_TONE[driver.status]],
+          detail: `${driver.employeeNumber} · ${EMPLOYMENT_LABEL[driver.employment]}`,
+          tone: TONE_SOLID[EMPLOYMENT_TONE[driver.employment]],
           href: `/drivers/${driver.id}`,
         })
       }
     }
 
     for (const vehicle of vehicles) {
-      if (vehicle.name.toLowerCase().includes(q) || vehicle.plate.toLowerCase().includes(q)) {
+      if (
+        vehicle.name.toLowerCase().includes(q) ||
+        vehicle.plate.toLowerCase().includes(q) ||
+        (vehicle.vin ? vehicle.vin.toLowerCase().includes(q) : false)
+      ) {
         out.push({
           id: `v-${vehicle.id}`,
           group: 'vehicles',

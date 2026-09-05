@@ -2,42 +2,53 @@ import { useMemo, useState } from 'react'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Button, FilterChips, useToast } from '../../../components/ui'
-import { MOCK_REPORTS, type Report } from '../../../mocks/admin'
-import { DRIVER_STATUS_LABEL } from '../../../mocks/people'
-import { VEHICLE_STATUS_LABEL } from '../../../mocks/vehicles'
-import { ROUTE_LABEL } from '../../../mocks/operations'
-import { MOCK_DOCUMENTS } from '../../../mocks/operations'
-import { MOCK_INSPECTIONS, MOCK_VIOLATIONS } from '../../../mocks/compliance'
+import { REPORTS, type Report } from '../reports'
+import { DUTY_LABEL, EMPLOYMENT_LABEL } from '../../drivers/types'
+import { VEHICLE_STATUS_LABEL } from '../../vehicles/types'
+import { ROUTE_LABEL } from '../../dispatch/types'
 import { useFleetData } from '../../fleet-data'
 import { csvFilename, downloadCsv } from '../../../lib/csv'
 
 const t = STRINGS.reports
 
 const GROUPS: Report['group'][] = ['Fleet', 'Compliance', 'Safety', 'Operations']
-type Depot = 'all' | 'pune' | 'nashik'
+/** "all", or a depot id from the database. */
+type DepotFilter = 'all' | (string & {})
 
 /** Module A14. */
 export function ReportsPage() {
-  const { drivers, vehicles, routes, courses } = useFleetData()
+  const { drivers, vehicles, routes, courses, inspections, documents, violations, depots } = useFleetData()
   const { show } = useToast()
-  const [depot, setDepot] = useState<Depot>('all')
+  const [depot, setDepot] = useState<DepotFilter>('all')
 
-  const terminal = depot === 'pune' ? 'Pune depot' : depot === 'nashik' ? 'Nashik depot' : null
+  /*
+   * Filtered on the depot's id, not its name. It used to match on the name
+   * held in drivers.home_terminal, so renaming a depot dropped every driver
+   * in it out of every report — silently, with the report still generating.
+   */
+  const depotId = depot === 'all' ? null : depot
   const scopedDrivers = useMemo(
-    () => (terminal ? drivers.filter((d) => d.terminal === terminal) : drivers),
-    [drivers, terminal],
+    () => (depotId ? drivers.filter((d) => d.depot?.id === depotId) : drivers),
+    [drivers, depotId],
   )
   const driverNames = useMemo(() => new Set(scopedDrivers.map((d) => d.name)), [scopedDrivers])
+  /*
+   * A vehicle is in scope when it is kept at the depot. Its driver is a
+   * fallback for vehicles with no depot recorded, which is most of them until
+   * the fleet has been through the depot picker once.
+   */
   const scopedVehicles = useMemo(
     () =>
-      terminal
-        ? vehicles.filter((v) => !v.driver || driverNames.has(v.driver))
+      depotId
+        ? vehicles.filter((v) =>
+            v.depot ? v.depot.id === depotId : !v.driver || driverNames.has(v.driver),
+          )
         : vehicles,
-    [vehicles, terminal, driverNames],
+    [vehicles, depotId, driverNames],
   )
   const scopedRoutes = useMemo(
-    () => (terminal ? routes.filter((r) => driverNames.has(r.driver)) : routes),
-    [routes, terminal, driverNames],
+    () => (depotId ? routes.filter((r) => driverNames.has(r.driver)) : routes),
+    [routes, depotId, driverNames],
   )
 
   /**
@@ -52,9 +63,12 @@ export function ReportsPage() {
     switch (report.id) {
       case 'rep1':
       case 'rep5':
-        headers = ['Driver', 'Employee number', 'Home terminal', 'Status', 'Hours left', 'Safety score']
+        headers = ['Driver', 'Employee number', 'Depot', 'Employment', 'Duty', 'Hours left', 'Safety score']
+        // A dash, not a blank: an inspector reading this should see that the
+        // figure is not recorded rather than wonder if it is zero.
         rows = scopedDrivers.map((d) => [
-          d.name, d.employeeNumber, d.terminal, DRIVER_STATUS_LABEL[d.status], d.hoursLeft, d.safetyScore,
+          d.name, d.employeeNumber, d.depot?.name ?? '—', EMPLOYMENT_LABEL[d.employment],
+          d.duty ? DUTY_LABEL[d.duty] : '—', d.hoursLeft ?? '—', d.safetyScore ?? '—',
         ])
         break
       case 'rep2':
@@ -67,19 +81,21 @@ export function ReportsPage() {
         break
       case 'rep6':
         headers = ['Type', 'Driver', 'Vehicle', 'When', 'Status']
-        rows = MOCK_VIOLATIONS.filter((v) => driverNames.has(v.driver)).map((v) => [
+        rows = violations.filter((v) => driverNames.has(v.driver)).map((v) => [
           v.type, v.driver, v.vehicle, v.occurred, v.status,
         ])
         break
       case 'rep7':
         headers = ['Vehicle', 'Driver', 'Type', 'Submitted', 'Defects', 'Worst defect', 'Status']
-        rows = MOCK_INSPECTIONS.filter((i) => driverNames.has(i.driver)).map((i) => [
+        rows = inspections.filter((i) => driverNames.has(i.driver)).map((i) => [
           i.vehicle, i.driver, i.type, i.submitted, i.defects, i.worstDefect ?? '—', i.status,
         ])
         break
       case 'rep8':
-        headers = ['Driver', 'Safety score', 'Status', 'Home terminal']
-        rows = scopedDrivers.map((d) => [d.name, d.safetyScore, DRIVER_STATUS_LABEL[d.status], d.terminal])
+        headers = ['Driver', 'Safety score', 'Employment', 'Depot']
+        rows = scopedDrivers.map((d) => [
+          d.name, d.safetyScore ?? '—', EMPLOYMENT_LABEL[d.employment], d.depot?.name ?? '—',
+        ])
         break
       case 'rep9':
         headers = ['Course', 'Length (min)', 'Assigned', 'Completed', 'Overdue', 'Status']
@@ -93,13 +109,20 @@ export function ReportsPage() {
         break
       case 'rep11':
         headers = ['File', 'Type', 'Driver', 'Vehicle', 'Uploaded', 'Size (KB)']
-        rows = MOCK_DOCUMENTS.filter((d) => driverNames.has(d.driver)).map((d) => [
+        rows = documents.filter((d) => driverNames.has(d.driver)).map((d) => [
           d.name, d.kind, d.driver, d.vehicle, d.uploaded, d.sizeKb,
         ])
         break
       default:
         headers = ['Report', 'Group', 'Generated']
         rows = [[report.name, report.group, new Date().toISOString()]]
+    }
+
+    // An empty spreadsheet reads as "we have no such records", which is not
+    // what "nothing has been recorded yet" means.
+    if (rows.length === 0) {
+      show(t.nothingToRun(report.name))
+      return
     }
 
     const filename = csvFilename(report.name)
@@ -116,13 +139,12 @@ export function ReportsPage() {
             onChange={setDepot}
             options={[
               { value: 'all', label: t.depots.all },
-              { value: 'pune', label: t.depots.pune },
-              { value: 'nashik', label: t.depots.nashik },
+              ...depots.map((d) => ({ value: d.id, label: d.name })),
             ]}
           />
         </div>
         {GROUPS.map((group) => {
-          const reports = MOCK_REPORTS.filter((r) => r.group === group)
+          const reports = REPORTS.filter((r) => r.group === group)
           if (reports.length === 0) return null
 
           return (
@@ -137,9 +159,6 @@ export function ReportsPage() {
                       <p className="text-[13.5px] font-medium text-ink">{report.name}</p>
                       <p className="mt-0.5 text-[12.5px] text-ink-3">{report.description}</p>
                     </div>
-                    <span className="text-[12px] whitespace-nowrap text-ink-4">
-                      {t.lastRun(report.lastRun)}
-                    </span>
                     <Button size="sm" variant="secondary" onClick={() => runReport(report)}>
                       {t.run}
                     </Button>

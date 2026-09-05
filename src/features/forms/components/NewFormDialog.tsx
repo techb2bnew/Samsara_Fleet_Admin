@@ -1,33 +1,41 @@
 import { useState, type FormEvent } from 'react'
 import { STRINGS } from '../../../constants'
 import { Button, Field, FormGrid, FormRow, Modal, Select, useToast } from '../../../components/ui'
-import { useFleetData, type NewForm } from '../../fleet-data'
+import { useDepotOptions, useFleetData, type NewForm } from '../../fleet-data'
 
 const t = STRINGS.forms_common
 const d = STRINGS.dialog
 
-const TARGETS = [
-  { value: 'Not assigned', label: 'Not assigned' },
-  { value: 'All drivers', label: 'All drivers' },
-  { value: 'Pune depot', label: 'Pune depot' },
-  { value: 'Nashik depot', label: 'Nashik depot' },
-]
-
-const EMPTY: NewForm = { name: '', assignedTo: TARGETS[0].value }
+const EMPTY: NewForm = { name: '', depotId: '' }
 
 export function NewFormDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addForm } = useFleetData()
+
+  /** Empty means every driver in the organisation, not "nobody". */
+  const depotOptions = useDepotOptions(STRINGS.forms.allDrivers)
   const { show } = useToast()
   const [values, setValues] = useState<NewForm>(EMPTY)
   const [error, setError] = useState<string>()
+  const [saving, setSaving] = useState(false)
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!values.name.trim()) {
       setError(d.required)
       return
     }
-    addForm(values)
+
+    // A real write, so it can fail. The dialog keeps what was typed.
+    setSaving(true)
+    try {
+      await addForm(values)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t.formFailed)
+      return
+    } finally {
+      setSaving(false)
+    }
+
     show(t.formToast(values.name.trim()))
     setValues(EMPTY)
     setError(undefined)
@@ -52,7 +60,7 @@ export function NewFormDialog({ open, onClose }: { open: boolean; onClose: () =>
           <Button variant="ghost" onClick={handleClose}>
             {d.cancel}
           </Button>
-          <Button type="submit" form="new-form-form">
+          <Button type="submit" form="new-form-form" loading={saving}>
             {t.formSubmit}
           </Button>
         </>
@@ -72,9 +80,9 @@ export function NewFormDialog({ open, onClose }: { open: boolean; onClose: () =>
           <FormRow>
             <Select
               label={t.formFields.assignedTo}
-              options={TARGETS}
-              value={values.assignedTo}
-              onChange={(e) => setValues((c) => ({ ...c, assignedTo: e.target.value }))}
+              options={depotOptions}
+              value={values.depotId}
+              onChange={(e) => setValues((c) => ({ ...c, depotId: e.target.value }))}
             />
           </FormRow>
         </FormGrid>

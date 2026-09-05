@@ -45,7 +45,7 @@ export function Button({
       {...rest}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center rounded-[6px] border font-medium',
+        'inline-flex items-center justify-center rounded-[8px] border font-medium',
         // A button label that wraps breaks the control's height and the row it
         // sits in. If it does not fit, the column is too narrow — fix that
         // rather than letting the label fold.

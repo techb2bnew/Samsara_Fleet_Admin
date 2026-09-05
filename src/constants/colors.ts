@@ -57,6 +57,14 @@ export const COLORS = {
   accentSoft: v('accent-soft'),
   accentLine: v('accent-line'),
 
+  // sidebar rail
+  rail: v('rail'),
+  railInk: v('rail-ink'),
+  railMuted: v('rail-muted'),
+  railLine: v('rail-line'),
+  railHover: v('rail-hover'),
+  railActive: v('rail-active'),
+
   // Text sitting on a solid accent or danger fill. Flips between white and a
   // dark ink by theme, because the fills themselves change lightness.
   onAccent: v('on-accent'),

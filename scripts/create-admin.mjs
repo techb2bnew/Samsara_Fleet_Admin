@@ -178,6 +178,5 @@ console.log(`
     Email     ${ADMIN_EMAIL}
     Password  ${ADMIN_PASSWORD}
 
-  Set VITE_USE_MOCK_DATA=false in .env.local and restart the dev server
-  to use it. With the flag on true, the console stays on mock data.
+  Sign in with it at the console's sign-in screen.
 `)

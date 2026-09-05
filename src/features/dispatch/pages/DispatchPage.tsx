@@ -3,13 +3,21 @@ import { useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
-import { ROUTE_LABEL, ROUTE_TONE, type Route } from '../../../mocks/operations'
+import { ROUTE_LABEL, ROUTE_TONE, type Route } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
+import { formatKm } from '../geometry'
 import { PlanRouteDialog } from '../components/PlanRouteDialog'
+import { AssignRouteDialog } from '../components/AssignRouteDialog'
+import { RouteRowActions } from '../components/RouteRowActions'
 
 const t = STRINGS.dispatch
 type Tab = keyof typeof t.tabs
+
+function shortPlace(value: string) {
+  const first = value.split(',')[0]?.trim()
+  return first || value
+}
 
 /** Module A08. */
 export function DispatchPage() {
@@ -18,6 +26,7 @@ export function DispatchPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
+  const [assigning, setAssigning] = useState<{ route: Route; kind: 'driver' | 'vehicle' } | null>(null)
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -27,7 +36,9 @@ export function DispatchPage() {
       return (
         r.reference.toLowerCase().includes(q) ||
         r.driver.toLowerCase().includes(q) ||
-        r.vehicle.toLowerCase().includes(q)
+        r.vehicle.toLowerCase().includes(q) ||
+        r.origin.toLowerCase().includes(q) ||
+        r.destination.toLowerCase().includes(q)
       )
     })
   }, [routes, tab, search])
@@ -36,8 +47,18 @@ export function DispatchPage() {
     {
       key: 'route',
       header: t.columns.route,
-      width: '120px',
-      render: (r) => <span className="font-mono font-medium text-ink">{r.reference}</span>,
+      width: '220px',
+      render: (r) => (
+        <div className="min-w-0">
+          <span className="font-mono font-medium text-ink">{r.reference}</span>
+          {r.origin && r.destination && (
+            <p className="mt-0.5 truncate text-[12px] text-ink-3">
+              {t.via(shortPlace(r.origin), shortPlace(r.destination))}
+              {r.distanceKm != null ? ` · ${formatKm(r.distanceKm)}` : ''}
+            </p>
+          )}
+        </div>
+      ),
     },
     { key: 'driver', header: t.columns.driver, render: (r) => r.driver },
     { key: 'vehicle', header: t.columns.vehicle, secondary: true, render: (r) => r.vehicle },
@@ -69,10 +90,24 @@ export function DispatchPage() {
       key: 'eta',
       header: t.columns.eta,
       align: 'right',
+      secondary: true,
       render: (r) => (
         <span className={r.status === 'late' ? 'font-medium text-danger' : 'text-ink-3'}>
           {r.eta}
         </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t.columns.actions,
+      width: '56px',
+      align: 'right',
+      render: (r) => (
+        <RouteRowActions
+          route={r}
+          onAssignDriver={() => setAssigning({ route: r, kind: 'driver' })}
+          onAssignVehicle={() => setAssigning({ route: r, kind: 'vehicle' })}
+        />
       ),
     },
   ]
@@ -92,11 +127,13 @@ export function DispatchPage() {
           <FilterChips
             value={tab}
             onChange={setTab}
-            options={(Object.keys(t.tabs) as Tab[]).map((key) => ({
-              value: key,
-              label: t.tabs[key],
-              count: countFor(key),
-            }))}
+            options={(Object.keys(t.tabs) as Tab[]).map((key) => (
+              {
+                value: key,
+                label: t.tabs[key],
+                count: countFor(key),
+              }
+            ))}
           />
         </Toolbar>
         <DataTable columns={columns} rows={rows} getRowKey={(r) => r.id}
@@ -120,7 +157,17 @@ export function DispatchPage() {
           } />
       </Panel>
 
-      <PlanRouteDialog open={planning} onClose={() => setPlanning(false)} />
+      <PlanRouteDialog
+        open={planning}
+        onClose={() => setPlanning(false)}
+        onCreated={(route) => navigate(`/map?route=${route.id}`)}
+      />
+      <AssignRouteDialog
+        open={assigning !== null}
+        route={assigning?.route ?? null}
+        kind={assigning?.kind ?? 'driver'}
+        onClose={() => setAssigning(null)}
+      />
     </PageShell>
   )
 }

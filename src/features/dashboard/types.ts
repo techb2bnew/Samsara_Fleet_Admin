@@ -1,11 +1,10 @@
 import type { Tone } from '../../constants'
 
 /**
- * What the dashboard shows, whichever backend filled it.
+ * What the dashboard shows.
  *
- * The mock file and the Supabase query both produce exactly these shapes, so
- * the page renders the same either way and knows nothing about where the
- * numbers came from.
+ * The Supabase snapshot is mapped into these shapes, so the page renders tiles
+ * and alerts without knowing what was queried to produce them.
  */
 
 export type Kpi = {

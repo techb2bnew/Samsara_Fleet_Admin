@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
-import { Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
-import { ROLE_SUMMARY, STAFF_STATUS_TONE, type StaffUser } from '../../../mocks/people'
+import { Alert, Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
+import { STAFF_STATUS_TONE, type StaffUser } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
 import { InviteUserDialog } from '../components/InviteUserDialog'
@@ -13,7 +13,7 @@ type Tab = keyof typeof t.tabs
 
 /** Module A01. */
 export function UsersPage() {
-  const { staff } = useFleetData()
+  const { staff, roles, staffStatus, staffError, reloadStaff } = useFleetData()
   const navigate = useNavigate()
   const [inviting, setInviting] = useOpenOnQuery()
   const [tab, setTab] = useState<Tab>('all')
@@ -45,7 +45,7 @@ export function UsersPage() {
       ),
     },
     { key: 'role', header: t.columns.role, render: (u) => u.role },
-    { key: 'fleet', header: t.columns.fleet, secondary: true, render: (u) => u.fleet },
+    { key: 'fleet', header: t.columns.depot, secondary: true, render: (u) => u.fleet },
     {
       key: 'status',
       header: t.columns.status,
@@ -71,7 +71,20 @@ export function UsersPage() {
       actions={<Button size="sm" onClick={() => setInviting(true)}>{t.invite}</Button>}
     >
       <div className="grid gap-5 2xl:grid-cols-[1fr_320px]">
-        <Panel>
+        {staffStatus === 'error' && (
+        <div className="mb-5" role="alert">
+          <Alert tone="danger" title={t.loadFailed}>
+            <div className="flex flex-wrap items-center gap-3">
+              <span>{staffError}</span>
+              <Button size="sm" variant="secondary" onClick={reloadStaff}>
+                {STRINGS.common.retry}
+              </Button>
+            </div>
+          </Alert>
+        </div>
+      )}
+
+      <Panel>
           <Toolbar
             search={search}
             onSearchChange={setSearch}
@@ -89,28 +102,28 @@ export function UsersPage() {
           </Toolbar>
           <DataTable columns={columns} rows={rows} getRowKey={(u) => u.id}
           onRowClick={(u) => navigate(`/users/${u.id}`)} empty={
-            <EmptyState
-              title={
-                staff.length === 0
-                  ? STRINGS.empty.noneYetTitle
-                  : STRINGS.empty.noMatchTitle
-              }
-              hint={
-                staff.length === 0
-                  ? 'Invited staff will appear here once you add them.'
-                  : STRINGS.empty.noMatchHint
-              }
-              onClear={
-                staff.length === 0 ? undefined : () => { setTab('all'); setSearch('') }
-              }
-              clearLabel={STRINGS.empty.clearFilters}
-            />
+            staffStatus === 'loading' ? (
+              <EmptyState title={t.loading} />
+            ) : (
+              <EmptyState
+                title={
+                  staff.length === 0
+                    ? STRINGS.empty.noneYetTitle
+                    : STRINGS.empty.noMatchTitle
+                }
+                hint={staff.length === 0 ? t.emptyHint : STRINGS.empty.noMatchHint}
+                onClear={
+                  staff.length === 0 ? undefined : () => { setTab('all'); setSearch('') }
+                }
+                clearLabel={STRINGS.empty.clearFilters}
+              />
+            )
           } />
         </Panel>
 
         <Panel title={t.rolesTitle} hint={t.rolesHint}>
           <ul className="divide-y divide-line">
-            {ROLE_SUMMARY.map((role) => (
+            {roles.map((role) => (
               <li key={role.key} className="px-5 py-3.5">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-[13.5px] font-medium text-ink">{role.name}</p>

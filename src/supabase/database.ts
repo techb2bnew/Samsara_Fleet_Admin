@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       alert_rules: {
@@ -173,6 +148,7 @@ export type Database = {
           org_id: string
           safety_event_id: string | null
           score_percent: number | null
+          seconds_spent: number
           started_at: string | null
           status: Database["public"]["Enums"]["assignment_status"]
           updated_at: string
@@ -190,6 +166,7 @@ export type Database = {
           org_id: string
           safety_event_id?: string | null
           score_percent?: number | null
+          seconds_spent?: number
           started_at?: string | null
           status?: Database["public"]["Enums"]["assignment_status"]
           updated_at?: string
@@ -207,6 +184,7 @@ export type Database = {
           org_id?: string
           safety_event_id?: string | null
           score_percent?: number | null
+          seconds_spent?: number
           started_at?: string | null
           status?: Database["public"]["Enums"]["assignment_status"]
           updated_at?: string
@@ -732,7 +710,6 @@ export type Database = {
           first_name: string
           fleet_id: string | null
           hired_on: string | null
-          home_terminal: string | null
           id: string
           last_name: string
           notes: string | null
@@ -752,7 +729,6 @@ export type Database = {
           first_name: string
           fleet_id?: string | null
           hired_on?: string | null
-          home_terminal?: string | null
           id?: string
           last_name: string
           notes?: string | null
@@ -772,7 +748,6 @@ export type Database = {
           first_name?: string
           fleet_id?: string | null
           hired_on?: string | null
-          home_terminal?: string | null
           id?: string
           last_name?: string
           notes?: string | null
@@ -915,30 +890,42 @@ export type Database = {
       }
       fleets: {
         Row: {
+          address: string | null
           code: string | null
           created_at: string
           deleted_at: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           name: string
           org_id: string
+          timezone: string
           updated_at: string
         }
         Insert: {
+          address?: string | null
           code?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name: string
           org_id: string
+          timezone?: string
           updated_at?: string
         }
         Update: {
+          address?: string | null
           code?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           org_id?: string
+          timezone?: string
           updated_at?: string
         }
         Relationships: [
@@ -1413,6 +1400,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           dot_number: string | null
+          hos_regulator: string | null
           id: string
           legal_name: string | null
           logo_url: string | null
@@ -1427,6 +1415,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           dot_number?: string | null
+          hos_regulator?: string | null
           id?: string
           legal_name?: string | null
           logo_url?: string | null
@@ -1441,6 +1430,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           dot_number?: string | null
+          hos_regulator?: string | null
           id?: string
           legal_name?: string | null
           logo_url?: string | null
@@ -1500,10 +1490,14 @@ export type Database = {
         Row: {
           address: string | null
           arrived_at: string | null
+          arrived_distance_m: number | null
+          arrived_latitude: number | null
+          arrived_longitude: number | null
           contact_name: string | null
           contact_phone: string | null
           created_at: string
           departed_at: string | null
+          distance_from_start_km: number | null
           failure_reason: string | null
           id: string
           instructions: string | null
@@ -1521,10 +1515,14 @@ export type Database = {
         Insert: {
           address?: string | null
           arrived_at?: string | null
+          arrived_distance_m?: number | null
+          arrived_latitude?: number | null
+          arrived_longitude?: number | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
           departed_at?: string | null
+          distance_from_start_km?: number | null
           failure_reason?: string | null
           id?: string
           instructions?: string | null
@@ -1542,10 +1540,14 @@ export type Database = {
         Update: {
           address?: string | null
           arrived_at?: string | null
+          arrived_distance_m?: number | null
+          arrived_latitude?: number | null
+          arrived_longitude?: number | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
           departed_at?: string | null
+          distance_from_start_km?: number | null
           failure_reason?: string | null
           id?: string
           instructions?: string | null
@@ -1589,6 +1591,7 @@ export type Database = {
           name: string | null
           notes: string | null
           org_id: string
+          path_polyline: string | null
           planned_distance_km: number | null
           planned_end_at: string | null
           planned_start_at: string | null
@@ -1610,6 +1613,7 @@ export type Database = {
           name?: string | null
           notes?: string | null
           org_id: string
+          path_polyline?: string | null
           planned_distance_km?: number | null
           planned_end_at?: string | null
           planned_start_at?: string | null
@@ -1631,6 +1635,7 @@ export type Database = {
           name?: string | null
           notes?: string | null
           org_id?: string
+          path_polyline?: string | null
           planned_distance_km?: number | null
           planned_end_at?: string | null
           planned_start_at?: string | null
@@ -2030,6 +2035,7 @@ export type Database = {
           org_id: string
           parts_cost_cents: number | null
           reference: string | null
+          requested_by_driver: string | null
           schedule_id: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["work_order_status"]
@@ -2052,6 +2058,7 @@ export type Database = {
           org_id: string
           parts_cost_cents?: number | null
           reference?: string | null
+          requested_by_driver?: string | null
           schedule_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["work_order_status"]
@@ -2074,6 +2081,7 @@ export type Database = {
           org_id?: string
           parts_cost_cents?: number | null
           reference?: string | null
+          requested_by_driver?: string | null
           schedule_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["work_order_status"]
@@ -2104,6 +2112,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "work_orders_requested_by_driver_fkey"
+            columns: ["requested_by_driver"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "work_orders_schedule_id_fkey"
             columns: ["schedule_id"]
             isOneToOne: false
@@ -2124,7 +2139,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_driver_fleet_id: { Args: never; Returns: string }
       current_driver_id: { Args: never; Returns: string }
+      current_driver_org_id: { Args: never; Returns: string }
       current_org_ids: { Args: never; Returns: string[] }
       has_org_access: { Args: { target_org_id: string }; Returns: boolean }
       has_org_role: {
@@ -2132,6 +2149,23 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      report_position: {
+        Args: {
+          heading_deg?: number
+          ignition_on?: boolean
+          latitude: number
+          longitude: number
+          reported_at?: string
+          speed_kph?: number
+        }
+        Returns: string
+      }
+      sign_on_to_vehicle: { Args: { p_vehicle_id: string }; Returns: string }
+      storage_segment_uuid: {
+        Args: { object_name: string; segment: number }
+        Returns: string
+      }
+      taken_vehicle_ids: { Args: never; Returns: string[] }
     }
     Enums: {
       alert_channel: "in_app" | "email" | "sms"
@@ -2196,12 +2230,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2225,11 +2259,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2250,11 +2284,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2275,11 +2309,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2292,11 +2326,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2306,9 +2340,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       alert_channel: ["in_app", "email", "sms"],

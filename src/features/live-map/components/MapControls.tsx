@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMap } from '@vis.gl/react-google-maps'
 import { STRINGS } from '../../../constants'
+import { fitToFleet, type MapVehicle } from './fitToFleet'
 import { cn } from '../../../lib/cn'
 
 const t = STRINGS.map
@@ -10,14 +11,18 @@ type MapTypeId = keyof typeof t.mapTypes
 const MAP_TYPES = Object.keys(t.mapTypes) as MapTypeId[]
 
 /**
- * Zoom and map-type controls, drawn in the console's own style.
+ * Zoom, map type and recentre, drawn in the console's own style.
  *
  * Google's built-in controls are switched off because they ignore the app
  * palette, do not follow the dark theme, and sit at sizes that clash with
  * everything else on the page. Driving the map through `useMap()` gives the
  * same behaviour with controls that belong to this product.
+ *
+ * Recentre takes the vehicles rather than a callback: this component sits
+ * inside the map's own tree, so it can reach the map instance through
+ * `useMap()`. A callback built outside that tree has no map to act on.
  */
-export function MapControls() {
+export function MapControls({ vehicles }: { vehicles: MapVehicle[] }) {
   const map = useMap()
   const [mapType, setMapType] = useState<MapTypeId>('roadmap')
 
@@ -69,15 +74,24 @@ export function MapControls() {
         ))}
       </div>
 
-      {/* zoom — bottom right, where a hand on a trackpad expects it */}
-      <div className="absolute right-3 bottom-3 flex flex-col overflow-hidden rounded-[8px] border border-line bg-surface shadow-lg shadow-black/10">
-        <ControlButton label={t.zoomIn} onClick={() => zoomBy(1)}>
-          <path d="M12 5v14M5 12h14" />
-        </ControlButton>
-        <span className="h-px bg-line" aria-hidden="true" />
-        <ControlButton label={t.zoomOut} onClick={() => zoomBy(-1)}>
-          <path d="M5 12h14" />
-        </ControlButton>
+      {/* zoom and recentre — bottom right, where a hand on a trackpad expects
+          them. Recentre is separated: it jumps the view, the others nudge it. */}
+      <div className="absolute right-3 bottom-3 flex flex-col items-end gap-2">
+        <div className="overflow-hidden rounded-[8px] border border-line bg-surface shadow-lg shadow-black/10">
+          <ControlButton label={t.recentre} onClick={() => fitToFleet(map, vehicles)}>
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+            <circle cx="12" cy="12" r="4" />
+          </ControlButton>
+        </div>
+        <div className="flex flex-col overflow-hidden rounded-[8px] border border-line bg-surface shadow-lg shadow-black/10">
+          <ControlButton label={t.zoomIn} onClick={() => zoomBy(1)}>
+            <path d="M12 5v14M5 12h14" />
+          </ControlButton>
+          <span className="h-px bg-line" aria-hidden="true" />
+          <ControlButton label={t.zoomOut} onClick={() => zoomBy(-1)}>
+            <path d="M5 12h14" />
+          </ControlButton>
+        </div>
       </div>
     </>
   )

@@ -51,6 +51,12 @@ export function Field({ label, hint, error, trailing, className, id, type, ...re
       <div className="flex items-baseline justify-between gap-3">
         <label htmlFor={inputId} className="text-[13px] font-medium text-ink">
           {label}
+          {rest.required ? (
+            <span className="text-danger" aria-hidden="true">
+              {' '}
+              *
+            </span>
+          ) : null}
         </label>
         {trailing}
       </div>

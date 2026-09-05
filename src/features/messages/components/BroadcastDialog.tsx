@@ -6,12 +6,13 @@ import { useFleetData } from '../../fleet-data'
 const t = STRINGS.messages
 const d = STRINGS.dialog
 
-type Audience = keyof typeof t.broadcastAudience
-
-const AUDIENCES = (Object.keys(t.broadcastAudience) as Audience[]).map((key) => ({
-  value: key,
-  label: t.broadcastAudience[key],
-}))
+/**
+ * "all" and "onDuty" are fixed; anything else is a depot name straight from
+ * the database. Hardcoding the depots meant the list was wrong the moment a
+ * third one opened, and the filter compared against a name that might not
+ * exist.
+ */
+type Audience = 'all' | 'onDuty' | (string & {})
 
 export function BroadcastDialog({
   open,
@@ -22,7 +23,7 @@ export function BroadcastDialog({
   onClose: () => void
   onSend: (body: string, recipients: string[]) => void
 }) {
-  const { drivers } = useFleetData()
+  const { drivers, depots } = useFleetData()
   const { show } = useToast()
 
   const [audience, setAudience] = useState<Audience>('all')
@@ -34,17 +35,24 @@ export function BroadcastDialog({
    * reaches the wrong depot cannot be recalled from forty phones.
    */
   const recipients = useMemo(() => {
-    switch (audience) {
-      case 'pune':
-        return drivers.filter((driver) => driver.terminal === 'Pune depot')
-      case 'nashik':
-        return drivers.filter((driver) => driver.terminal === 'Nashik depot')
-      case 'onDuty':
-        return drivers.filter((driver) => driver.status === 'driving' || driver.status === 'on_duty')
-      default:
-        return drivers
+    if (audience === 'all') return drivers
+    if (audience === 'onDuty') {
+      // Duty status comes from hours of service. Where nothing is recording
+      // it, nobody matches — better than broadcasting to the whole depot
+      // under a label that says on duty.
+      return drivers.filter((driver) => driver.duty === 'driving' || driver.duty === 'on_duty')
     }
+    return drivers.filter((driver) => driver.depot?.id === audience)
   }, [audience, drivers])
+
+  const audienceOptions = useMemo(
+    () => [
+      { value: 'all', label: t.broadcastAudience.all },
+      { value: 'onDuty', label: t.broadcastAudience.onDuty },
+      ...depots.map((depot) => ({ value: depot.id, label: depot.name })),
+    ],
+    [depots],
+  )
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -87,7 +95,7 @@ export function BroadcastDialog({
           <FormRow>
             <Select
               label={t.broadcastFields.audience}
-              options={AUDIENCES}
+              options={audienceOptions}
               value={audience}
               onChange={(e) => setAudience(e.target.value as Audience)}
               hint={t.broadcastToast(recipients.length).replace('Message sent to', 'Reaches')}

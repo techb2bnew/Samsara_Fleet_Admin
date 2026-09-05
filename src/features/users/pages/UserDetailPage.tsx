@@ -4,13 +4,13 @@ import { DetailList, DetailRow, DetailShell } from '../../../components/layout/D
 import { Panel } from '../../../components/layout/PageShell'
 import { Badge, EmptyState } from '../../../components/ui'
 import { useFleetData } from '../../fleet-data'
-import { ROLE_SUMMARY, STAFF_STATUS_TONE } from '../../../mocks/people'
+import { STAFF_STATUS_TONE } from '../types'
 
 const t = STRINGS.users
 
 export function UserDetailPage() {
   const { userId } = useParams()
-  const { staff } = useFleetData()
+  const { staff, roles } = useFleetData()
   const user = staff.find((u) => u.id === userId)
 
   if (!user) {
@@ -23,7 +23,7 @@ export function UserDetailPage() {
     )
   }
 
-  const role = ROLE_SUMMARY.find((r) => r.name === user.role)
+  const role = roles.find((r) => r.name === user.role)
 
   return (
     <DetailShell
@@ -53,7 +53,7 @@ export function UserDetailPage() {
         <Panel title={t.detail.access}>
           <DetailList>
             <DetailRow label={t.detail.role}>{user.role}</DetailRow>
-            <DetailRow label={t.detail.fleet}>{user.fleet}</DetailRow>
+            <DetailRow label={t.detail.depot}>{user.fleet}</DetailRow>
             <DetailRow label={t.detail.status}>
               <Badge tone={STAFF_STATUS_TONE[user.status]}>{t.tabs[user.status]}</Badge>
             </DetailRow>

@@ -1,13 +1,11 @@
 import { STRINGS } from '../../../constants'
 import { cn } from '../../../lib/cn'
+import { DUTY_STATUSES, dutyTotals, formatDutyHours } from '../dates'
 import {
-  DUTY_STATUSES,
-  dutyTotals,
-  formatDutyHours,
   type DutyClocks,
   type DutySegment,
   type DutyStatus,
-} from '../../../mocks/compliance'
+} from '../types'
 
 const t = STRINGS.drivers.detail
 
@@ -54,14 +52,20 @@ export function HosLogGrid({
   clocks,
 }: {
   segments: DutySegment[]
-  clocks: DutyClocks
+  /** Null when nothing is recording hours yet. */
+  clocks: DutyClocks | null
 }) {
   const totals = dutyTotals(segments)
   const path = linePath(segments)
+  const empty = segments.length === 0
   const ticks = Array.from({ length: 25 }, (_, i) => i)
 
   return (
     <div>
+      {empty && (
+        <p className="px-4 pt-4 text-[13px] text-ink-3">{t.noDutyRecorded}</p>
+      )}
+
       <div className="overflow-x-auto px-3 pt-3 sm:px-4">
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -168,10 +172,12 @@ export function HosLogGrid({
       <div className="mt-1 grid grid-cols-2 gap-px bg-ink sm:grid-cols-4">
         {(
           [
-            ['onDuty', clocks.onDuty],
-            ['driving', clocks.driving],
-            ['break', clocks.break],
-            ['cycle', clocks.cycle],
+            // A dash, not 00:00: nothing recorded is not the same as no hours
+            // left, and a compliance officer reads those very differently.
+            ['onDuty', clocks?.onDuty ?? '—'],
+            ['driving', clocks?.driving ?? '—'],
+            ['break', clocks?.break ?? '—'],
+            ['cycle', clocks?.cycle ?? '—'],
           ] as const
         ).map(([key, value]) => (
           <div key={key} className={cn('bg-ink px-4 py-2.5 text-ground')}>

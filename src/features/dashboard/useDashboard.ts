@@ -1,24 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
-import { USE_MOCK_DATA } from '../../config'
 import * as api from '../../supabase/api'
 import { STRINGS } from '../../constants'
-import { MOCK_ACTIVITY, MOCK_ALERTS, MOCK_KPIS } from '../../mocks/fleet'
 import { useAuth } from '../auth/AuthProvider'
 import type { ActivityItem, Alert, DashboardData, Kpi } from './types'
 
 /**
- * Where the dashboard gets its numbers.
- *
- * USE_MOCK_DATA decides: on, the invented figures the console was designed
- * against; off, live counts from Supabase. The page itself renders whatever
- * comes back and never knows which ran.
+ * Where the dashboard gets its numbers: live counts from Supabase, and nothing
+ * else. The page renders whatever comes back.
  *
  * ---------------------------------------------------------------------------
- * What live data can and cannot answer yet
+ * What the data can and cannot answer yet
  * ---------------------------------------------------------------------------
- * The mock dashboard shows six figures. Only some of them have a table behind
- * them today, so the live dashboard shows what the schema can actually prove
- * and leaves the rest out rather than printing a zero that looks like good news:
+ * The dashboard shows what the schema can actually prove and leaves the rest
+ * out rather than printing a zero that looks like good news. Still missing:
  *
  *   drivers on duty       needs duty_status_events   (hours-of-service)
  *   vehicles moving       needs vehicle positions    (telemetry)
@@ -32,16 +26,23 @@ import type { ActivityItem, Alert, DashboardData, Kpi } from './types'
 
 const t = STRINGS.dashboard
 
-type State =
-  | { status: 'loading'; data: null; error: null }
-  | { status: 'ready'; data: DashboardData; error: null }
-  | { status: 'error'; data: null; error: string }
+/**
+ * How fresh the position feed is.
+ *
+ *   'live'    something reported within the offline window
+ *   'stale'   the newest report is older than that
+ *   'silent'  nothing has ever reported
+ *   null      not known yet, or the load failed
+ */
+export type FeedState = 'live' | 'stale' | 'silent' | null
 
-const MOCK_DATA: DashboardData = {
-  kpis: MOCK_KPIS,
-  alerts: MOCK_ALERTS,
-  activity: MOCK_ACTIVITY,
-}
+/** Matches the live map's rule, so the two screens never disagree. */
+const FEED_STALE_AFTER_MINUTES = 15
+
+type State =
+  | { status: 'loading'; data: null; error: null; feed: null }
+  | { status: 'ready'; data: DashboardData; error: null; feed: FeedState }
+  | { status: 'error'; data: null; error: string; feed: null }
 
 /* ------------------------------------------------------------- formatting */
 
@@ -196,26 +197,32 @@ export function useDashboard() {
   const { session } = useAuth()
   const orgId = session?.organization.id ?? null
 
-  const [state, setState] = useState<State>(
-    USE_MOCK_DATA
-      ? { status: 'ready', data: MOCK_DATA, error: null }
-      : { status: 'loading', data: null, error: null },
-  )
+  const [state, setState] = useState<State>({
+    status: 'loading',
+    data: null,
+    error: null,
+    feed: null,
+  })
 
   const load = useCallback(
     async (signal?: { cancelled: boolean }) => {
-      if (USE_MOCK_DATA) {
-        setState({ status: 'ready', data: MOCK_DATA, error: null })
-        return
-      }
       if (!orgId) return
 
-      setState({ status: 'loading', data: null, error: null })
+      setState({ status: 'loading', data: null, error: null, feed: null })
       try {
         const snapshot = await api.loadDashboard(orgId)
         if (signal?.cancelled) return
+        const newest = snapshot.counts.lastPositionAt
+        const feed: FeedState =
+          newest === null
+            ? 'silent'
+            : (Date.now() - new Date(newest).getTime()) / 60_000 <= FEED_STALE_AFTER_MINUTES
+              ? 'live'
+              : 'stale'
+
         setState({
           status: 'ready',
+          feed,
           data: {
             kpis: toKpis(snapshot.counts),
             alerts: toAlerts(snapshot),
@@ -229,6 +236,7 @@ export function useDashboard() {
         setState({
           status: 'error',
           data: null,
+          feed: null,
           error: error instanceof Error ? error.message : t.live.loadFailed,
         })
       }
@@ -246,8 +254,12 @@ export function useDashboard() {
 
   return {
     ...state,
-    /** True when the activity feed has no backend, so the page can say so. */
-    activityUnavailable: !USE_MOCK_DATA,
+    /**
+     * The activity feed has no backend yet: audit entries have to be written
+     * by the server, and nothing does. The page says so rather than showing
+     * "all clear", which would claim nothing has happened.
+     */
+    activityUnavailable: true,
     reload: () => void load(),
   }
 }

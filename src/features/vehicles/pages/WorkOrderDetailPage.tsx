@@ -4,15 +4,15 @@ import { DetailList, DetailRow, DetailShell } from '../../../components/layout/D
 import { Panel } from '../../../components/layout/PageShell'
 import { Badge, Button, EmptyState } from '../../../components/ui'
 import { useFleetData } from '../../fleet-data'
-import { MOCK_WORK_ORDERS, WORK_ORDER_LABEL, WORK_ORDER_TONE } from '../../../mocks/vehicles'
+import { WORK_ORDER_LABEL, WORK_ORDER_TONE } from '../types'
 import { hrefForVehicleName } from '../../../lib/entityLinks'
 
 const t = STRINGS.vehicles
 
 export function WorkOrderDetailPage() {
   const { workOrderId } = useParams()
-  const { vehicles } = useFleetData()
-  const order = MOCK_WORK_ORDERS.find((w) => w.id === workOrderId)
+  const { vehicles, workOrders } = useFleetData()
+  const order = workOrders.find((w) => w.id === workOrderId)
 
   if (!order) {
     return (

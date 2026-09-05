@@ -3,21 +3,14 @@ import { Link } from 'react-router-dom'
 import { STRINGS, TONE_SOLID } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
-import { Button, ConfirmDialog, EmptyState, useToast } from '../../../components/ui'
+import { Alert, Button, ConfirmDialog, EmptyState, useToast } from '../../../components/ui'
+import { datesForPeriod, formatLogColumn, formatPeriodLabel, isSameDay, type HoursPeriod } from '../dates'
 import {
-  datesForPeriod,
-  dutyClocksFor,
-  dutyLogFor,
-  formatLogColumn,
-  formatPeriodLabel,
-  isSameDay,
   logStateOn,
   LOG_STATE_LABEL,
   LOG_STATE_TONE,
-  MOCK_LOGS,
-  MOCK_UNASSIGNED,
-  type HoursPeriod,
-} from '../../../mocks/compliance'
+  type UnassignedSegment,
+} from '../types'
 import { useFleetData } from '../../fleet-data'
 import { csvFilename, downloadCsv } from '../../../lib/csv'
 import { hrefForDriverName } from '../../../lib/entityLinks'
@@ -25,6 +18,7 @@ import { ReviewCorrectionDialog, ReviewViolationDialog } from '../components/Hou
 import { AssignDrivingDialog } from '../components/AssignDrivingDialog'
 import { LogPeriodControls } from '../components/LogPeriodControls'
 import { HosLogGrid } from '../components/HosLogGrid'
+import { dayRecap } from '../totals'
 
 const t = STRINGS.hours
 
@@ -40,8 +34,23 @@ const t = STRINGS.hours
  * to accept, because a carrier may not alter a driver's record on their behalf.
  */
 export function HoursPage() {
-  const { violations, editRequests, resolveViolation, resolveEditRequest, drivers, vehicles } =
-    useFleetData()
+  const {
+    violations,
+    editRequests,
+    resolveViolation,
+    resolveEditRequest,
+    drivers,
+    vehicles,
+    logs,
+    unassigned,
+    opsStatus,
+    opsError,
+    reloadOps,
+    dutySegmentsFor,
+    cycleWindowFor,
+    violationsEvaluated,
+    unassignedDetected,
+  } = useFleetData()
   const { show } = useToast()
 
   const [reviewingViolation, setReviewingViolation] = useState<(typeof violations)[number] | null>(
@@ -51,7 +60,7 @@ export function HoursPage() {
     null,
   )
   const [assigned, setAssigned] = useState<string[]>([])
-  const [assigning, setAssigning] = useState<(typeof MOCK_UNASSIGNED)[number] | null>(null)
+  const [assigning, setAssigning] = useState<UnassignedSegment | null>(null)
   const [exporting, setExporting] = useState(false)
   const [period, setPeriod] = useState<HoursPeriod>('week')
   const today = useMemo(() => {
@@ -93,7 +102,7 @@ export function HoursPage() {
   const periodLabel = formatPeriodLabel(period, dates)
 
   const openViolations = violations.filter((v) => v.status === 'open')
-  const unassigned = MOCK_UNASSIGNED.filter((u) => !assigned.includes(u.id))
+  const openUnassigned = unassigned.filter((u) => !assigned.includes(u.id))
 
   /**
    * The audit pack an inspector asks for: one row per driver per day, with the
@@ -101,13 +110,20 @@ export function HoursPage() {
    * reads this in a spreadsheet, not in the console.
    */
   function exportAuditPack() {
-    const rows = MOCK_LOGS.flatMap((log) =>
+    const rows = logs.flatMap((log) =>
       dates.map((date) => [
         log.driver,
         date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }),
         LOG_STATE_LABEL[logStateOn(log, date)],
       ]),
     )
+    // An empty audit pack is worse than none: an inspector opening a file with
+    // only headers reads it as "this fleet keeps no records".
+    if (rows.length === 0) {
+      show(t.nothingToExport)
+      return
+    }
+
     const filename = csvFilename('working-hours-audit')
     downloadCsv(filename, ['Driver', 'Date', 'Status'], rows)
     show(STRINGS.export.started(filename))
@@ -125,6 +141,19 @@ export function HoursPage() {
       }
     >
       <div className="flex flex-col gap-5">
+        {opsStatus === 'error' && (
+          <div role="alert">
+            <Alert tone="danger" title={t.loadFailed}>
+              <div className="flex flex-wrap items-center gap-3">
+                <span>{opsError}</span>
+                <Button size="sm" variant="secondary" onClick={reloadOps}>
+                  {STRINGS.common.retry}
+                </Button>
+              </div>
+            </Alert>
+          </div>
+        )}
+
         <Panel
           title={t.gridTitle}
           hint={`${t.gridHints[period]} · ${periodLabel}`}
@@ -144,6 +173,12 @@ export function HoursPage() {
             today={today}
             label={periodLabel}
           />
+          {logs.length === 0 ? (
+            <EmptyState
+              title={opsStatus === 'loading' ? t.loading : t.noLogs}
+              hint={opsStatus === 'loading' ? undefined : t.noLogsHint}
+            />
+          ) : (
           <div className="overflow-x-auto px-4 py-4 sm:px-5">
             <table
               className={cn(
@@ -175,7 +210,7 @@ export function HoursPage() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_LOGS.map((log) => (
+                {logs.map((log) => (
                   <Fragment key={log.driverId}>
                   <tr className="border-t border-line">
                     <td className="py-2 pr-2">
@@ -238,10 +273,14 @@ export function HoursPage() {
                             {t.graphsOpenProfile}
                           </Link>
                         </div>
+                        {/* Hours used, measured from the duty events — see
+                            hours/totals. Null on a day with nothing recorded,
+                            which the grid shows as dashes. */}
                         <HosLogGrid
-                          segments={dutyLogFor(log.driverId, anchor)}
-                          clocks={dutyClocksFor(
-                            drivers.find((d) => d.id === log.driverId)?.hoursLeft ?? '11:00',
+                          segments={dutySegmentsFor(log.driverId, anchor)}
+                          clocks={dayRecap(
+                            dutySegmentsFor(log.driverId, anchor),
+                            cycleWindowFor(log.driverId, anchor),
                           )}
                         />
                       </td>
@@ -273,11 +312,14 @@ export function HoursPage() {
               })}
             </div>
           </div>
+          )}
         </Panel>
 
         <div className="grid gap-5 lg:grid-cols-2">
           <Panel title={t.violationsTitle} hint={t.violationsHint}>
-            {violations.length === 0 ? (
+            {!violationsEvaluated ? (
+              <EmptyState title={t.violationsNotEvaluated} hint={t.violationsNotEvaluatedHint} />
+            ) : violations.length === 0 ? (
               <EmptyState title={t.noViolations} />
             ) : openViolations.length === 0 ? (
               <EmptyState title={t.allViolationsReviewed} />
@@ -362,11 +404,13 @@ export function HoursPage() {
             </Panel>
 
             <Panel title={t.unassignedTitle} hint={t.unassignedHint}>
-              {unassigned.length === 0 ? (
+              {!unassignedDetected ? (
+                <EmptyState title={t.unassignedNotDetected} hint={t.unassignedNotDetectedHint} />
+              ) : openUnassigned.length === 0 ? (
                 <EmptyState title={t.noUnassigned} />
               ) : (
                 <ul className="divide-y divide-line">
-                  {unassigned.map((segment) => (
+                  {openUnassigned.map((segment) => (
                     <li
                       key={segment.id}
                       className="flex flex-col gap-2.5 px-4 py-3 transition-colors hover:bg-surface-2 sm:flex-row sm:items-center sm:gap-3 sm:px-5"
@@ -412,9 +456,17 @@ export function HoursPage() {
         drivers={drivers}
         vehicles={vehicles}
         onClose={() => setReviewingRequest(null)}
-        onDecide={(decision) => {
+        onDecide={async (decision) => {
           if (!reviewingRequest) return
-          resolveEditRequest(reviewingRequest.id, decision)
+          try {
+            await resolveEditRequest(reviewingRequest.id, decision)
+          } catch (error) {
+            // A compliance decision that did not save must say so. Announcing
+            // success here is how a correction silently never gets decided.
+            show(error instanceof Error ? error.message : t.decisionFailed)
+            setReviewingRequest(null)
+            return
+          }
           show(decision === 'approve' ? t.approvedToast : t.rejectedToast)
           setReviewingRequest(null)
         }}

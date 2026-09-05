@@ -41,10 +41,10 @@ const NAV_ICON: Record<Module['id'], typeof GridIcon> = {
 
 function itemClass(isActive: boolean) {
   return cn(
-    'group flex items-center gap-2 rounded-[10px] py-[5px] pr-2.5 pl-[5px] text-[13.5px] leading-snug outline-none transition-colors',
+    'group flex items-center gap-2.5 rounded-[10px] py-2 pr-3 pl-2 text-[13.5px] leading-snug outline-none transition-colors',
     isActive
-      ? 'bg-accent-soft font-semibold text-accent'
-      : 'font-medium text-ink-2 hover:bg-surface-2 hover:text-ink',
+      ? 'bg-white font-semibold text-ink'
+      : 'font-medium text-rail-muted hover:bg-white/6 hover:text-rail-ink',
   )
 }
 
@@ -52,13 +52,16 @@ function iconWrapClass(isActive: boolean) {
   return cn(
     'flex size-7 shrink-0 items-center justify-center rounded-[7px] transition-colors',
     isActive
-      ? 'bg-surface text-accent shadow-[0_1px_2px_rgba(15,23,42,0.08)]'
-      : 'text-ink-4 group-hover:text-ink-2',
+      ? 'bg-accent text-on-accent'
+      : 'text-rail-muted group-hover:text-rail-ink',
   )
 }
 
 /**
- * Sidebar links shared by the desktop rail and the mobile drawer.
+ * Flat sidebar: one list, grouped only by a label.
+ *
+ * Trays, capsules and the route spine were tried and set aside. The current
+ * page is a white box so it still reads on the dark rail.
  *
  * `onNavigate` closes the drawer after a tap so the page is not left sitting
  * behind an open menu.
@@ -66,40 +69,44 @@ function iconWrapClass(isActive: boolean) {
 export function ConsoleNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
-      <nav className="console-nav flex-1 overflow-y-auto px-2.5 py-3">
-        {GROUPS.map((group) => (
-          <div key={group} className="mb-4">
-            <p className="px-2 pb-1.5 text-[10px] font-semibold tracking-[0.14em] text-ink-4 uppercase">
-              {STRINGS.moduleGroups[group]}
-            </p>
-            <div className="flex flex-col gap-px">
-              {MODULES.filter((m) => m.group === group).map((m) => {
-                const Icon = NAV_ICON[m.id]
-                return (
-                  <NavLink
-                    key={m.id}
-                    to={m.path}
-                    end={m.path === '/'}
-                    onClick={onNavigate}
-                    className={({ isActive }) => itemClass(isActive)}
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <span className={iconWrapClass(isActive)}>
-                          <Icon size={15} />
-                        </span>
-                        <span className="min-w-0 truncate">{m.name}</span>
-                      </>
-                    )}
-                  </NavLink>
-                )
-              })}
+      <nav className="console-nav flex-1 overflow-y-auto px-3 py-3.5">
+        {GROUPS.map((group) => {
+          const items = MODULES.filter((m) => m.group === group)
+          if (items.length === 0) return null
+          return (
+            <div key={group} className="mb-5 last:mb-2">
+              <p className="px-2 pb-2 text-[10.5px] font-semibold tracking-[0.14em] text-rail-muted/70 uppercase">
+                {STRINGS.moduleGroups[group]}
+              </p>
+              <div className="flex flex-col gap-0.5">
+                {items.map((m) => {
+                  const Icon = NAV_ICON[m.id]
+                  return (
+                    <NavLink
+                      key={m.id}
+                      to={m.path}
+                      end={m.path === '/'}
+                      onClick={onNavigate}
+                      className={({ isActive }) => itemClass(isActive)}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <span className={iconWrapClass(isActive)}>
+                            <Icon size={15} />
+                          </span>
+                          <span className="min-w-0 truncate">{m.name}</span>
+                        </>
+                      )}
+                    </NavLink>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </nav>
 
-      <div className="border-t border-line p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+      <div className="border-t border-rail-line p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <NavLink
           to="/help"
           onClick={onNavigate}

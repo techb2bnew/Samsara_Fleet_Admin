@@ -4,7 +4,9 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    "types": ["vite/client"],
+    // google.maps ships with @vis.gl/react-google-maps; the map instance the
+    // library hands back genuinely is a google.maps.Map.
+    "types": ["vite/client", "google.maps"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 

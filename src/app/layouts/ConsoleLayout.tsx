@@ -45,7 +45,7 @@ export function ConsoleLayout() {
 
   return (
     <div className="flex h-full bg-ground">
-      <aside className="hidden w-[248px] shrink-0 flex-col border-r border-line bg-surface lg:flex">
+      <aside className="hidden w-[252px] shrink-0 flex-col border-r border-rail-line bg-rail lg:flex">
         <Brand name={session.organization.name} />
         <ConsoleNav />
       </aside>
@@ -53,11 +53,11 @@ export function ConsoleLayout() {
       {navOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
-            className="absolute inset-0 bg-brand/50 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-rail/50 backdrop-blur-[2px]"
             onClick={() => setNavOpen(false)}
             aria-hidden="true"
           />
-          <aside className="relative flex h-full w-[min(280px,86vw)] flex-col border-r border-line bg-surface shadow-2xl shadow-black/20">
+          <aside className="relative flex h-full w-[min(280px,86vw)] flex-col border-r border-rail-line bg-rail shadow-2xl shadow-black/30">
             <Brand name={session.organization.name} />
             <ConsoleNav onNavigate={() => setNavOpen(false)} />
           </aside>
@@ -76,13 +76,13 @@ export function ConsoleLayout() {
 
 function Brand({ name }: { name: string }) {
   return (
-    <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-line px-4">
+    <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-rail-line px-4">
       <Logo size={28} />
       <div className="min-w-0">
-        <p className="truncate text-[13.5px] leading-tight font-semibold tracking-[-0.01em] text-ink">
+        <p className="truncate text-[13.5px] leading-tight font-semibold tracking-[-0.01em] text-rail-ink">
           {name}
         </p>
-        <p className="text-[11px] leading-tight text-ink-3">{STRINGS.console.subtitle}</p>
+        <p className="text-[11px] leading-tight text-rail-muted">{STRINGS.console.subtitle}</p>
       </div>
     </div>
   )

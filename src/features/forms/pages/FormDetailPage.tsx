@@ -1,15 +1,18 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { DetailList, DetailRow, DetailShell } from '../../../components/layout/DetailShell'
 import { Panel } from '../../../components/layout/PageShell'
-import { Badge, EmptyState } from '../../../components/ui'
+import { Badge, Button, EmptyState, useToast } from '../../../components/ui'
 import { useFleetData } from '../../fleet-data'
 
 const t = STRINGS.forms
 
 export function FormDetailPage() {
   const { formId } = useParams()
-  const { forms, formFields } = useFleetData()
+  const { forms, formFields, setFormPublished } = useFleetData()
+  const { show } = useToast()
+  const [publishing, setPublishing] = useState(false)
   const form = forms.find((f) => f.id === formId)
 
   if (!form) {
@@ -23,6 +26,19 @@ export function FormDetailPage() {
   }
 
   const fields = formFields[form.id] ?? []
+  const published = form.status === 'published'
+
+  async function togglePublished() {
+    setPublishing(true)
+    try {
+      await setFormPublished(form!.id, !published)
+      show(published ? t.unpublishedToast(form!.name) : t.publishedToast(form!.name))
+    } catch (error) {
+      show(error instanceof Error ? error.message : t.publishFailed)
+    } finally {
+      setPublishing(false)
+    }
+  }
 
   return (
     <DetailShell
@@ -34,6 +50,21 @@ export function FormDetailPage() {
         <Badge tone={form.status === 'published' ? 'success' : 'neutral'}>
           {form.status === 'published' ? 'Published' : 'Draft'}
         </Badge>
+      }
+      actions={
+        /*
+         * The last link in the chain. A form is created as a draft and the
+         * driver app reads only published rows, so without this a form could
+         * be built and never reach anybody.
+         */
+        <Button
+          size="sm"
+          variant={form.status === 'published' ? 'secondary' : 'primary'}
+          loading={publishing}
+          onClick={() => void togglePublished()}
+        >
+          {form.status === 'published' ? t.unpublish : t.publish}
+        </Button>
       }
     >
       <div className="grid gap-5 lg:grid-cols-[320px_1fr]">

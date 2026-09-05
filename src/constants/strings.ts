@@ -37,6 +37,7 @@ export const STRINGS = {
     filter: 'Filter',
     export: 'Export',
     retry: 'Try again',
+    actions: 'Actions',
     loading: 'Loading…',
     noResults: 'Nothing matches those filters',
     required: 'Required',
@@ -136,6 +137,14 @@ export const STRINGS = {
       errors: {
         nameMissing: 'Enter your name as colleagues will see it',
       },
+      /** Shown when the link carries no invitation details. */
+      invalid: {
+        title: 'This invitation link is not complete',
+        subtitle: 'Ask your fleet administrator to send a new one.',
+        noticeTitle: 'Nothing to accept',
+        noticeBody:
+          'The link is missing the organisation and role it was issued for, so there is nothing to set up. A fresh invitation will work.',
+      },
     },
 
     /** Shared by every screen that sets a password. */
@@ -184,6 +193,17 @@ export const STRINGS = {
 
   /** Notifications: features/notifications */
   notifications: {
+    /** Built from what already needs attention — see NotificationsProvider. */
+    derived: {
+      unsafeDefect: (vehicle: string) => `${vehicle} marked unsafe to drive`,
+      licenceExpired: (driver: string) => `${driver}'s licence has expired`,
+      licenceExpiring: (driver: string) => `${driver}'s licence expires soon`,
+      correctionWaiting: (driver: string) => `${driver} asked to change a past log`,
+      routeLate: (reference: string) => `Route ${reference} is running late`,
+      driverMessaged: (driver: string) => `${driver} sent you a message`,
+      driverMessagedCount: (driver: string, n: number) =>
+        `${driver} sent ${n} messages`,
+    },
     title: 'Notifications',
     open: 'Open notifications',
     unreadCount: (n: number) => (n === 1 ? '1 unread' : `${n} unread`),
@@ -209,6 +229,15 @@ export const STRINGS = {
       night: 'Working late',
     },
     liveNow: 'Live',
+    /**
+     * The position feed's own state. "Live" is a claim about right now, so it
+     * is only shown when something actually reported recently.
+     */
+    feed: {
+      live: 'Live',
+      stale: 'No recent reports',
+      silent: 'Nothing reporting',
+    },
     openMap: 'Open live map',
     greeting: (greeting: string, name: string) => `${greeting}, ${name.split(' ')[0]}`,
     subtitle: 'Here is what needs attention across the fleet right now.',
@@ -227,12 +256,11 @@ export const STRINGS = {
     },
 
     /**
-     * Live dashboard, when the console is reading from Supabase.
+     * Dashboard tiles and alerts.
      *
-     * Wording differs from the mock on purpose. The mock promises figures the
-     * schema cannot produce yet — duty status, hours violations, stops
-     * completed — so the live tiles say what is genuinely being counted rather
-     * than borrowing a label the number does not support.
+     * Each label says what is genuinely being counted. Where the schema cannot
+     * produce a figure yet — duty status, hours violations, stops completed —
+     * there is no tile at all rather than a label the number does not support.
      */
     live: {
       driversActive: 'Active drivers',
@@ -310,55 +338,151 @@ export const STRINGS = {
       'You will need your email and password to get back in. Anything unsaved on this screen is lost.',
     confirmSignOut: 'Sign out',
     required: 'This field is required',
+    /** Depot pickers: no depot chosen, and no depots existing at all. */
+    noDepot: 'No depot',
+    noDepots: 'No depots yet',
+    addDepot: 'Add a depot',
+    noDepotShort: 'No depot',
     invalidEmail: 'Enter a valid email address',
+    invalidPhone: 'Enter a phone number',
   },
 
   forms_common: {
     addDriverTitle: 'Add a driver',
     addDriverDescription: 'They will appear as off duty until they sign into the app.',
     addDriverSubmit: 'Add driver',
+    editDriverTitle: 'Edit driver',
+    editDriverDescription: 'Name, depot, vehicle, contact and licence. Sign-in is unchanged.',
+    editDriverSubmit: 'Save changes',
+    editDriverToast: (name: string) => `${name} saved`,
     addDriverToast: (name: string) => `${name} added to the fleet`,
+    addDriverFailed: 'That driver could not be saved.',
+    addDriverDuplicateEmployee: 'That employee number is already on the roster.',
+    addDriverInvitedToast: (name: string) => `${name} added — a one-time password is on its way`,
+    addDriverNoInviteToast: (name: string) => `${name} added, but the app invitation did not go`,
+
+    /**
+     * Shown when the account was created and the email was not sent. This is
+     * the only copy of the password that exists, so the wording has to make it
+     * clear that closing the dialog loses it.
+     */
+    handoverTitle: 'Pass this on yourself',
+    handoverDescription: (name: string) =>
+      `${name} is on the roster and has an app account, but the email did not send.`,
+    handoverNotEmailed: 'The email could not be sent',
+    handoverPassword: 'One-time password',
+    handoverHint:
+      'This is the only copy \u2014 it is not stored anywhere and closing this will lose it. Send it to the driver yourself. It does not expire, so they should choose their own password the first time they sign in.',
+    handoverDone: 'I have sent it',
     driverFields: {
       firstName: 'First name',
       lastName: 'Last name',
       employeeNumber: 'Employee number',
-      terminal: 'Home terminal',
+      depot: 'Depot',
+      vehicle: 'Vehicle',
+      vehicleHint: 'Optional. Vehicles at the chosen depot are listed first.',
+      noVehicle: 'Assign later',
+      currentlyHeld: (vehicle: string, driver: string) => `${vehicle} \u2014 currently ${driver}`,
       email: 'Email',
+      emailEditHint: 'Contact only — this does not change how they sign in.',
       phone: 'Phone',
       licenceExpires: 'Licence expires',
+      employment: 'Employment',
     },
 
     addVehicleTitle: 'Add a vehicle',
-    addVehicleDescription: 'Odometer readings are stored in kilometres throughout.',
+    addVehicleDescription: 'Identity, depot, who drives it, odometer and when it is next due for service.',
     addVehicleSubmit: 'Add vehicle',
+    editVehicleTitle: 'Edit vehicle',
+    editVehicleDescription: 'Identity, depot, who drives it, odometer and the next service.',
+    editVehicleSubmit: 'Save changes',
+    editVehicleToast: (name: string) => `${name} saved`,
     addVehicleToast: (name: string) => `${name} added to the fleet`,
+    addVehicleFailed: 'That vehicle could not be saved.',
     vehicleFields: {
       name: 'Name',
       namePlaceholder: 'Truck 231',
       plate: 'Registration plate',
+      platePlaceholder: 'MH 12 AB 0000',
+      vin: 'VIN',
+      vinPlaceholder: '17 characters',
+      vinHint: 'On the chassis plate. Leave blank if you do not have it.',
+      vinInvalid: 'A VIN is 17 characters.',
       makeModel: 'Make & model',
+      makeModelPlaceholder: 'Tata Prima 4028',
       year: 'Year',
-      terminal: 'Home terminal',
+      depot: 'Depot',
+      driver: 'Driver',
+      driverHint: 'Optional. Drivers at the chosen depot are listed first.',
+      noDriver: 'Assign later',
       odometer: 'Odometer (km)',
+      nextService: 'Next service (km)',
+      nextServiceHint: 'Defaults to 20,000 km after the current reading.',
+      nextServiceInvalid: 'Enter the odometer reading when the next service is due.',
+      status: 'Status',
     },
 
     inviteTitle: 'Invite a user',
     inviteDescription: 'They receive an email with a link to set their password.',
     inviteSubmit: 'Send invitation',
     inviteToast: (email: string) => `Invitation sent to ${email}`,
-    inviteFields: { name: 'Name', email: 'Work email', role: 'Role', fleet: 'Fleet' },
+    inviteFields: { name: 'Name', email: 'Work email', role: 'Role', depot: 'Depot' },
 
     routeTitle: 'Plan a route',
-    routeDescription: 'Assign a driver and a vehicle, and set how many stops the run has.',
+    routeDescription: 'From one depot to another. Stops are placed evenly along that drive.',
     routeSubmit: 'Create route',
     routeToast: (ref: string) => `Route ${ref} created`,
+    routeToastWithKm: (ref: string, km: string, spacing: string) =>
+      `Route ${ref} created · ${km} · ${spacing}`,
+    routeToastStraight: (ref: string, km: string, spacing: string) =>
+      `Route ${ref} created · ${km} · ${spacing} (straight line — enable Directions API on the map key to follow the road)`,
+    routeSaved: 'Route planned',
+    routeFailed: 'That route could not be saved.',
+    routePlotting: 'Plotting the drive…',
+    routeNoMap:
+      'No map key is configured, so stops will be named from the depots rather than placed on the road.',
+    routeNoDepots: 'Add two depots with addresses in Settings before planning a route between them.',
     routeFields: {
       driver: 'Driver',
       vehicle: 'Vehicle',
+      origin: 'From',
+      destination: 'To',
       stops: 'Number of stops',
       startTime: 'Start time',
       notes: 'Notes for the driver',
     },
+    routeAssignLater: 'Assign later',
+    routeChooseDriver: 'Choose a driver',
+    routeChooseVehicle: 'Choose a vehicle',
+    routePairHint: 'Assigning both also puts this driver on that vehicle on the Drivers and Vehicles lists.',
+    /*
+      Warnings, not refusals. A dispatcher plans tomorrow's route while the
+      driver is out on today's, and a rule that blocked a second open route
+      would refuse the normal case to prevent the mistaken one. So the office
+      is told what the driver is already on and decides.
+    */
+    routeOpenWarning: (name: string, reference: string) =>
+      `${name} is already on route ${reference}, and it is not finished.`,
+    routeNoVehicleWarning: (name: string) =>
+      `${name} has no truck. Pick one, or this route is planned against no vehicle and nothing will track it.`,
+    routeConfirmTitle: 'Plan it anyway?',
+    routeConfirmSubmit: 'Plan the route',
+    routeOtherAddress: 'Another address',
+    originPlaceholder: 'Street, area, city',
+    destinationPlaceholder: 'Street, area, city',
+    stopsHint: 'Including start and end. They sit evenly along the drive.',
+    originHint: 'The depot the run starts at.',
+    destinationHint: 'The depot the run finishes at.',
+    depotNeedsLocation: (name: string) =>
+      `${name} has no address. Add one in Settings, or choose another address.`,
+    samePlace: 'Start and end have to be different places.',
+    addVehicleDocsTitle: (name: string) => `Documents for ${name}`,
+    addVehicleDocsDescription:
+      'RC, insurance, fitness, permit. You can add more from the vehicle page later.',
+    addVehicleDocsUpload: 'Upload a document',
+    addVehicleDocsDone: 'Done',
+    addVehicleDocsCount: (n: number) =>
+      n === 1 ? '1 document filed' : `${n} documents filed`,
     routeHoursWarning: (name: string) =>
       `${name} has no driving hours left today. Assigning this route would put them over the limit.`,
     routeHoursConfirmTitle: 'Dispatch anyway?',
@@ -370,13 +494,28 @@ export const STRINGS = {
     formDescription: 'Create the form. It stays a draft until you publish it.',
     formSubmit: 'Create form',
     formToast: (name: string) => `${name} created as a draft`,
+    formFailed: 'That form could not be saved.',
     formFields: { name: 'Form name', assignedTo: 'Assign to' },
 
     courseTitle: 'New course',
     courseDescription: 'Courses stay a draft until you add content and publish them.',
     courseSubmit: 'Create course',
     courseToast: (name: string) => `${name} created as a draft`,
-    courseFields: { name: 'Course name', length: 'Length (minutes)', assignTo: 'Assign to' },
+    courseFailed: 'That course could not be created.',
+    courseFields: {
+      name: 'Course name',
+      description: 'What the driver should read',
+      descriptionHint: 'Shown in the app above the file. On its own this is a read-and-acknowledge course.',
+      length: 'Length (minutes)',
+      lengthHint: 'The driver cannot mark it done until they have spent this long on it.',
+      // Deliberately not "Assign to": this field only decides who can see the
+      // course. Giving it to a driver is a separate step on the course screen,
+      // and the old label made people think they had already done it.
+      visibleTo: 'Visible to',
+      visibleToHint: 'Assigning it to drivers is the next step, on the course screen.',
+      file: 'Material',
+      fileHint: 'PDF, image or video, up to 100 MB. Optional.',
+    },
   },
 
   /** Shared table chrome: pagination and empty states. */
@@ -399,12 +538,20 @@ export const STRINGS = {
 
   /** Module screens. One block per module, keyed by its reference code. */
   users: {
+    loading: 'Loading the user list…',
+    loadFailed: 'The user list could not be loaded.',
+    allDepots: 'All depots',
+    emptyHint: 'Colleagues you invite appear here.',
+    neverSignedIn: 'Never signed in',
+    inviteFailed: 'That invitation could not be recorded.',
+    inviteNotEmailed:
+      'This records the invitation and shows them as Invited. Sending the email needs an SMTP provider, which is not connected yet — pass the link on yourself for now.',
     title: 'Users & access',
     description: 'Who can open this console, and what each of them may do.',
     invite: 'Invite a user',
     searchPlaceholder: 'Search by name or email',
     tabs: { all: 'All', active: 'Active', invited: 'Invited', suspended: 'Suspended' },
-    columns: { user: 'User', role: 'Role', fleet: 'Fleet', status: 'Status', lastActive: 'Last active' },
+    columns: { user: 'User', role: 'Role', depot: 'Depot', status: 'Status', lastActive: 'Last active' },
     empty: 'No users match those filters.',
     rolesTitle: 'Roles',
     rolesHint: 'What each role can reach. Custom roles can be added.',
@@ -416,7 +563,7 @@ export const STRINGS = {
       access: 'Access',
       email: 'Email',
       role: 'Role',
-      fleet: 'Fleet',
+      depot: 'Depot',
       status: 'Status',
       lastActive: 'Last active',
       permissions: 'What this role can do',
@@ -428,10 +575,19 @@ export const STRINGS = {
     description: 'Everyone who drives for the fleet, and whether they are legal to do so.',
     add: 'Add a driver',
     searchPlaceholder: 'Search by name or employee number',
-    tabs: { all: 'All', driving: 'Driving', on_duty: 'On duty', off_duty: 'Off duty', offline: 'Offline' },
-    columns: { driver: 'Driver', terminal: 'Home terminal', status: 'Status', vehicle: 'Vehicle', hoursLeft: 'Hours left', licence: 'Licence expires', score: 'Safety' },
+    /**
+     * Tabs filter on employment, not on duty status. The roster's own question
+     * is "who works here"; whether someone is driving right this minute is the
+     * working-hours screen's question, and needs the phone to be reporting.
+     */
+    tabs: { all: 'All', active: 'Active', inactive: 'Inactive', terminated: 'Left' },
+    loading: 'Loading the roster…',
+    loadFailed: 'The roster could not be loaded.',
+    emptyHint: 'Drivers added to the fleet will appear here.',
+    columns: { driver: 'Driver', depot: 'Depot', status: 'Status', vehicle: 'Vehicle', hoursLeft: 'Hours left', licence: 'Licence expires', score: 'Safety', actions: '' },
     empty: 'No drivers match those filters.',
     licenceWarning: 'Expiring soon',
+    licenceExpired: 'Expired — not legal to drive',
     noVehicle: 'Not assigned',
     back: 'All drivers',
     notFound: 'That driver no longer exists.',
@@ -447,27 +603,54 @@ export const STRINGS = {
       compliance: 'Compliance',
       currentAssignment: 'Current assignment',
       employeeNumber: 'Employee number',
-      terminal: 'Home terminal',
+      depot: 'Depot',
+      edit: 'Edit',
+      email: 'Email',
+      phone: 'Phone',
       status: 'Duty status',
+      employmentStatus: 'Employment',
+      onApp: 'On the app',
+      onAppYes: 'Signed in',
+      onAppNo: 'Not yet',
+      inviteApp: 'Send app invite',
+      inviteNeedEmail: 'Add an email on Edit first.',
+      inviteToast: (name: string) => `Invitation sent to ${name}`,
+      inviteFailed: 'That invitation could not be sent.',
+      /** Shown where hours of service or safety scoring has nothing recorded. */
+      notRecorded: 'Not recorded yet',
+      notScored: 'Not scored yet',
+      noLicence: 'No licence on file',
       hoursLeft: 'Driving hours left',
       licence: 'Licence expires',
       safetyScore: 'Safety score',
       vehicle: 'Vehicle',
       noVehicleHint: 'This driver has not taken a vehicle out.',
+      weekTitle: 'This week',
+      weekHint: 'Measured from the duty events, Monday to Sunday.',
+      weekDriving: 'Driving',
+      weekOnDuty: 'On duty',
+      weekDays: 'Days worked',
       recentLogs: 'Last seven days',
       logGraph: 'Daily log',
       logGraphHint: 'Duty status across 24 hours — the same chart the driver sees on the phone.',
+      noDutyRecorded: 'Nothing recorded for this day.',
       logStatuses: {
         off: 'Off duty',
         sleeper: 'Sleeper',
         driving: 'Driving',
         on_duty: 'On duty',
       },
+      /*
+       * Deliberately "today" and "longest", not bare nouns. These are hours
+       * USED, measured from the duty events. Read as hours remaining they
+       * would be exactly backwards, which is the worst way for a compliance
+       * figure to be wrong.
+       */
       recap: {
-        onDuty: 'On duty',
-        driving: 'Driving',
-        break: 'Break',
-        cycle: 'Cycle',
+        onDuty: 'On duty today',
+        driving: 'Driving today',
+        break: 'Longest break',
+        cycle: 'Cycle to date',
       },
       previousDay: 'Previous day',
       nextDay: 'Next day',
@@ -475,24 +658,58 @@ export const STRINGS = {
       today: 'Today',
       noInspections: 'No inspections filed by this driver yet.',
       noSafety: 'No safety events recorded for this driver.',
+      tripDocuments: 'From the cab',
+      tripDocumentsHint: 'Delivery notes and receipts the driver captured on a job.',
       noDocuments: 'No documents uploaded by this driver yet.',
       message: 'Message driver',
     },
   },
 
   vehicles: {
+    assignDialog: {
+      title: (vehicle: string) => `Who is driving ${vehicle}?`,
+      description:
+        'Drivers normally pick their own truck in the app at the start of a shift. Use this to pre-assign one, or to correct a wrong pick.',
+      field: 'Driver',
+      hint: 'Only active drivers with a valid licence are listed.',
+      nobody: 'Nobody \u2014 leave it unassigned',
+      currentlyOn: (driver: string, vehicle: string) => `${driver} \u2014 currently on ${vehicle}`,
+      submit: 'Save assignment',
+      noDrivers: 'There are no drivers on the roster yet. Add one first.',
+      failed: 'That assignment could not be saved.',
+      assignedToast: (driver: string, vehicle: string) => `${driver} assigned to ${vehicle}`,
+      clearedToast: (vehicle: string) => `${vehicle} is now unassigned`,
+    },
+
+    kindTruck: 'Truck',
+    kindTrailer: 'Trailer',
+    loading: 'Loading the fleet…',
+    loadFailed: 'The fleet could not be loaded.',
+    emptyHint: 'Trucks and trailers added to the fleet will appear here.',
+    noWorkOrders: 'No work orders',
+    noWorkOrdersHint: 'Repair jobs raised against a vehicle will appear here.',
     title: 'Vehicles & maintenance',
     description: 'Trucks, trailers and the work needed to keep them on the road.',
     add: 'Add a vehicle',
-    searchPlaceholder: 'Search by name or plate',
+    searchPlaceholder: 'Search by name, plate or VIN',
     tabs: { all: 'All', active: 'Active', in_maintenance: 'In maintenance', out_of_service: 'Out of service' },
-    columns: { vehicle: 'Vehicle', makeModel: 'Make & model', status: 'Status', driver: 'Current driver', odometer: 'Odometer', service: 'Next service' },
+    columns: { vehicle: 'Vehicle', makeModel: 'Make & model', depot: 'Depot', status: 'Status', driver: 'Current driver', odometer: 'Odometer', service: 'Next service', actions: '' },
     empty: 'No vehicles match those filters.',
     back: 'All vehicles',
     notFound: 'That vehicle no longer exists.',
     detail: {
+      kind: 'Type',
+      trailerCondition: 'Nothing to report',
+      trailerConditionHint:
+        'A trailer has no engine, so it records no odometer, takes no driver and has no service interval.',
+      noSchedule: 'No service schedule set',
       identity: 'Identity',
       condition: 'Condition',
+      depot: 'Depot',
+      edit: 'Edit',
+      vin: 'VIN',
+      assignDriver: 'Assign a driver',
+      changeDriver: 'Change driver',
       plate: 'Registration plate',
       makeModel: 'Make & model',
       year: 'Year',
@@ -505,8 +722,23 @@ export const STRINGS = {
       recentInspections: 'Recent inspections',
       noInspections: 'No inspections filed for this vehicle yet.',
     },
+    noSchedule: 'Not set',
     overdueBy: (km: number) => `Overdue by ${km.toLocaleString()} km`,
     dueIn: (km: number) => `Due in ${km.toLocaleString()} km`,
+    /*
+      Shown on the job rather than in its own column: a work order the driver
+      raised is still a work order, and the origin only matters while somebody
+      is deciding what to do with it.
+    */
+    raisedByDriver: (name: string) => `Raised by ${name}`,
+    /*
+      The option list already says which truck a driver is on. This says what
+      pressing save will DO about it — the two indexes on the assignments table
+      allow one open assignment per driver, so putting them here takes them out
+      of there. Usually intended; not always.
+    */
+    movesFrom: (name: string, from: string, to: string) =>
+      `${name} is on ${from}. Saving moves them to ${to}.`,
     unassigned: 'Unassigned',
     workOrders: 'Work orders',
     workOrdersHint: 'Repairs raised from defects, schedules or by hand.',
@@ -527,6 +759,11 @@ export const STRINGS = {
   },
 
   hours: {
+    loadFailed: 'Working hours could not be loaded.',
+    loading: 'Loading the logs…',
+    noLogs: 'No logs yet',
+    noLogsHint:
+      'Logs appear here once drivers record their duty status in the app.',
     title: 'Working hours',
     description: 'Driver logs, breaches and the corrections waiting on a decision.',
     exportPack: 'Export audit pack',
@@ -567,6 +804,21 @@ export const STRINGS = {
     noViolations: 'No violations in this period.',
     allViolationsReviewed: 'Every violation in this period has been reviewed.',
     noEditRequests: 'No corrections waiting on a decision.',
+    decisionFailed: 'That decision was not saved. Try again.',
+    nothingToExport: 'No logs in this period to export',
+
+    /**
+     * Nothing evaluates the working-hours rules yet, and nothing detects
+     * driving with no driver signed in. Saying "no violations" would claim a
+     * check that never ran — a compliance officer would read it as a clean
+     * fleet.
+     */
+    violationsNotEvaluated: 'No rule book has been chosen',
+    violationsNotEvaluatedHint:
+      'A breach is worked out from duty records against the rules in force, and the limits differ by regulator \u2014 11 hours of driving under FMCSA is 9 under EU rules. Set the regulator in Settings and these are checked from then on, history included.',
+    unassignedNotDetected: 'Unassigned driving is not being detected yet',
+    unassignedNotDetectedHint:
+      'Spotting driving with nobody signed in needs vehicle telemetry, which is not connected yet.',
     noUnassigned: 'All driving time is accounted for.',
     reviewViolationTitle: 'Review this violation',
     reviewViolationHint: 'Check the details, then approve if this is a real breach or reject it if it is not.',
@@ -615,6 +867,42 @@ export const STRINGS = {
   },
 
   inspections: {
+    reportedTitle: 'Reported directly',
+    reportedHint: 'Faults a driver raised without filing a whole inspection \u2014 usually mid-route.',
+
+    /** What the office can do about a defect a driver reported. */
+    defectActions: {
+      raise: 'Raise work order',
+      close: 'Close',
+      actionTaken: 'Action taken',
+      onWorkOrder: (reference: string) => `Work order ${reference}`,
+
+      raiseTitle: 'Raise a work order',
+      raiseDescription: (vehicle: string) =>
+        `Opens a repair job against ${vehicle} and links it to this defect.`,
+      raiseSubmit: 'Open work order',
+      raiseFailed: 'That work order could not be opened.',
+      raisedToast: (vehicle: string) => `Work order opened for ${vehicle}`,
+      jobTitle: 'What needs doing',
+      jobNotes: 'Notes for the workshop',
+      jobNotesHint: 'Optional. Anything the mechanic should know before starting.',
+
+      closeTitle: 'Close this defect',
+      closeDescription: 'Fixed, or looked at and needed nothing. Both are recorded.',
+      closeSubmit: 'Close defect',
+      closeFailed: 'That defect could not be closed.',
+      outcome: 'Outcome',
+      outcomeResolved: 'Fixed',
+      outcomeDismissed: 'No action needed',
+      whatWasDone: 'What was done',
+      whatWasDoneHint: 'Optional, but it is what the next inspection reads.',
+      whyDismissed: 'Why no action was needed',
+      reasonRequired: 'Say why this needed no action \u2014 a dismissed defect with no reason is what an inspector stops on.',
+      resolvedToast: 'Defect closed as fixed',
+      dismissedToast: 'Defect dismissed',
+    },
+
+    loadFailed: 'Inspections could not be loaded.',
     title: 'Inspections & defects',
     description: 'What drivers found when they walked around the vehicle.',
     searchPlaceholder: 'Search by vehicle or driver',
@@ -645,8 +933,14 @@ export const STRINGS = {
 
   map: {
     title: 'Live map',
-    description: 'Where every vehicle is right now.',
+    description: 'Where every vehicle is right now, and the routes planned for them.',
     vehiclesOnMap: (n: number) => `${n} vehicles`,
+    routesOnMap: (n: number) => (n === 1 ? '1 route' : `${n} routes`),
+    routesTitle: 'Routes',
+    routeStopsCount: (n: number) => (n === 1 ? '1 stop' : `${n} stops`),
+    stopStart: 'Start',
+    stopEnd: 'End',
+    stopNumber: (n: number) => `Stop ${n}`,
     schematicNote: 'Schematic view',
     zoomIn: 'Zoom in',
     zoomOut: 'Zoom out',
@@ -656,12 +950,36 @@ export const STRINGS = {
     noKeyTitle: 'Google Maps is not configured',
     noKeyHint:
       'Add VITE_GOOGLE_MAPS_API_KEY to .env.local and restart the dev server to replace this with a live map. Everything else on this screen already works.',
+    routeOverlay: (ref: string) => `Showing ${ref}`,
     lastPing: 'Last ping',
     speed: 'Speed',
     openDriver: 'Open driver',
     stationary: 'Stationary',
     openVehicle: 'Open vehicle',
     location: 'Location',
+
+    /**
+     * Live map, when the console is reading from Supabase.
+     *
+     * Status is worked out from the last report — position, speed, ignition —
+     * rather than stored, so these words describe what was measured. There is
+     * no reverse geocoding, so a position is coordinates and nothing more.
+     */
+    live: {
+      secondsAgo: (n: number) => `${n} sec ago`,
+      minutesAgo: (n: number) => `${n} min ago`,
+      hoursAgo: (n: number) => `${n} ${n === 1 ? 'hour' : 'hours'} ago`,
+      daysAgo: (n: number) => `${n} ${n === 1 ? 'day' : 'days'} ago`,
+      neverReported: 'Never reported',
+      noPosition: 'No position reported',
+      coordinates: (lat: number, lng: number) => `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      noDriver: 'No driver signed on',
+      loading: 'Finding the fleet…',
+      loadFailed: 'The map could not be loaded.',
+      noVehicles: 'No vehicles yet',
+      noVehiclesHint:
+        'Vehicles added to the fleet appear here once they report a position.',
+    },
   },
 
   dispatch: {
@@ -669,12 +987,38 @@ export const STRINGS = {
     description: "Today's work, who is doing it, and whether it is running to time.",
     newRoute: 'Plan a route',
     searchPlaceholder: 'Search by route, driver or vehicle',
-    tabs: { all: 'All', in_progress: 'In progress', late: 'Running late', planned: 'Planned', completed: 'Completed' },
-    columns: { route: 'Route', driver: 'Driver', vehicle: 'Vehicle', progress: 'Stops', status: 'Status', eta: 'Timing' },
+    tabs: { all: 'All', in_progress: 'In progress', late: 'Running late', planned: 'Planned', completed: 'Completed', cancelled: 'Cancelled' },
+    columns: { route: 'Route', driver: 'Driver', vehicle: 'Vehicle', progress: 'Stops', status: 'Status', eta: 'Timing', actions: '' },
     empty: 'No routes match those filters.',
     stopsOf: (done: number, total: number) => `${done} of ${total}`,
+    via: (from: string, to: string) => `${from} → ${to}`,
+    distance: (km: string) => km,
     back: 'All routes',
     notFound: 'That route no longer exists.',
+    actions: {
+      assignDriver: 'Assign driver',
+      assignVehicle: 'Assign vehicle',
+      viewOnMap: 'View on map',
+      messageDriver: 'Message driver',
+      open: 'Open',
+    },
+    assign: {
+      driverTitle: 'Assign a driver',
+      driverDescription:
+        'Who is running this route. If a vehicle is already on it, they are also assigned to that truck on the fleet lists.',
+      driverField: 'Driver',
+      vehicleTitle: 'Assign a vehicle',
+      vehicleDescription:
+        'Which truck is running this route. If a driver is already on it, they are also assigned to this truck on the fleet lists.',
+      vehicleField: 'Vehicle',
+      nobody: 'Not assigned',
+      submit: 'Save',
+      failed: 'That assignment could not be saved.',
+      driverToast: (name: string, route: string) => `${name} assigned to ${route}`,
+      vehicleToast: (name: string, route: string) => `${name} assigned to ${route}`,
+      clearedDriver: (route: string) => `No driver on ${route}`,
+      clearedVehicle: (route: string) => `No vehicle on ${route}`,
+    },
     detail: {
       assignment: 'Assignment',
       progress: 'Progress',
@@ -682,19 +1026,41 @@ export const STRINGS = {
       vehicle: 'Vehicle',
       status: 'Status',
       timing: 'Timing',
+      distance: 'Distance',
+      mapTitle: 'Route',
+      mapHint: 'Start, end, and stops along the drive.',
+      mapEmpty: 'This route has no map yet. Plan one with a start and an end.',
       stopsTitle: 'Stops',
-      stopsHint: 'In the order the driver will visit them.',
+      stopsHint: 'In the order the driver will visit them, with kilometres from the start.',
+      kmFromStart: (km: string) => km,
       stopDone: 'Completed',
       stopNext: 'Next stop',
       stopPending: 'Not started',
       arrived: 'Arrived',
+      /*
+        How far the driver was when they marked it. The app refuses beyond a
+        kilometre, so a figure here is a confirmation; the absence of one is
+        the interesting case — an arrival nobody could measure.
+      */
+      arrivedWithin: (away: string) => `· ${away} away`,
+      arrivedUnverified: '· position not checked',
       window: 'Window',
+      noWindow: 'No time window',
       viewOnMap: 'View on map',
       messageDriver: 'Message driver',
+      assignDriver: 'Assign driver',
+      assignVehicle: 'Assign vehicle',
     },
   },
 
   forms: {
+    publish: 'Publish',
+    unpublish: 'Back to draft',
+    publishedToast: (name: string) => `${name} published \u2014 drivers can fill it in now`,
+    unpublishedToast: (name: string) => `${name} is a draft again`,
+    publishFailed: 'That could not be published.',
+    draftHint: 'A draft is not visible in the driver app. Publish it when it is ready.',
+    allDrivers: 'All drivers',
     title: 'Form builder',
     description: 'Build the paperwork your drivers fill in, without waiting for a developer.',
     newForm: 'New form',
@@ -720,6 +1086,9 @@ export const STRINGS = {
   },
 
   messages: {
+    unreadCount: (n: number) => `${n} unread`,
+    loadFailed: 'Conversations could not be loaded.',
+    sendFailed: 'That message was not sent.',
     title: 'Messages',
     description: 'Every conversation with every driver, in one inbox.',
     broadcast: 'Message the fleet',
@@ -736,8 +1105,6 @@ export const STRINGS = {
     broadcastFields: { audience: 'Send to', message: 'Message' },
     broadcastAudience: {
       all: 'Every driver',
-      pune: 'Pune depot only',
-      nashik: 'Nashik depot only',
       onDuty: 'Drivers on duty right now',
     },
     broadcastEmpty: 'Write something to send.',
@@ -765,6 +1132,9 @@ export const STRINGS = {
     dismissedToast: 'Event dismissed',
     scoreboardTitle: 'Safety scoreboard',
     scoreboardHint: 'Highest scores this month.',
+    noScores: 'No safety scores yet',
+    noScoresHint:
+      'A score needs a scoring rule over recorded events. Nothing is scoring them yet.',
     back: 'All events',
     notFound: 'That event no longer exists.',
     detail: {
@@ -780,16 +1150,45 @@ export const STRINGS = {
   },
 
   training: {
+    publish: 'Publish',
+    unpublish: 'Back to draft',
+    publishedToast: (name: string) => `${name} published`,
+    unpublishedToast: (name: string) => `${name} is a draft again`,
+    publishFailed: 'That could not be published.',
+    draftHint: 'A draft is not visible in the driver app. Publish it, then assign it.',
+    allDrivers: 'All drivers',
     title: 'Training',
     description: 'Short courses assigned to drivers, and who still owes you one.',
     newCourse: 'New course',
     columns: { course: 'Course', length: 'Length', assigned: 'Assigned', completed: 'Completed', overdue: 'Overdue', status: 'Status' },
     empty: 'No courses yet.',
-    minutes: (n: number) => `${n} min`,
+    minutes: (n: number | null) => (n === null ? '—' : `${n} min`),
     back: 'All courses',
     notFound: 'That course no longer exists.',
     detail: {
       about: 'Course',
+      material: 'Material',
+      materialNone: 'No file attached',
+      materialNoneHint: 'The driver sees only the description. Add a PDF, image or video if there is one.',
+      materialAdd: 'Attach a file',
+      materialReplace: 'Replace',
+      materialRemove: 'Remove',
+      materialOpen: 'Open',
+      materialUploaded: (name: string) => `${name} attached`,
+      materialRemoved: 'File removed',
+      materialFailed: 'That file could not be attached.',
+      materialOpenFailed: 'That file could not be opened.',
+      materialTooBig: 'That file is larger than 100 MB.',
+      description: 'Description',
+      noDescription: 'No description',
+      editDetails: 'What the driver sees',
+      editHint: 'The title is not editable — drivers already have it in their history.',
+      savedToast: 'Course updated',
+      saveFailed: 'That could not be saved.',
+      timeSpent: 'Time spent',
+      /** Minutes, because a driver's course is measured in minutes, not seconds. */
+      timeSpentValue: (seconds: number) =>
+        seconds < 60 ? 'Under a minute' : `${Math.floor(seconds / 60)} min`,
       learnersTitle: 'Assigned drivers',
       learnersHint: 'Who still owes you this course.',
       length: 'Length',
@@ -801,12 +1200,74 @@ export const STRINGS = {
         completed: 'Completed',
         overdue: 'Overdue',
         in_progress: 'In progress',
-        not_started: 'Not started',
+        assigned: 'Not started',
       },
+      assign: 'Assign drivers',
+      remove: 'Remove',
+      removedToast: (name: string) => `Course removed from ${name}`,
+      removeFailed: 'That could not be removed.',
+      noLearners: 'Nobody has this course yet',
+      noLearnersHint: 'Assign it to drivers and their progress appears here.',
+      dueBy: (date: string) => `Due by ${date}`,
+      noDeadline: 'No deadline',
+    },
+
+    assignDialog: {
+      title: 'Assign this course',
+      description: (course: string) => `Who needs to do ${course}?`,
+      submit: 'Assign',
+      submitCount: (n: number) => `Assign to ${n} ${n === 1 ? 'driver' : 'drivers'}`,
+      dueOn: 'Due by',
+      dueOnHint: 'Optional. Without a date it never counts as overdue.',
+      quickPick: 'Quick pick',
+      everyoneOutstanding: (n: number) => `Everyone without it (${n})`,
+      alreadyHas: 'Already assigned',
+      pickSomeone: 'Choose at least one driver.',
+      noDrivers: 'There are no active drivers on the roster yet.',
+      failed: 'That could not be assigned.',
+      assignedToast: (n: number) =>
+        n === 0 ? 'They already had this course' : `Assigned to ${n} ${n === 1 ? 'driver' : 'drivers'}`,
     },
   },
 
   documents: {
+    /** Filing compliance paperwork from the office. */
+    upload: {
+      title: 'Upload a document',
+      description: (owner: string) => `Filed against ${owner}.`,
+      submit: 'Upload',
+      docType: 'Document type',
+      reference: 'Number',
+      referenceHint: 'Optional \u2014 licence or policy number.',
+      expiresOn: 'Expires on',
+      expiresOnHint: 'The dashboard warns 30 days before this date.',
+      titleField: 'Label',
+      titleHint: 'Optional. Defaults to the file name.',
+      file: 'File',
+      fileHint: 'JPG, PNG, HEIC, WebP or PDF. Up to 25 MB.',
+      pickFile: 'Choose a file to upload.',
+      tooBig: 'That file is larger than 25 MB.',
+      failed: 'That document could not be uploaded.',
+      uploadedToast: (owner: string) => `Document filed against ${owner}`,
+    },
+
+    /** Compliance paperwork panels on the driver and vehicle screens. */
+    compliance: {
+      title: 'Documents',
+      hint: 'Licences, certificates and insurance. Expiry dates feed the dashboard alerts.',
+      add: 'Upload',
+      empty: 'No documents filed yet',
+      emptyHint: 'Upload a licence or certificate and its expiry appears on the dashboard.',
+      loadFailed: 'Those documents could not be loaded.',
+      noFile: 'Record only \u2014 no file was uploaded',
+      expires: (date: string) => `Expires ${date}`,
+      expired: (date: string) => `Expired ${date}`,
+      noExpiry: 'No expiry',
+      download: 'Download',
+    },
+
+    nothingToExport: 'No documents match those filters',
+    loadFailed: 'Documents could not be loaded.',
     title: 'Documents',
     description: 'Paperwork captured from the cab, filed and searchable.',
     searchPlaceholder: 'Search by file, driver or vehicle',
@@ -824,7 +1285,9 @@ export const STRINGS = {
     detail: {
       about: 'File',
       preview: 'Preview',
-      previewHint: 'Captured from the cab. A real file would open here.',
+      previewHint: 'Captured from the cab.',
+      noFile: 'No file was uploaded with this record',
+      openFailed: 'That file could not be opened.',
       file: 'File name',
       kind: 'Type',
       driver: 'Driver',
@@ -838,17 +1301,57 @@ export const STRINGS = {
   },
 
   reports: {
+    nothingToRun: (name: string) => `${name} has no data to export yet`,
     title: 'Reports',
     description: 'Eleven standard reports. Filter by depot, then export a spreadsheet.',
     run: 'Run',
-    lastRun: (when: string) => `Last run ${when.toLowerCase()}`,
     depotAria: 'Depot',
-    depots: { all: 'All depots', pune: 'Pune depot', nashik: 'Nashik depot' },
+    depots: { all: 'All depots' },
     scheduleTitle: 'Scheduled delivery',
     scheduleHint: 'Send a report by email on a schedule, so nobody has to remember to run it.',
   },
 
   settings: {
+    /** Depots. One word for what the table calls a fleet — see the depots migration. */
+    depots: {
+      title: 'Depots',
+      hint: 'Where drivers are based and vehicles are kept. A depot’s address is the start or end of a route.',
+      add: 'Add a depot',
+      edit: 'Edit',
+      archive: 'Archive',
+      emptyTitle: 'No depots yet',
+      emptyHint: 'Add one with an address and it appears in the driver, vehicle and route pickers.',
+      based: (drivers: number, vehicles: number) =>
+        `${drivers} ${drivers === 1 ? 'driver' : 'drivers'} \u00b7 ${vehicles} ${vehicles === 1 ? 'vehicle' : 'vehicles'}`,
+      archiveTitle: 'Archive this depot?',
+      archiveMessage: (name: string) =>
+        `${name} stops appearing in the pickers. Its past duty logs and inspections are kept, because a closed depot still has to explain them.`,
+      archiveFailed: 'That depot could not be archived.',
+      archivedToast: (name: string) => `${name} archived`,
+    },
+
+    depotDialog: {
+      addTitle: 'Add a depot',
+      editTitle: 'Edit depot',
+      addDescription: 'The address is where routes from this depot start and end.',
+      description: 'Renaming is safe — drivers and vehicles stay linked to the depot, not to its name.',
+      add: 'Add depot',
+      save: 'Save changes',
+      failed: 'That depot could not be saved.',
+      addedToast: (name: string) => `${name} added`,
+      savedToast: (name: string) => `${name} saved`,
+      namePlaceholder: 'Pune depot',
+      codePlaceholder: 'PNQ',
+      addressPlaceholder: '12 Hadapsar Industrial Estate, Pune',
+      addressHint: 'Used as the start or end when planning a route from this depot.',
+      timezoneHint: 'When the working day starts and ends here.',
+      fields: { name: 'Name', address: 'Address', code: 'Code', timezone: 'Timezone' },
+    },
+
+    systemActor: 'System',
+    noAlertRules: 'No alert rules yet',
+    noAlertRulesHint:
+      'A rule decides who is told when something needs attention. None are set up, so nothing is being notified.',
     title: 'Settings & audit',
     description: 'How the organisation is configured, and a record of every change.',
     orgTitle: 'Organisation',
@@ -861,9 +1364,23 @@ export const STRINGS = {
     channels: 'Channels',
     on: 'On',
     off: 'Off',
-    fields: { name: 'Organisation name', country: 'Country', timezone: 'Timezone', dot: 'Regulator number' },
+    /*
+      "Hours rule book", not "Regulator number". It was neither a number nor
+      optional bookkeeping: the driver app parses this value to decide which
+      limits to subtract from, and until it is set every clock in the driver's
+      hours strip shows a dash.
+    */
+    fields: { name: 'Organisation name', country: 'Country', timezone: 'Timezone', dot: 'Hours rule book' },
+    regulatorHint:
+      'Which limits the driver app works to. Until this is set, every clock on the driver’s hours screen shows a dash.',
+    regulatorOptions: {
+      none: 'Not chosen yet',
+      FMCSA: 'FMCSA — 11h driving, 14h window, 70h / 8 days',
+      EU: 'EU — 9h driving, 4h30 before a break, 56h / week',
+    },
     saveOrg: 'Save organisation',
     savedToast: 'Organisation saved',
+    saveFailed: 'The organisation could not be saved.',
     alertOnToast: (name: string) => `${name} alerts are on`,
     alertOffToast: (name: string) => `${name} alerts are off`,
     turnOn: 'Turn on',

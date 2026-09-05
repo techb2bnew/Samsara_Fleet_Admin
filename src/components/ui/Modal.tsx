@@ -22,6 +22,7 @@ export function Modal({
   children,
   footer,
   size = 'md',
+  stacked = false,
 }: {
   open: boolean
   onClose: () => void
@@ -30,6 +31,11 @@ export function Modal({
   children: ReactNode
   footer?: ReactNode
   size?: 'sm' | 'md' | 'lg'
+  /**
+   * Sit above an already-open dialog. Capture Escape/Tab so the page behind
+   * does not close, and raise the overlay so this one is the one you see.
+   */
+  stacked?: boolean
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
   const returnFocusTo = useRef<HTMLElement | null>(null)
@@ -68,10 +74,12 @@ export function Modal({
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        if (stacked) event.stopImmediatePropagation()
         onCloseRef.current()
         return
       }
       if (event.key !== 'Tab') return
+      if (stacked) event.stopImmediatePropagation()
 
       const items = panelRef.current?.querySelectorAll<HTMLElement>(
         'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
@@ -90,18 +98,21 @@ export function Modal({
       }
     }
 
-    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('keydown', onKeyDown, stacked)
     return () => {
-      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('keydown', onKeyDown, stacked)
       document.body.style.overflow = previousOverflow
       returnFocusTo.current?.focus()
     }
-  }, [open])
+  }, [open, stacked])
 
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-0 sm:items-start sm:p-8">
+    <div className={cn(
+      'fixed inset-0 flex items-end justify-center overflow-y-auto p-0 sm:items-start sm:p-8',
+      stacked ? 'z-[60]' : 'z-50',
+    )}>
       <div
         className="fixed inset-0 bg-brand/55 backdrop-blur-[2px]"
         onClick={onClose}

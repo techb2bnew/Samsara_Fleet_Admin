@@ -4,7 +4,6 @@ import { AuthLayout } from '../../../app/layouts/AuthLayout'
 import { Alert, Button, Field } from '../../../components/ui'
 import { PasswordStrength, passwordProblem } from '../components/PasswordStrength'
 import { STRINGS } from '../../../constants'
-import { MOCK_INVITATION } from '../../../mocks/auth'
 import { useAuth } from '../AuthProvider'
 
 const t = STRINGS.auth.acceptInvite
@@ -18,10 +17,18 @@ export function AcceptInvitePage() {
   const [params] = useSearchParams()
   const { acceptInvite } = useAuth()
 
-  // Populated from the invitation token once this is wired up.
-  const orgName = params.get('org') ?? MOCK_INVITATION.orgName
-  const roleName = params.get('role') ?? MOCK_INVITATION.roleName
-  const email = params.get('email') ?? MOCK_INVITATION.email
+  /*
+   * The invitation details come from the link. Reading them back from a token
+   * needs a function that can look up the token's hash, which is not built
+   * yet — so a link without them is refused rather than filled in with a
+   * plausible organisation and role.
+   *
+   * Showing an invented company on the one screen where somebody is about to
+   * type a password is exactly what phishing looks like.
+   */
+  const orgName = params.get('org')
+  const roleName = params.get('role')
+  const email = params.get('email')
 
   const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
@@ -38,10 +45,24 @@ export function AcceptInvitePage() {
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
+    // The guard below returns before the form renders when these are missing,
+    // so by the time this runs the email is known.
+    if (!email) return
+
     setLoading(true)
     await acceptInvite(email, fullName.trim(), password)
     setLoading(false)
     // RedirectIfSignedIn routes to the console once the session exists.
+  }
+
+  if (!orgName || !roleName || !email) {
+    return (
+      <AuthLayout title={t.invalid.title} subtitle={t.invalid.subtitle}>
+        <Alert tone="danger" title={t.invalid.noticeTitle}>
+          {t.invalid.noticeBody}
+        </Alert>
+      </AuthLayout>
+    )
   }
 
   return (
