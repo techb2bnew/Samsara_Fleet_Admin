@@ -9,6 +9,7 @@ import { SEVERITY_TONE, type SafetyEvent } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { ConfirmDialog, useToast } from '../../../components/ui'
 import { hrefForDriverName } from '../../../lib/entityLinks'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.safety
 type Tab = keyof typeof t.tabs
@@ -33,7 +34,7 @@ export function SafetyPage() {
     {
       key: 'driver',
       header: t.columns.driver,
-      width: '190px',
+      width: COL.person,
       render: (e) => (
         <div className="flex items-center gap-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10.5px] font-semibold text-accent">
@@ -47,7 +48,7 @@ export function SafetyPage() {
     {
       key: 'severity',
       header: t.columns.severity,
-      width: '110px',
+      width: COL.figure,
       render: (e) => <Badge tone={SEVERITY_TONE[e.severity]}>{e.severity}</Badge>,
     },
     { key: 'location', header: t.columns.location, secondary: true, render: (e) => e.location },
@@ -61,7 +62,7 @@ export function SafetyPage() {
       key: 'status',
       header: t.columns.status,
       align: 'right',
-      width: '230px',
+      width: COL.place,
       render: (event) =>
         event.status === 'new' ? (
           <div className="flex justify-end gap-1.5">

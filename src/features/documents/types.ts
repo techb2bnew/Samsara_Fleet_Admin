@@ -39,6 +39,11 @@ export type DocumentRow = {
   sizeKb: number | null
   /** Null when nothing recorded one. The preview falls back to a download. */
   mimeType: string | null
+  /** The number on it — a licence number, a policy number. */
+  reference: string | null
+  issuingAuthority: string | null
+  /** Already formatted, or null. */
+  issued: string | null
   /**
    * Where the file is in storage. Null means only a record was filed and
    * there is nothing to open — the download has to say so rather than hand

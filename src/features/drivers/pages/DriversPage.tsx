@@ -8,6 +8,7 @@ import { EMPLOYMENT_LABEL, EMPLOYMENT_TONE, type Driver } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
 import { AddDriverDialog } from '../components/AddDriverDialog'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.drivers
 type Tab = keyof typeof t.tabs
@@ -52,17 +53,19 @@ export function DriversPage() {
         </div>
       ),
     },
-    { key: 'depot', header: t.columns.depot, secondary: true, render: (d) => d.depot?.name ?? '—' },
+    { key: 'depot',
+      width: COL.place, header: t.columns.depot, secondary: true, render: (d) => d.depot?.name ?? '—' },
     {
       key: 'status',
       header: t.columns.status,
-      width: '130px',
+      width: COL.status,
       render: (d) => (
         <Badge tone={EMPLOYMENT_TONE[d.employment]}>{EMPLOYMENT_LABEL[d.employment]}</Badge>
       ),
     },
     {
       key: 'vehicle',
+      width: COL.place,
       header: t.columns.vehicle,
       render: (d) =>
         d.vehicle ?? <span className="text-ink-4">{t.noVehicle}</span>,
@@ -71,7 +74,7 @@ export function DriversPage() {
       key: 'hoursLeft',
       header: t.columns.hoursLeft,
       align: 'right',
-      width: '100px',
+      width: COL.figure,
       render: (d) =>
         d.hoursLeft === null ? (
           <span className="text-ink-4">—</span>
@@ -88,6 +91,7 @@ export function DriversPage() {
     },
     {
       key: 'licence',
+      width: COL.date,
       header: t.columns.licence,
       secondary: true,
       render: (d) =>
@@ -121,7 +125,7 @@ export function DriversPage() {
     {
       key: 'actions',
       header: t.columns.actions,
-      width: '72px',
+      width: COL.actions,
       align: 'right',
       render: (d) => (
         <Button

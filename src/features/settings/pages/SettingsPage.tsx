@@ -17,6 +17,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { useFleetData } from '../../fleet-data'
 import { DepotDialog } from '../components/DepotDialog'
 import type { DepotRow } from '../../../supabase/api'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.settings
 
@@ -74,7 +75,7 @@ export function SettingsPage() {
     {
       key: 'who',
       header: t.auditColumns.who,
-      width: '190px',
+      width: COL.person,
       render: (a) => (
         <div className="flex items-center gap-2.5">
           <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10px] font-semibold text-accent">
@@ -84,13 +85,13 @@ export function SettingsPage() {
         </div>
       ),
     },
-    { key: 'action', header: t.auditColumns.action, width: '190px', render: (a) => a.action },
+    { key: 'action', width: COL.place, header: t.auditColumns.action, render: (a) => a.action },
     { key: 'target', header: t.auditColumns.target, render: (a) => <span className="text-ink-2">{a.target}</span> },
     {
       key: 'at',
       header: t.auditColumns.at,
       align: 'right',
-      width: '150px',
+      width: COL.date,
       render: (a) => <span className="text-ink-3">{a.at}</span>,
     },
   ]

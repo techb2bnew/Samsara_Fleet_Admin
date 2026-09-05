@@ -6,6 +6,7 @@ import { type Course } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
 import { NewCourseDialog } from '../components/NewCourseDialog'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.training
 
@@ -24,15 +25,15 @@ export function TrainingPage() {
     {
       key: 'length',
       header: t.columns.length,
-      width: '100px',
+      width: COL.count,
       render: (c) => <span className="text-ink-3">{t.minutes(c.lengthMinutes)}</span>,
     },
-    { key: 'assigned', header: t.columns.assigned, align: 'right', width: '100px', render: (c) => c.assigned },
+    { key: 'assigned', width: COL.count, header: t.columns.assigned, align: 'right', render: (c) => c.assigned },
     {
       key: 'completed',
       header: t.columns.completed,
       align: 'right',
-      width: '160px',
+      width: COL.count,
       render: (c) =>
         c.assigned === 0 ? (
           <span className="text-ink-4">—</span>
@@ -54,7 +55,7 @@ export function TrainingPage() {
       key: 'overdue',
       header: t.columns.overdue,
       align: 'right',
-      width: '100px',
+      width: COL.count,
       render: (c) =>
         c.overdue > 0 ? (
           <span className="font-semibold text-warn">{c.overdue}</span>
@@ -65,7 +66,7 @@ export function TrainingPage() {
     {
       key: 'status',
       header: t.columns.status,
-      width: '120px',
+      width: COL.status,
       render: (c) => (
         <Badge tone={c.status === 'published' ? 'success' : 'neutral'}>
           {c.status === 'published' ? 'Published' : 'Draft'}

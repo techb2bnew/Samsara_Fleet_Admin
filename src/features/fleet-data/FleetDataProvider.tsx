@@ -33,6 +33,7 @@ import { VIOLATION_DETAIL, VIOLATION_WORDS } from '../hours/violationWords'
 import { segmentsByDriverDate, windowEndingOn } from '../hours/segments'
 import { formatClock as formatMinutes } from '../hours/totals'
 import { DEFAULT_NEW_FORM_FIELDS, type FormDef, type FormField } from '../forms/types'
+import { personName } from '../../lib/names'
 
 /**
  * Every list the console shows, in one place.
@@ -582,7 +583,14 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
         if (signal?.cancelled) return
         setDrivers(
           rows.map((row) => {
-            const name = `${row.firstName} ${row.lastName}`.trim()
+            /*
+              Through the helper, like every other name.
+              This one was missed when the twelve in the api were replaced,
+              because it builds from camelCase fields rather than the database
+              columns — so the roster, the one list the office reads all day,
+              was the last place still showing "shubham".
+            */
+            const name = personName(row.firstName, row.lastName)
             return {
               id: row.id,
         name,
@@ -1236,6 +1244,9 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
             uploaded: formatWhen(row.uploadedAt),
             sizeKb: row.sizeBytes === null ? null : Math.round(row.sizeBytes / 1024),
             mimeType: row.mimeType,
+            reference: row.reference,
+            issuingAuthority: row.issuingAuthority,
+            issued: row.issuedOn ? formatDate(row.issuedOn) : null,
             storagePath: row.storagePath,
           })),
         )

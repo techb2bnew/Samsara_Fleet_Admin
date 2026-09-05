@@ -14,6 +14,7 @@ import {
 import { useFleetData } from '../../fleet-data'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
 import { AddVehicleDialog } from '../components/AddVehicleDialog'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.vehicles
 type Tab = keyof typeof t.tabs
@@ -76,6 +77,7 @@ export function VehiclesPage() {
     },
     {
       key: 'makeModel',
+      width: COL.place,
       header: t.columns.makeModel,
       secondary: true,
       // A year nobody recorded must not read as "Tata Signa · null".
@@ -83,6 +85,7 @@ export function VehiclesPage() {
     },
     {
       key: 'depot',
+      width: COL.place,
       header: t.columns.depot,
       secondary: true,
       render: (v) => v.depot?.name ?? <span className="text-ink-4">—</span>,
@@ -90,13 +93,14 @@ export function VehiclesPage() {
     {
       key: 'status',
       header: t.columns.status,
-      width: '150px',
+      width: COL.status,
       render: (v) => (
         <Badge tone={VEHICLE_STATUS_TONE[v.status]}>{VEHICLE_STATUS_LABEL[v.status]}</Badge>
       ),
     },
     {
       key: 'driver',
+      width: COL.person,
       header: t.columns.driver,
       render: (v) => v.driver ?? <span className="text-ink-4">{t.unassigned}</span>,
     },
@@ -104,7 +108,7 @@ export function VehiclesPage() {
       key: 'odometer',
       header: t.columns.odometer,
       align: 'right',
-      width: '120px',
+      width: COL.figure,
       render: (v) =>
         v.odometerKm > 0 ? (
           <span className="font-mono">{v.odometerKm.toLocaleString()} km</span>
@@ -114,6 +118,7 @@ export function VehiclesPage() {
     },
     {
       key: 'service',
+      width: COL.date,
       header: t.columns.service,
       align: 'right',
       render: (v) => {
@@ -129,7 +134,7 @@ export function VehiclesPage() {
     {
       key: 'actions',
       header: t.columns.actions,
-      width: '72px',
+      width: COL.actions,
       align: 'right',
       render: (v) => (
         <Button
@@ -150,10 +155,10 @@ export function VehiclesPage() {
     {
       key: 'reference',
       header: t.woColumns.reference,
-      width: '110px',
+      width: COL.figure,
       render: (w) => <span className="font-mono text-ink">{w.reference}</span>,
     },
-    { key: 'vehicle', header: t.woColumns.vehicle, width: '120px', render: (w) => w.vehicle },
+    { key: 'vehicle', header: t.woColumns.vehicle, width: COL.place, render: (w) => w.vehicle },
     {
       key: 'job',
       header: t.woColumns.job,
@@ -173,17 +178,19 @@ export function VehiclesPage() {
     {
       key: 'status',
       header: t.woColumns.status,
-      width: '130px',
+      width: COL.status,
       render: (w) => <Badge tone={WORK_ORDER_TONE[w.status]}>{WORK_ORDER_LABEL[w.status]}</Badge>,
     },
     {
       key: 'mechanic',
+      width: COL.person,
       header: t.woColumns.mechanic,
       secondary: true,
       render: (w) => w.mechanic ?? <span className="text-ink-4">{t.unassigned}</span>,
     },
     {
       key: 'opened',
+      width: COL.date,
       header: t.woColumns.opened,
       secondary: true,
       render: (w) => <span className="text-ink-3">{w.opened}</span>,

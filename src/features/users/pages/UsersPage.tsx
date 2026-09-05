@@ -7,6 +7,7 @@ import { STAFF_STATUS_TONE, type StaffUser } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
 import { InviteUserDialog } from '../components/InviteUserDialog'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.users
 type Tab = keyof typeof t.tabs
@@ -44,16 +45,19 @@ export function UsersPage() {
         </div>
       ),
     },
-    { key: 'role', header: t.columns.role, render: (u) => u.role },
-    { key: 'fleet', header: t.columns.depot, secondary: true, render: (u) => u.fleet },
+    { key: 'role',
+      width: COL.place, header: t.columns.role, render: (u) => u.role },
+    { key: 'fleet',
+      width: COL.place, header: t.columns.depot, secondary: true, render: (u) => u.fleet },
     {
       key: 'status',
       header: t.columns.status,
-      width: '140px',
+      width: COL.status,
       render: (u) => <Badge tone={STAFF_STATUS_TONE[u.status]}>{t.tabs[u.status]}</Badge>,
     },
     {
       key: 'lastActive',
+      width: COL.date,
       header: t.columns.lastActive,
       secondary: true,
       render: (u) => <span className="text-ink-3">{u.lastActive}</span>,

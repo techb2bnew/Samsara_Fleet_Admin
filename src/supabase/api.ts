@@ -424,7 +424,7 @@ export async function loadDashboard(orgId: string): Promise<DashboardSnapshot> {
       const vehicle = row.vehicles as EmbeddedVehicle & { odometer_km?: number | null }
       return {
         id: row.id,
-        name: row.name,
+        name: displayName(row.name),
         vehicleId: row.vehicle_id,
         vehicleName: vehicleLabel(vehicle),
         nextDueAt: row.next_due_at,
@@ -470,7 +470,7 @@ export async function loadDashboard(orgId: string): Promise<DashboardSnapshot> {
     openWorkOrders: (workOrders.data ?? []).map((row) => ({
       id: row.id,
       reference: row.reference,
-      title: row.title,
+      title: displayName(row.title),
       openedAt: row.opened_at,
       vehicleName: vehicleLabel(row.vehicles as EmbeddedVehicle),
     })),
@@ -544,7 +544,7 @@ export async function loadMapVehicles(orgId: string): Promise<MapVehicleRow[]> {
 
   return (vehicles.data ?? []).map((v) => ({
     id: v.id,
-    name: v.name?.trim() || v.plate,
+    name: displayName(v.name) || v.plate,
     // numeric columns arrive as strings over the wire; Number keeps null null.
     latitude: v.last_latitude === null ? null : Number(v.last_latitude),
     longitude: v.last_longitude === null ? null : Number(v.last_longitude),
@@ -687,7 +687,7 @@ export async function loadDrivers(orgId: string): Promise<DriverRow[]> {
       lastName: d.last_name,
       employeeNumber: d.employee_number,
       depotId: d.fleet_id,
-      depotName: (d.fleets as { name: string } | null)?.name ?? null,
+      depotName: displayName((d.fleets as { name: string } | null)?.name) || null,
       email: d.email,
       phone: d.phone,
       employment: d.status,
@@ -1001,7 +1001,8 @@ export async function loadVehicles(orgId: string): Promise<VehicleRow[]> {
     return {
       id: v.id,
       kind: v.kind,
-      name: v.name?.trim() || v.plate,
+      // Typed once when the truck was added, read on every list after.
+      name: displayName(v.name) || v.plate,
       plate: v.plate,
       vin: v.vin,
       makeModel: [v.make, v.model].filter(Boolean).join(' ').trim() || '—',
@@ -1011,7 +1012,7 @@ export async function loadVehicles(orgId: string): Promise<VehicleRow[]> {
       driverId: driverByVehicle.get(v.id)?.id ?? null,
       driverName: driverByVehicle.get(v.id)?.name ?? null,
       depotId: v.fleet_id,
-      depotName: (v.fleets as { name: string } | null)?.name ?? null,
+      depotName: displayName((v.fleets as { name: string } | null)?.name) || null,
       nextServiceKm,
       serviceOverdueKm:
         nextServiceKm !== null && odometerKm > nextServiceKm
@@ -1047,7 +1048,7 @@ export async function loadWorkOrders(orgId: string): Promise<WorkOrderRow[]> {
       // A reference is optional in the schema; without one the id stands in so
       // the row is still addressable on screen.
       reference: w.reference ?? `WO-${w.id.slice(0, 6).toUpperCase()}`,
-      title: w.title,
+      title: displayName(w.title),
       status: w.status,
       vehicleName: vehicle?.name?.trim() || vehicle?.plate || '—',
       mechanicName: displayName(mechanic?.full_name) || null,
@@ -1574,7 +1575,9 @@ export async function loadDepots(orgId: string): Promise<DepotRow[]> {
     }
     return {
       id: row.id,
-      name: row.name,
+      // Typed when the depot was created, so it arrives however somebody felt
+      // that day — the same treatment a person's name gets.
+      name: displayName(row.name),
       code: row.code,
       timezone: row.timezone,
       address: row.address?.trim() ?? '',
@@ -1732,7 +1735,7 @@ export async function loadStaff(orgId: string): Promise<StaffRow[]> {
       name: displayName(user.full_name) || null,
       email: user.email,
       roleName: (row.roles as { name: string } | null)?.name ?? '',
-      fleetName: (row.fleets as { name: string } | null)?.name ?? null,
+      fleetName: displayName((row.fleets as { name: string } | null)?.name) || null,
       status: row.revoked_at === null ? 'active' : 'suspended',
       lastSeenAt: user.last_seen_at,
     })
@@ -1745,7 +1748,7 @@ export async function loadStaff(orgId: string): Promise<StaffRow[]> {
       name: null,
       email: row.email,
       roleName: (row.roles as { name: string } | null)?.name ?? '',
-      fleetName: (row.fleets as { name: string } | null)?.name ?? null,
+      fleetName: displayName((row.fleets as { name: string } | null)?.name) || null,
       status: 'invited',
       lastSeenAt: null,
     })
@@ -2085,11 +2088,11 @@ export async function loadForms(orgId: string): Promise<FormRow[]> {
     return {
       id: row.id,
       key: row.key,
-      name: row.name,
+      name: displayName(row.name),
       version: row.version,
       status: row.status,
       fieldCount: fields.length,
-      fleetName: (row.fleets as { name: string } | null)?.name ?? null,
+      fleetName: displayName((row.fleets as { name: string } | null)?.name) || null,
       submissions: submissionsByKey.get(row.key) ?? 0,
       updatedAt: row.updated_at,
       fields: fields.map((f, i) => ({
@@ -2764,6 +2767,15 @@ export type TripDocumentRow = {
   sizeBytes: number | null
   /** What kind of file it is, so a preview knows whether it can draw it. */
   mimeType: string | null
+  /**
+   * The number on the document — a licence number, a policy number.
+   *
+   * Collected at upload since the dialog was written, and shown nowhere. It is
+   * the thing somebody reads a licence FOR.
+   */
+  reference: string | null
+  issuingAuthority: string | null
+  issuedOn: string | null
   /** Where the file sits in storage. Null when only a record was filed. */
   storagePath: string | null
 }
@@ -2772,7 +2784,7 @@ export async function loadTripDocuments(orgId: string): Promise<TripDocumentRow[
   const { data, error } = await supabase
     .from('documents')
     .select(
-      'id, category, doc_type, title, storage_path, size_bytes, mime_type, expires_on, created_at, drivers!documents_driver_id_fkey(first_name, last_name), vehicles!documents_vehicle_id_fkey(name, plate)',
+      'id, category, doc_type, title, reference, issuing_authority, issued_on, storage_path, size_bytes, mime_type, expires_on, created_at, drivers!documents_driver_id_fkey(first_name, last_name), vehicles!documents_vehicle_id_fkey(name, plate)',
     )
     .eq('org_id', orgId)
     .is('deleted_at', null)
@@ -2795,6 +2807,9 @@ export async function loadTripDocuments(orgId: string): Promise<TripDocumentRow[
       expiresOn: row.expires_on,
       sizeBytes: row.size_bytes === null ? null : Number(row.size_bytes),
       mimeType: row.mime_type,
+      reference: row.reference,
+      issuingAuthority: row.issuing_authority,
+      issuedOn: row.issued_on,
       storagePath: row.storage_path,
     }
   })
@@ -3085,12 +3100,12 @@ export async function loadCourses(orgId: string): Promise<CourseRow[]> {
     const mine = (assignments.data ?? []).filter((a) => a.course_id === c.id)
     return {
       id: c.id,
-      title: c.title,
+      title: displayName(c.title),
       description: c.description,
       contentPath: c.content_url,
       lengthMinutes: c.length_minutes,
       status: c.status,
-      fleetName: (c.fleets as { name: string } | null)?.name ?? null,
+      fleetName: displayName((c.fleets as { name: string } | null)?.name) || null,
       assigned: mine.length,
       completed: mine.filter((a) => a.completed_at !== null).length,
       // Overdue is computed, not stored: a due date that has passed is overdue

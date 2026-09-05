@@ -6,6 +6,7 @@ import { FIELD_TYPES, type FormDef } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
 import { NewFormDialog } from '../components/NewFormDialog'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.forms
 
@@ -21,18 +22,18 @@ export function FormsPage() {
       header: t.columns.form,
       render: (f) => <span className="font-medium text-ink">{f.name}</span>,
     },
-    { key: 'fields', header: t.columns.fields, align: 'right', width: '80px', render: (f) => f.fields },
+    { key: 'fields', header: t.columns.fields, align: 'right', width: COL.count, render: (f) => f.fields },
     {
       key: 'version',
       header: t.columns.version,
       align: 'right',
-      width: '90px',
+      width: COL.count,
       render: (f) => <span className="font-mono">v{f.version}</span>,
     },
     {
       key: 'status',
       header: t.columns.status,
-      width: '120px',
+      width: COL.status,
       render: (f) => (
         <Badge tone={f.status === 'published' ? 'success' : 'neutral'}>
           {f.status === 'published' ? 'Published' : 'Draft'}

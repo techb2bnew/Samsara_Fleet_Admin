@@ -7,6 +7,7 @@ import { type DocumentRow } from '../types'
 import { ConfirmDialog, useToast } from '../../../components/ui'
 import { csvFilename, downloadCsv } from '../../../lib/csv'
 import { useFleetData } from '../../fleet-data'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.documents
 type Tab = keyof typeof t.tabs
@@ -87,12 +88,14 @@ export function DocumentsPage() {
         </div>
       ),
     },
-    { key: 'driver', header: t.columns.driver, render: (d) => d.driver },
-    { key: 'vehicle', header: t.columns.vehicle, secondary: true, render: (d) => d.vehicle },
+    { key: 'driver',
+      width: COL.person, header: t.columns.driver, render: (d) => d.driver },
+    { key: 'vehicle',
+      width: COL.place, header: t.columns.vehicle, secondary: true, render: (d) => d.vehicle },
     {
       key: 'expires',
       header: t.columns.expires,
-      width: '150px',
+      width: COL.date,
       /*
         The colour on this table belongs here and nowhere else. An expiry is
         the only thing on the screen anybody acts on: a licence that ran out
@@ -109,6 +112,7 @@ export function DocumentsPage() {
     },
     {
       key: 'uploaded',
+      width: COL.date,
       header: t.columns.uploaded,
       secondary: true,
       render: (d) => <span className="text-ink-3">{d.uploaded}</span>,
@@ -117,7 +121,7 @@ export function DocumentsPage() {
       key: 'size',
       header: t.columns.size,
       align: 'right',
-      width: '90px',
+      width: COL.count,
       render: (d) =>
         d.sizeKb === null ? (
           <span className="text-ink-4">—</span>

@@ -5,6 +5,7 @@ import { useFleetData, type DriverAddResult, type NewDriver } from '../../fleet-
 import { DepotSelect } from '../../settings/components/DepotSelect'
 import { InviteHandover } from './InviteHandover'
 import { EMPLOYMENT_LABEL, type Driver, type DriverEmployment } from '../types'
+import { personName } from '../../../lib/names'
 
 const t = STRINGS.forms_common
 const d = STRINGS.dialog
@@ -85,8 +86,20 @@ export function AddDriverDialog({
     const next: typeof errors = {}
     if (!values.firstName.trim()) next.firstName = d.required
     if (!values.lastName.trim()) next.lastName = d.required
-    if (!values.employeeNumber.trim()) next.employeeNumber = d.required
-    if (!values.depotId) next.depotId = d.required
+    /*
+     * Not required. The column is nullable and always was — this form was
+     * stricter than the schema for no reason, and a fleet that does not use
+     * employee numbers had to invent one to add a driver.
+     *
+     * It is still unique when given: two drivers sharing a number is what the
+     * duplicate check below catches.
+     */
+    /*
+     * Depot is not required either. fleet_id is nullable, the picker has
+     * always offered "No depot", and a new driver who has not been placed at
+     * one yet is an ordinary thing — the console was refusing to record
+     * somebody it could perfectly well store.
+     */
     if (!values.email.trim()) next.email = d.required
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) next.email = d.invalidEmail
     if (!values.phone.trim()) next.phone = d.required
@@ -98,7 +111,8 @@ export function AddDriverDialog({
     setSaving(true)
     setSaveError(null)
 
-    const name = `${values.firstName} ${values.lastName}`.trim()
+    // The toast says the name back; it should read the way the roster will.
+    const name = personName(values.firstName, values.lastName)
 
     if (driver) {
       try {
@@ -204,6 +218,12 @@ export function AddDriverDialog({
           </div>
         )}
         <FormGrid>
+          {/*
+            The four required fields first, in two rows, then everything
+            optional. Email used to sit in the third row beside Vehicle and
+            phone alone in the fourth, so the things a driver cannot be added
+            without were scattered among the things they can.
+          */}
           <Field
             label={t.driverFields.firstName}
             value={values.firstName}
@@ -218,38 +238,6 @@ export function AddDriverDialog({
             onChange={set('lastName')}
             error={errors.lastName}
             required
-          />
-          <Field
-            label={t.driverFields.employeeNumber}
-            placeholder="NL-000"
-            value={values.employeeNumber}
-            onChange={set('employeeNumber')}
-            error={errors.employeeNumber}
-            required
-          />
-          <DepotSelect
-            label={t.driverFields.depot}
-            emptyLabel={d.noDepot}
-            value={values.depotId}
-            onChange={(depotId) =>
-              setValues((current) => {
-                const stillListed =
-                  !depotId ||
-                  vehicles.some(
-                    (row) => row.id === current.vehicleId && row.depot?.id === depotId,
-                  )
-                return { ...current, depotId, vehicleId: stillListed ? current.vehicleId : '' }
-              })
-            }
-            required
-            error={errors.depotId}
-          />
-          <Select
-            label={t.driverFields.vehicle}
-            hint={t.driverFields.vehicleHint}
-            options={vehicleOptions}
-            value={values.vehicleId}
-            onChange={set('vehicleId')}
           />
           <Field
             label={t.driverFields.email}
@@ -268,6 +256,37 @@ export function AddDriverDialog({
             onChange={set('phone')}
             error={errors.phone}
             required
+          />
+          <Field
+            label={t.driverFields.employeeNumber}
+            hint={t.driverFields.employeeNumberHint}
+            placeholder="NL-000"
+            value={values.employeeNumber}
+            onChange={set('employeeNumber')}
+            error={errors.employeeNumber}
+          />
+          <DepotSelect
+            label={t.driverFields.depot}
+            emptyLabel={d.noDepot}
+            value={values.depotId}
+            onChange={(depotId) =>
+              setValues((current) => {
+                const stillListed =
+                  !depotId ||
+                  vehicles.some(
+                    (row) => row.id === current.vehicleId && row.depot?.id === depotId,
+                  )
+                return { ...current, depotId, vehicleId: stillListed ? current.vehicleId : '' }
+              })
+            }
+            error={errors.depotId}
+          />
+          <Select
+            label={t.driverFields.vehicle}
+            hint={t.driverFields.vehicleHint}
+            options={vehicleOptions}
+            value={values.vehicleId}
+            onChange={set('vehicleId')}
           />
           {editing && (
             <Select

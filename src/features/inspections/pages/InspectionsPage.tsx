@@ -6,6 +6,7 @@ import { Alert, Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type
 import { INSPECTION_LABEL, INSPECTION_TONE, type Inspection } from '../types'
 import { DefectRow } from '../components/DefectActions'
 import { useFleetData } from '../../fleet-data'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.inspections
 type Tab = keyof typeof t.tabs
@@ -33,16 +34,18 @@ export function InspectionsPage() {
       header: t.columns.vehicle,
       render: (i) => <span className="font-medium text-ink">{i.vehicle}</span>,
     },
-    { key: 'driver', header: t.columns.driver, render: (i) => i.driver },
-    { key: 'type', header: t.columns.type, width: '110px', render: (i) => i.type },
+    { key: 'driver', width: COL.person, header: t.columns.driver, render: (i) => i.driver },
+    { key: 'type', width: COL.status, header: t.columns.type, render: (i) => i.type },
     {
       key: 'submitted',
+      width: COL.date,
       header: t.columns.submitted,
       secondary: true,
       render: (i) => <span className="text-ink-3">{i.submitted}</span>,
     },
     {
       key: 'defects',
+      width: COL.count,
       header: t.columns.defects,
       render: (i) =>
         i.defects === 0 ? (
@@ -59,7 +62,7 @@ export function InspectionsPage() {
     {
       key: 'status',
       header: t.columns.status,
-      width: '150px',
+      width: COL.status,
       render: (i) => <Badge tone={INSPECTION_TONE[i.status]}>{INSPECTION_LABEL[i.status]}</Badge>,
     },
   ]

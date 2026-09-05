@@ -10,6 +10,7 @@ import { formatKm } from '../geometry'
 import { PlanRouteDialog } from '../components/PlanRouteDialog'
 import { AssignRouteDialog } from '../components/AssignRouteDialog'
 import { RouteRowActions } from '../components/RouteRowActions'
+import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.dispatch
 type Tab = keyof typeof t.tabs
@@ -47,7 +48,6 @@ export function DispatchPage() {
     {
       key: 'route',
       header: t.columns.route,
-      width: '220px',
       render: (r) => (
         <div className="min-w-0">
           <span className="font-mono font-medium text-ink">{r.reference}</span>
@@ -60,12 +60,14 @@ export function DispatchPage() {
         </div>
       ),
     },
-    { key: 'driver', header: t.columns.driver, render: (r) => r.driver },
-    { key: 'vehicle', header: t.columns.vehicle, secondary: true, render: (r) => r.vehicle },
+    { key: 'driver',
+      width: COL.person, header: t.columns.driver, render: (r) => r.driver },
+    { key: 'vehicle',
+      width: COL.place, header: t.columns.vehicle, secondary: true, render: (r) => r.vehicle },
     {
       key: 'progress',
       header: t.columns.progress,
-      width: '160px',
+      width: COL.progress,
       render: (r) => (
         <div className="flex items-center gap-2.5">
           <span className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-2">
@@ -83,11 +85,12 @@ export function DispatchPage() {
     {
       key: 'status',
       header: t.columns.status,
-      width: '140px',
+      width: COL.status,
       render: (r) => <Badge tone={ROUTE_TONE[r.status]}>{ROUTE_LABEL[r.status]}</Badge>,
     },
     {
       key: 'eta',
+      width: COL.date,
       header: t.columns.eta,
       align: 'right',
       secondary: true,
@@ -100,7 +103,7 @@ export function DispatchPage() {
     {
       key: 'actions',
       header: t.columns.actions,
-      width: '56px',
+      width: COL.actions,
       align: 'right',
       render: (r) => (
         <RouteRowActions

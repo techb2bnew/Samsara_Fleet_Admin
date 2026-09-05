@@ -179,6 +179,28 @@ export function DocumentDetailPage() {
               <span className="font-mono">{doc.name}</span>
             </DetailRow>
             <DetailRow label={t.detail.kind}>{doc.kind}</DetailRow>
+            {/* The number, then the dates. On a licence this is the whole
+                point of the record; it was collected and never displayed. */}
+            {doc.reference && (
+              <DetailRow label={t.detail.reference}>
+                <span className="font-mono">{doc.reference}</span>
+              </DetailRow>
+            )}
+            {doc.issuingAuthority && (
+              <DetailRow label={t.detail.issuingAuthority}>{doc.issuingAuthority}</DetailRow>
+            )}
+            {doc.issued && <DetailRow label={t.detail.issued}>{doc.issued}</DetailRow>}
+            <DetailRow label={t.detail.expires}>
+              {!doc.expires ? (
+                <span className="text-ink-4">{t.detail.noExpiry}</span>
+              ) : doc.expiryState === 'expired' ? (
+                <Badge tone="danger">{`${t.detail.expired} · ${doc.expires}`}</Badge>
+              ) : doc.expiryState === 'soon' ? (
+                <Badge tone="warning">{doc.expires}</Badge>
+              ) : (
+                <span className="text-ink">{doc.expires}</span>
+              )}
+            </DetailRow>
             <DetailRow label={t.detail.driver}>{doc.driver}</DetailRow>
             <DetailRow label={t.detail.vehicle}>{doc.vehicle}</DetailRow>
             <DetailRow label={t.detail.uploaded}>{doc.uploaded}</DetailRow>

@@ -378,6 +378,7 @@ export const STRINGS = {
       firstName: 'First name',
       lastName: 'Last name',
       employeeNumber: 'Employee number',
+      employeeNumberHint: 'Optional. Leave it empty if your fleet does not use them.',
       depot: 'Depot',
       vehicle: 'Vehicle',
       vehicleHint: 'Optional. Vehicles at the chosen depot are listed first.',
@@ -1376,6 +1377,17 @@ export const STRINGS = {
       openFailed: 'That file could not be opened.',
       file: 'File name',
       kind: 'Type',
+      /*
+        The number on the document, and the dates around it. All three were
+        collected at upload and shown nowhere — which is most of why anybody
+        opens a licence in the first place.
+      */
+      reference: 'Number',
+      issuingAuthority: 'Issued by',
+      issued: 'Issued',
+      expires: 'Expires',
+      expired: 'Expired',
+      noExpiry: 'Does not expire',
       driver: 'Driver',
       vehicle: 'Vehicle',
       uploaded: 'Uploaded',
