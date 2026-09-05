@@ -68,7 +68,7 @@ export function InspectionsPage() {
     key === 'all' ? inspections.length : inspections.filter((i) => i.status === key).length
 
   return (
-    <PageShell eyebrow="Module A07" title={t.title} description={t.description}>
+    <PageShell title={t.title} description={t.description}>
       {opsStatus === 'error' && (
         <div className="mb-5" role="alert">
           <Alert tone="danger" title={t.loadFailed}>

@@ -95,7 +95,7 @@ export function SafetyPage() {
     key === 'all' ? safetyEvents.length : safetyEvents.filter((e) => e.status === key).length
 
   return (
-    <PageShell eyebrow="Module A11" title={t.title} description={t.description}>
+    <PageShell title={t.title} description={t.description}>
       {/* Side by side only above 1536px. Below that the table needs the full
           width — six columns squeezed into 830px wraps names and places. */}
       <div className="grid gap-5 2xl:grid-cols-[1fr_300px]">

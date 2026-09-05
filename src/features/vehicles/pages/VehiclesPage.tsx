@@ -179,7 +179,6 @@ export function VehiclesPage() {
 
   return (
     <PageShell
-      eyebrow="Module A05"
       title={t.title}
       description={t.description}
       actions={<Button size="sm" onClick={() => setAdding(true)}>{t.add}</Button>}

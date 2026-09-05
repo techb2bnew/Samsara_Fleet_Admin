@@ -117,7 +117,6 @@ export function DispatchPage() {
 
   return (
     <PageShell
-      eyebrow="Module A08"
       title={t.title}
       description={t.description}
       actions={<Button size="sm" onClick={() => setPlanning(true)}>{t.newRoute}</Button>}

@@ -172,7 +172,6 @@ export function LiveMapPage() {
 
   return (
     <PageShell
-      eyebrow="Module A03"
       title={t.title}
       description={t.description}
       actions={

@@ -81,7 +81,6 @@ export function DocumentsPage() {
 
   return (
     <PageShell
-      eyebrow="Module A13"
       title={t.title}
       description={t.description}
       actions={

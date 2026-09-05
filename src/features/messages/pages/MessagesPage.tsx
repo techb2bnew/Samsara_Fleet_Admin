@@ -118,7 +118,6 @@ export function MessagesPage() {
 
   return (
     <PageShell
-      eyebrow="Module A10"
       title={t.title}
       description={t.description}
       actions={

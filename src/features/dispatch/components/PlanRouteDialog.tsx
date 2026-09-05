@@ -492,8 +492,13 @@ function PlanRouteForm({
         title={noHoursLeft ? t.routeHoursConfirmTitle : t.routeConfirmTitle}
         message={concerns.join(' ')}
         confirmLabel={noHoursLeft ? t.routeHoursConfirm : t.routeConfirmSubmit}
-        // Out of hours is a legal problem; the other two are planning ones.
-        tone={noHoursLeft ? 'danger' : 'warning'}
+        /*
+         * Out of hours is a legal problem, the other two are planning ones —
+         * but ConfirmDialog only knows 'primary' and 'danger', and a third
+         * tone is not worth inventing for one dialog. The wording carries the
+         * difference; the inline alerts above already colour it.
+         */
+        tone={noHoursLeft ? 'danger' : 'primary'}
       />
     </>
   )

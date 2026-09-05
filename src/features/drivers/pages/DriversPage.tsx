@@ -158,7 +158,6 @@ export function DriversPage() {
 
   return (
     <PageShell
-      eyebrow="Module A04"
       title={t.title}
       description={t.description}
       actions={<Button size="sm" onClick={() => setAdding(true)}>{t.add}</Button>}

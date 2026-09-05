@@ -131,7 +131,7 @@ export function ReportsPage() {
   }
 
   return (
-    <PageShell eyebrow="Module A14" title={t.title} description={t.description}>
+    <PageShell title={t.title} description={t.description}>
       <div className="flex flex-col gap-5">
         <div role="group" aria-label={t.depotAria}>
           <FilterChips

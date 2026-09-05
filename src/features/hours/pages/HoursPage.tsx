@@ -131,7 +131,6 @@ export function HoursPage() {
 
   return (
     <PageShell
-      eyebrow="Module A06"
       title={t.title}
       description={t.description}
       actions={

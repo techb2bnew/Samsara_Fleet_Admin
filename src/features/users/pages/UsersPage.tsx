@@ -65,7 +65,6 @@ export function UsersPage() {
 
   return (
     <PageShell
-      eyebrow="Module A01"
       title={t.title}
       description={t.description}
       actions={<Button size="sm" onClick={() => setInviting(true)}>{t.invite}</Button>}

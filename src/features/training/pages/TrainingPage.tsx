@@ -76,7 +76,6 @@ export function TrainingPage() {
 
   return (
     <PageShell
-      eyebrow="Module A12"
       title={t.title}
       description={t.description}
       actions={<Button size="sm" onClick={() => setCreating(true)}>{t.newCourse}</Button>}

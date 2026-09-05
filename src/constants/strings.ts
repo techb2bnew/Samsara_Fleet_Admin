@@ -187,7 +187,6 @@ export const STRINGS = {
     notifications: 'Notifications',
     unreadCount: (n: number) => `${n} unread`,
     notDesignedYet: 'Screens for this module are not designed yet.',
-    moduleEyebrow: (id: string) => `Module ${id}`,
     pageNotFound: 'Page not found',
   },
 
@@ -332,6 +331,7 @@ export const STRINGS = {
   /** Dialogs, forms and confirmations shared across modules. */
   dialog: {
     saved: 'Saved',
+    save: 'Save',
     cancel: 'Cancel',
     confirmSignOutTitle: 'Sign out?',
     confirmSignOutMessage:
@@ -679,6 +679,14 @@ export const STRINGS = {
       failed: 'That assignment could not be saved.',
       assignedToast: (driver: string, vehicle: string) => `${driver} assigned to ${vehicle}`,
       clearedToast: (vehicle: string) => `${vehicle} is now unassigned`,
+      /*
+        The option list already says which truck a driver is on. This says what
+        pressing save will DO about it — the assignments table allows one open
+        assignment per driver, so putting them here takes them out of there.
+        Usually intended; not always.
+      */
+      movesFrom: (name: string, from: string, to: string) =>
+        `${name} is on ${from}. Saving moves them to ${to}.`,
     },
 
     kindTruck: 'Truck',
@@ -731,14 +739,6 @@ export const STRINGS = {
       is deciding what to do with it.
     */
     raisedByDriver: (name: string) => `Raised by ${name}`,
-    /*
-      The option list already says which truck a driver is on. This says what
-      pressing save will DO about it — the two indexes on the assignments table
-      allow one open assignment per driver, so putting them here takes them out
-      of there. Usually intended; not always.
-    */
-    movesFrom: (name: string, from: string, to: string) =>
-      `${name} is on ${from}. Saving moves them to ${to}.`,
     unassigned: 'Unassigned',
     workOrders: 'Work orders',
     workOrdersHint: 'Repairs raised from defects, schedules or by hand.',
