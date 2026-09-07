@@ -10,6 +10,15 @@ import { personName } from '../../../lib/names'
 const t = STRINGS.forms_common
 const d = STRINGS.dialog
 
+/*
+ * How many digits a phone number is.
+ *
+ * Ten, matching the organisation's country. The box caps at this and the
+ * check below requires exactly it, so the two cannot disagree — the check
+ * used to accept eight and the box accepted anything at all.
+ */
+const PHONE_DIGITS = 10
+
 const EMPTY: NewDriver = {
   firstName: '',
   lastName: '',
@@ -80,6 +89,31 @@ export function AddDriverDialog({
   const set = (key: keyof NewDriver) => (event: { target: { value: string } }) =>
     setValues((current) => ({ ...current, [key]: event.target.value }))
 
+  /*
+   * The phone box, which took as many digits as somebody cared to type.
+   *
+   * Digits only and ten of them. The validation below already counted digits
+   * rather than characters, so there was a floor and no ceiling: a slipped
+   * keypress produced a fourteen-digit number that saved happily and reached
+   * a driver's record, where the only way to notice was to read it.
+   *
+   * A pasted number that carries India's country code is the one case worth
+   * handling rather than truncating: "+91 98765 43210" strips to twelve
+   * digits, and taking the FIRST ten of those would silently store a wrong
+   * number that looks right. Dropping a leading 91 is only done when it
+   * leaves exactly ten, so it can never mangle a number it did not
+   * understand.
+   *
+   * Past ten, further keystrokes do nothing. That is what a maximum length
+   * does everywhere else, and it beats shifting digits the office already
+   * typed.
+   */
+  const setPhone = (event: { target: { value: string } }) => {
+    let digits = event.target.value.replace(/\D/g, '')
+    if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2)
+    setValues((current) => ({ ...current, phone: digits.slice(0, PHONE_DIGITS) }))
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
 
@@ -103,7 +137,8 @@ export function AddDriverDialog({
     if (!values.email.trim()) next.email = d.required
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) next.email = d.invalidEmail
     if (!values.phone.trim()) next.phone = d.required
-    else if (values.phone.replace(/\D/g, '').length < 8) next.phone = d.invalidPhone
+    else if (values.phone.replace(/\D/g, '').length !== PHONE_DIGITS)
+      next.phone = d.invalidPhone
 
     setErrors(next)
     if (Object.keys(next).length > 0) return
@@ -266,8 +301,15 @@ export function AddDriverDialog({
           <Field
             label={t.driverFields.phone}
             type="tel"
+            inputMode="numeric"
+            /*
+             * No maxLength attribute: it counts CHARACTERS, so pasting
+             * "+91 98765 43210" would be cut to "+91 98765 " before
+             * setPhone ever saw it. The cap lives in setPhone, which counts
+             * digits.
+             */
             value={values.phone}
-            onChange={set('phone')}
+            onChange={setPhone}
             error={errors.phone}
             required
           />

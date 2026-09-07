@@ -344,7 +344,7 @@ export const STRINGS = {
     addDepot: 'Add a depot',
     noDepotShort: 'No depot',
     invalidEmail: 'Enter a valid email address',
-    invalidPhone: 'Enter a phone number',
+    invalidPhone: 'Enter a 10-digit phone number',
   },
 
   forms_common: {
