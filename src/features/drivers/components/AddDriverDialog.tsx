@@ -138,8 +138,22 @@ export function AddDriverDialog({
       setSaving(false)
     }
 
-    if (result.password) {
-      setHandover({ name, email: values.email.trim().toLowerCase(), password: result.password, reason: result.reason })
+    /*
+     * Anything that went wrong gets a dialog, not a toast.
+     *
+     * Two different failures land here: the account exists and the email
+     * failed (there is a password to hand over), or the account was never
+     * created (there is not). Both need the office to do something, and a
+     * toast that disappears — with the reason dropped entirely — was telling
+     * them neither.
+     */
+    if (result.password || result.reason) {
+      setHandover({
+        name,
+        email: values.email.trim().toLowerCase(),
+        password: result.password ?? '',
+        reason: result.reason,
+      })
       return
     }
 

@@ -196,7 +196,8 @@ type FleetDataValue = {
   /* Publishing. A draft form or course is invisible to the driver app, which
      reads only published rows — so without these the builder was a dead end. */
   setFormPublished: (id: string, published: boolean) => Promise<void>
-  setCoursePublished: (id: string, published: boolean) => Promise<void>
+  /** Resolves with how many drivers were newly given it. */
+  setCoursePublished: (id: string, published: boolean) => Promise<number>
 
   /* Training. Nothing wrote course_assignments before, so no course ever
      actually reached a driver. */
@@ -722,6 +723,16 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
       if (!orgId) throw new Error('No organisation on this session.')
       const driverId = await api.createDriver(orgId, input)
       if (input.vehicleId) await api.assignDriverToVehicle(orgId, input.vehicleId, driverId)
+
+      /*
+       * The training their depot already has. Publishing assigns the roster as
+       * it stands, so somebody joining afterwards would otherwise be the only
+       * driver without a course nobody could see they were missing.
+       *
+       * Allowed to fail on its own: a driver whose training was not assigned
+       * is still a driver, and losing the roster addition over it is worse.
+       */
+      await api.assignPublishedCoursesToDriver(orgId, driverId).catch(() => {})
 
       /*
        * The app account is a second step, and it is allowed to fail without
@@ -1649,20 +1660,28 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
     [loadOperationsFromDb],
   )
 
+  /**
+   * Returns how many drivers were newly given the course, so the toast can say.
+   *
+   * Publishing assigns it to everyone in scope — see assignCourseToScope in
+   * the api for why that is part of publishing rather than a second step.
+   */
   const setCoursePublished = useCallback(
-    async (id: string, published: boolean) => {
+    async (id: string, published: boolean): Promise<number> => {
+      if (!orgId) throw new Error('No organisation on this session.')
       setCourses((current) =>
         current.map((c) => (c.id === id ? { ...c, status: published ? 'published' : 'draft' } : c)),
       )
       try {
-        await api.setCoursePublished(id, published)
+        const assigned = await api.setCoursePublished(orgId, id, published)
         await loadOperationsFromDb()
+        return assigned
       } catch (error) {
         await loadOperationsFromDb()
         throw error
       }
     },
-    [loadOperationsFromDb],
+    [orgId, loadOperationsFromDb],
   )
 
   /* ------------------------------------------------------ training */

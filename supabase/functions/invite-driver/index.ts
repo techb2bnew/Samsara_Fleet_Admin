@@ -185,7 +185,29 @@ Deno.serve(async (request) => {
   })
 
   if (createError || !created.user) {
-    return json({ error: createError?.message ?? 'The account could not be created.' }, 400)
+    /*
+     * The commonest failure by far, and the one whose message needs help.
+     *
+     * Deleting a driver row does not delete their auth account — those live in
+     * a different schema and nothing cascades between them. So a fleet that
+     * clears out test drivers and re-adds the same email gets "already been
+     * registered" from Supabase, which is true and tells nobody what to do
+     * about it.
+     */
+    const message = createError?.message ?? 'The account could not be created.'
+    if (/already.*registered|already exists/i.test(message)) {
+      return json(
+        {
+          error:
+            `An app account already exists for ${email}. Deleting a driver does not delete ` +
+            `their sign-in, so this is usually one left behind by a driver who was removed. ` +
+            `Remove it under Authentication → Users in Supabase, then invite again — or add ` +
+            `this driver with a different email address.`,
+        },
+        409,
+      )
+    }
+    return json({ error: message }, 400)
   }
 
   // The profile row and the link back to the driver. Without user_id set, the

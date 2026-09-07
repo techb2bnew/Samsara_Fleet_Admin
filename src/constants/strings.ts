@@ -361,6 +361,20 @@ export const STRINGS = {
     addDriverInvitedToast: (name: string) => `${name} added — a one-time password is on its way`,
     addDriverNoInviteToast: (name: string) => `${name} added, but the app invitation did not go`,
 
+    /*
+      The account could not be created at all — a different thing from "the
+      account exists but the email failed", and it used to be reported as a
+      toast that threw the reason away. The office saw a driver appear, no
+      email, and nothing telling them why.
+    */
+    inviteFailedTitle: 'The app account was not created',
+    inviteFailedDescription: (name: string) =>
+      `${name} is on the roster, but they cannot sign into the app yet.`,
+    inviteFailedWhat: 'What happened',
+    inviteFailedNext:
+      'Fix the reason above, then use Resend invitation on the driver to try again.',
+    inviteFailedDone: 'Close',
+
     /**
      * Shown when the account was created and the email was not sent. This is
      * the only copy of the password that exists, so the wording has to make it
@@ -1195,7 +1209,14 @@ export const STRINGS = {
   training: {
     publish: 'Publish',
     unpublish: 'Back to draft',
-    publishedToast: (name: string) => `${name} published`,
+    /*
+      The count matters. "Published" alone was the message when publishing gave
+      the course to nobody, which is exactly the case somebody needs told.
+    */
+    publishedToast: (name: string, drivers: number) =>
+      drivers === 0
+        ? `${name} published — everybody who needs it already had it`
+        : `${name} published and given to ${drivers} ${drivers === 1 ? 'driver' : 'drivers'}`,
     unpublishedToast: (name: string) => `${name} is a draft again`,
     publishFailed: 'That could not be published.',
     draftHint: 'A draft is not visible in the driver app. Publish it, then assign it.',

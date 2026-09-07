@@ -30,3 +30,19 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Deploying
+
+### Why `vercel.json` exists
+
+The console is a single-page app: React Router draws `/drivers` in the
+browser, and no file of that name is ever built. Vercel serves files, so
+loading `/drivers` directly — a refresh, a bookmark, a link somebody pasted —
+looked for a file that is not there and returned `404: NOT_FOUND`. Clicking to
+the same page from inside the app worked, which is what made it confusing.
+
+The rewrite hands every path that is not a real file to `index.html`, and the
+router takes it from there. Vercel checks the filesystem first, so `/assets/*`
+and the favicon are still served as themselves.
+
+Delete that file and every refresh on any page but the dashboard 404s again.

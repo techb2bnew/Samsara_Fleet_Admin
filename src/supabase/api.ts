@@ -2217,13 +2217,161 @@ export async function setFormPublished(id: string, published: boolean): Promise<
  * Same missing link as forms. Courses carry no published_at column, so status
  * is the whole of it.
  */
-export async function setCoursePublished(id: string, published: boolean): Promise<void> {
+/**
+ * Gives a published course to everybody it is meant for.
+ *
+ * Returns how many drivers were newly given it.
+ *
+ * ---------------------------------------------------------------------------
+ * Why publishing assigns, rather than being a separate step
+ * ---------------------------------------------------------------------------
+ * The course dialog asks who a course is "visible to" — a depot, or every
+ * driver. Publishing it then made it readable and gave it to nobody, because
+ * the driver app lists course_assignments and there were none. So the office
+ * created a course, chose All drivers, pressed Publish, and the driver's
+ * Training screen stayed empty with nothing anywhere explaining why.
+ *
+ * Assignments are what the rest of the system is built on: progress lives on
+ * one (seconds spent, completed at), and the console's Assigned, Completed and
+ * Overdue counts all read them. Having the app read published courses directly
+ * instead would mean a course a driver could see but not make progress on.
+ *
+ * So "publish" now means what the office thought it meant.
+ *
+ * Idempotent. Drivers who already have the course are skipped, so publishing
+ * twice, or publishing after somebody was assigned by hand, adds nothing.
+ */
+export async function assignCourseToScope(orgId: string, courseId: string): Promise<number> {
+  const course = await supabase
+    .from('courses')
+    .select('assigned_fleet_id')
+    .eq('id', courseId)
+    .single()
+  if (course.error) throw new Error(course.error.message)
+
+  // Null means every driver in the organisation; otherwise just that depot.
+  let roster = supabase
+    .from('drivers')
+    .select('id')
+    .eq('org_id', orgId)
+    .is('deleted_at', null)
+    .eq('status', 'active')
+  if (course.data.assigned_fleet_id) {
+    roster = roster.eq('fleet_id', course.data.assigned_fleet_id)
+  }
+
+  const [drivers, existing] = await Promise.all([
+    roster,
+    supabase
+      .from('course_assignments')
+      .select('driver_id')
+      .eq('course_id', courseId)
+      .is('deleted_at', null),
+  ])
+  if (drivers.error) throw new Error(drivers.error.message)
+  if (existing.error) throw new Error(existing.error.message)
+
+  const already = new Set((existing.data ?? []).map((a) => a.driver_id))
+  const missing = (drivers.data ?? []).filter((d) => !already.has(d.id))
+  if (missing.length === 0) return 0
+
+  const { error } = await supabase.from('course_assignments').insert(
+    missing.map((d) => ({
+      org_id: orgId,
+      course_id: courseId,
+      driver_id: d.id,
+      status: 'assigned' as const,
+      assigned_at: new Date().toISOString(),
+    })),
+  )
+  if (error) throw new Error(error.message)
+  return missing.length
+}
+
+/**
+ * Gives a new driver the published courses their depot already has.
+ *
+ * The mirror of assignCourseToScope. Publishing assigns the roster as it
+ * stands, so without this a driver who joins on Tuesday never gets the course
+ * published on Monday — and nothing on any screen would say why they are the
+ * only one without it.
+ *
+ * Returns how many they were given. Failures are the caller's to decide about:
+ * a driver whose training was not assigned is still a driver, and losing the
+ * whole roster addition over it would be worse.
+ */
+export async function assignPublishedCoursesToDriver(
+  orgId: string,
+  driverId: string,
+): Promise<number> {
+  const driver = await supabase
+    .from('drivers')
+    .select('fleet_id')
+    .eq('id', driverId)
+    .single()
+  if (driver.error) throw new Error(driver.error.message)
+
+  /*
+   * Courses for everyone, plus ones for this driver's depot. A course scoped
+   * to another depot is not theirs, which is the whole point of the scope.
+   */
+  const courses = await supabase
+    .from('courses')
+    .select('id, assigned_fleet_id')
+    .eq('org_id', orgId)
+    .eq('status', 'published')
+    .is('deleted_at', null)
+  if (courses.error) throw new Error(courses.error.message)
+
+  const mine = (courses.data ?? []).filter(
+    (c) => c.assigned_fleet_id === null || c.assigned_fleet_id === driver.data.fleet_id,
+  )
+  if (mine.length === 0) return 0
+
+  const existing = await supabase
+    .from('course_assignments')
+    .select('course_id')
+    .eq('driver_id', driverId)
+    .is('deleted_at', null)
+  if (existing.error) throw new Error(existing.error.message)
+
+  const already = new Set((existing.data ?? []).map((a) => a.course_id))
+  const missing = mine.filter((c) => !already.has(c.id))
+  if (missing.length === 0) return 0
+
+  const { error } = await supabase.from('course_assignments').insert(
+    missing.map((c) => ({
+      org_id: orgId,
+      course_id: c.id,
+      driver_id: driverId,
+      status: 'assigned' as const,
+      assigned_at: new Date().toISOString(),
+    })),
+  )
+  if (error) throw new Error(error.message)
+  return missing.length
+}
+
+/**
+ * Publishes or unpublishes a course.
+ *
+ * Publishing also gives it to everyone in scope — see assignCourseToScope.
+ * Unpublishing does NOT take it back: a driver part-way through a course
+ * should not have it vanish, and one who finished it should keep the record.
+ * Withdrawing it from somebody is what Remove on the course screen is for.
+ */
+export async function setCoursePublished(
+  orgId: string,
+  id: string,
+  published: boolean,
+): Promise<number> {
   const { error } = await supabase
     .from('courses')
     .update({ status: published ? 'published' : 'draft' })
     .eq('id', id)
 
   if (error) throw new Error(error.message)
+  return published ? await assignCourseToScope(orgId, id) : 0
 }
 
 export async function loadRoutes(

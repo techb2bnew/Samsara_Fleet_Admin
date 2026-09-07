@@ -94,8 +94,12 @@ export function CourseDetailPage() {
     if (!course) return
     setPublishing(true)
     try {
-      await setCoursePublished(course.id, !published)
-      show(published ? t.unpublishedToast(course.name) : t.publishedToast(course.name))
+      const assigned = await setCoursePublished(course.id, !published)
+      show(
+        published
+          ? t.unpublishedToast(course.name)
+          : t.publishedToast(course.name, assigned),
+      )
     } catch (error) {
       show(error instanceof Error ? error.message : t.publishFailed)
     } finally {

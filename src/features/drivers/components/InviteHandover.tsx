@@ -4,10 +4,17 @@ import { Alert, Button, Modal } from '../../../components/ui'
 const t = STRINGS.forms_common
 
 /**
- * Shown when the app account exists but the email did not go.
+ * Shown when the app invitation did not go as planned, in either of the two
+ * ways it can fail.
  *
- * This is the only copy of the one-time password, so it stays on screen until
- * dismissed rather than flashing in a toast.
+ * With a password: the account exists and only the email failed, so the office
+ * passes the password on by hand. It is the only copy, which is why it stays
+ * on screen until dismissed rather than flashing in a toast.
+ *
+ * Without one: the account was never created — a duplicate email, a missing
+ * key, a provider that refused. That case used to be a toast saying "the app
+ * invitation did not go", with the actual reason computed and then thrown
+ * away, so the office saw a driver appear, no email, and nothing to act on.
  */
 export function InviteHandover({
   open,
@@ -20,10 +27,30 @@ export function InviteHandover({
   open: boolean
   name: string
   email: string
+  /** Empty when no account was created — there is no password to hand over. */
   password: string
   reason?: string
   onClose: () => void
 }) {
+  if (!password) {
+    return (
+      <Modal
+        open={open}
+        onClose={onClose}
+        title={t.inviteFailedTitle}
+        description={t.inviteFailedDescription(name)}
+        footer={<Button onClick={onClose}>{t.inviteFailedDone}</Button>}
+      >
+        <div className="flex flex-col gap-4">
+          <Alert tone="danger" title={t.inviteFailedWhat}>
+            {reason}
+          </Alert>
+          <p className="text-[13px] text-ink-3">{t.inviteFailedNext}</p>
+        </div>
+      </Modal>
+    )
+  }
+
   return (
     <Modal
       open={open}
