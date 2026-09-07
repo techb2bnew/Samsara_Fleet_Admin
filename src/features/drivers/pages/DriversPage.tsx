@@ -48,7 +48,19 @@ export function DriversPage() {
           </span>
           <div className="min-w-0">
             <p className="truncate font-medium text-ink">{d.name}</p>
-            <p className="truncate font-mono text-[11.5px] text-ink-4">{d.employeeNumber || '—'}</p>
+            {/*
+              No employee number, no line.
+
+              It used to fall back to a dash, and an employee number is
+              optional — so most rows carried a bare "—" tucked under the
+              driver's name with no label to say what was missing. An
+              unlabelled dash reads as data that failed to load, not as a field
+              nobody filled in. The dash on the detail page is fine because it
+              sits next to the words "Employee number".
+            */}
+            {d.employeeNumber && (
+              <p className="truncate font-mono text-[11.5px] text-ink-4">{d.employeeNumber}</p>
+            )}
           </div>
         </div>
       ),

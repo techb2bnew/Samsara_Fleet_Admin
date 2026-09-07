@@ -5,8 +5,14 @@ import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { Alert, Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
 import { STAFF_STATUS_TONE, type StaffUser } from '../types'
 import { useFleetData } from '../../fleet-data'
-import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
-import { InviteUserDialog } from '../components/InviteUserDialog'
+/*
+ * Inviting a member of staff is switched off, not deleted. Same treatment as
+ * the form builder and safety: the screens and the strings stay, and the entry
+ * point is gone until the thing behind it works.
+ *
+ * import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
+ * import { InviteUserDialog } from '../components/InviteUserDialog'
+ */
 import { COL } from '../../../components/ui/columnWidth'
 
 const t = STRINGS.users
@@ -16,7 +22,6 @@ type Tab = keyof typeof t.tabs
 export function UsersPage() {
   const { staff, roles, staffStatus, staffError, reloadStaff } = useFleetData()
   const navigate = useNavigate()
-  const [inviting, setInviting] = useOpenOnQuery()
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
 
@@ -71,7 +76,24 @@ export function UsersPage() {
     <PageShell
       title={t.title}
       description={t.description}
-      actions={<Button size="sm" onClick={() => setInviting(true)}>{t.invite}</Button>}
+      /*
+        No "Invite a user" button.
+
+        Nothing was ever sent. inviteStaff records an invitations row with a
+        hashed token and stops there: there is no mail path for staff at all,
+        the token it returns is thrown away by the provider, and nothing
+        anywhere displays a link. /accept-invite exists but cannot resolve a
+        token, because the function that would look up its hash was never
+        built.
+
+        So the whole flow ended with a toast saying "Invitation sent to …",
+        a person listed as Invited, and no way for that person to ever sign in
+        — the office would be waiting on somebody who was never told.
+
+        A button that does nothing is worse than a missing one: the missing one
+        gets asked about, the broken one gets trusted. Bring this back with the
+        mail path and the token lookup, together.
+      */
     >
       <div className="grid gap-5 2xl:grid-cols-[1fr_320px]">
         {staffStatus === 'error' && (
@@ -141,7 +163,6 @@ export function UsersPage() {
         </Panel>
       </div>
 
-      <InviteUserDialog open={inviting} onClose={() => setInviting(false)} />
     </PageShell>
   )
 }

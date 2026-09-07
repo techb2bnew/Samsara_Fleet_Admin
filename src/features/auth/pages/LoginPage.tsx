@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { AuthLayout } from '../../../app/layouts/AuthLayout'
 import { Alert, Button, Field } from '../../../components/ui'
 import { STRINGS } from '../../../constants'
@@ -93,11 +92,22 @@ export function LoginPage() {
             error={errors.password}
             disabled={loading}
           />
-          <div className="flex justify-end">
-            <Link to="/forgot-password" className="text-[13px] text-accent hover:underline">
-              {t.forgotLink}
-            </Link>
-          </div>
+          {/*
+            No "Forgot password?" link for now, on request. (react-router's
+            Link went with it — this was the only one on the page.)
+
+            It would not have worked. The page calls requestPasswordReset and
+            then shows "check your email" unconditionally — there is no catch
+            and no check — so it confirms an email that Supabase's built-in
+            sender will not deliver: no custom SMTP is configured, and that
+            sender only reaches the project's own team members. The driver
+            invitation needed its own Resend function for exactly this reason.
+
+            A dead end that says "sent" is worse than no link: somebody locked
+            out waits for mail instead of asking. The page, the route and the
+            strings all stay — bring the link back with a mail path that
+            actually delivers.
+          */}
         </div>
 
         <label className="flex items-center gap-2 text-[13px] text-ink-2 select-none">

@@ -104,11 +104,19 @@ export function InviteUserDialog({ open, onClose }: { open: boolean; onClose: ()
           </div>
         )}
 
-        {/* Said plainly rather than left to be discovered: the row is recorded
-            and the person shows as Invited, but nothing has been emailed. */}
-        <div className="mb-4">
-          <Alert tone="accent">{u.inviteNotEmailed}</Alert>
-        </div>
+        {/*
+          The notice about no email being sent was removed on request.
+
+          What it said is still true: inviteStaff records an invitations row
+          with a hashed token and sends nothing — there is no mail path for
+          staff, the token it returns is discarded by the provider, and
+          /accept-invite cannot resolve a token because the function that would
+          look up its hash was never built.
+
+          Left here as a note rather than silence, because the next person to
+          read this file will otherwise assume the invitation works. The string
+          is still in constants as `users.inviteNotEmailed`.
+        */}
 
         <FormGrid>
           <Field
