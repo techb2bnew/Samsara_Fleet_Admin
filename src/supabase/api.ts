@@ -1,6 +1,7 @@
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase, setRememberMe } from './client'
 import { CONSOLE_ROLES } from '../config'
+import { STRINGS } from '../constants'
 import type { AuthResult, Session } from '../features/auth/session'
 import { displayName, personName } from '../lib/names'
 
@@ -3490,8 +3491,24 @@ export type OrgRow = {
   name: string
   countryCode: string | null
   timezone: string
-  /** Which working-hours rule book applies. Null until somebody sets it. */
+  /** A built-in rule book by name. Null until somebody sets it. */
   regulator: string | null
+  /** One of the fleet's own rule books. When set, it wins over `regulator`. */
+  ruleBookId: string | null
+}
+
+/*
+ * How a custom rule book is named in the single dropdown value.
+ *
+ * A prefix rather than a separate field because the office picks ONE rule
+ * book from ONE control, and the two database columns behind it must never
+ * both be set. Encoding the choice in one string means that cannot happen by
+ * accident anywhere between the form and the update.
+ */
+export const RULE_BOOK_PREFIX = 'book:'
+
+export function ruleBookValue(id: string): string {
+  return `${RULE_BOOK_PREFIX}${id}`
 }
 
 export type AlertRuleRow = {
@@ -3511,13 +3528,126 @@ export type AuditRow = {
   createdAt: string
 }
 
+/** One row of hos_rule_books, in the shape the settings screen works in. */
+export type RuleBookRow = {
+  id: string
+  name: string
+  dailyDriving: number
+  dutyWindow: number | null
+  drivingBeforeBreak: number
+  breakLength: number
+  cycle: number
+  cycleDays: number
+}
+
+const RULE_BOOK_COLUMNS =
+  'id, name, daily_driving_minutes, duty_window_minutes, driving_before_break_minutes, break_length_minutes, cycle_minutes, cycle_days'
+
+type RuleBookDbRow = {
+  id: string
+  name: string
+  daily_driving_minutes: number
+  duty_window_minutes: number | null
+  driving_before_break_minutes: number
+  break_length_minutes: number
+  cycle_minutes: number
+  cycle_days: number
+}
+
+function toRuleBook(r: RuleBookDbRow): RuleBookRow {
+  return {
+    id: r.id,
+    name: r.name,
+    dailyDriving: r.daily_driving_minutes,
+    dutyWindow: r.duty_window_minutes,
+    drivingBeforeBreak: r.driving_before_break_minutes,
+    breakLength: r.break_length_minutes,
+    cycle: r.cycle_minutes,
+    cycleDays: r.cycle_days,
+  }
+}
+
+export type RuleBookInput = {
+  name: string
+  dailyDriving: number
+  dutyWindow: number | null
+  drivingBeforeBreak: number
+  breakLength: number
+  cycle: number
+  cycleDays: number
+}
+
+function toRuleBookColumns(input: RuleBookInput) {
+  return {
+    name: input.name.trim(),
+    daily_driving_minutes: input.dailyDriving,
+    duty_window_minutes: input.dutyWindow,
+    driving_before_break_minutes: input.drivingBeforeBreak,
+    break_length_minutes: input.breakLength,
+    cycle_minutes: input.cycle,
+    cycle_days: input.cycleDays,
+  }
+}
+
+/*
+ * The database's own checks are the backstop, and their messages name a
+ * constraint rather than the mistake. These turn the two an office is actually
+ * likely to hit into sentences.
+ */
+function ruleBookError(message: string): Error {
+  if (/hos_rule_books_name_unique/.test(message)) {
+    return new Error(STRINGS.settings.ruleBook.duplicateName)
+  }
+  if (/hos_rule_books_.*_sane|hos_rule_books_name_not_blank/.test(message)) {
+    return new Error(STRINGS.settings.ruleBook.rejected)
+  }
+  return new Error(message)
+}
+
+export async function createRuleBook(orgId: string, input: RuleBookInput): Promise<string> {
+  const { data, error } = await supabase
+    .from('hos_rule_books')
+    .insert({ org_id: orgId, ...toRuleBookColumns(input) })
+    .select('id')
+    .single()
+  if (error) throw ruleBookError(error.message)
+  return data.id
+}
+
+export async function updateRuleBook(id: string, input: RuleBookInput): Promise<void> {
+  const { error } = await supabase
+    .from('hos_rule_books')
+    .update({ ...toRuleBookColumns(input), updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw ruleBookError(error.message)
+}
+
+export async function deleteRuleBook(id: string): Promise<void> {
+  const { error } = await supabase.from('hos_rule_books').delete().eq('id', id)
+  if (!error) return
+  /*
+   * The foreign key is ON DELETE RESTRICT, so this is what somebody deleting
+   * the rule book their own fleet runs on gets. The database is right to
+   * refuse; it just says so by naming a constraint.
+   */
+  if (/foreign key|violates|hos_rule_book_id/i.test(error.message)) {
+    throw new Error(STRINGS.settings.ruleBook.inUse)
+  }
+  throw new Error(error.message)
+}
+
 export async function loadSettings(
   orgId: string,
-): Promise<{ org: OrgRow; alertRules: AlertRuleRow[]; audit: AuditRow[] }> {
-  const [org, rules, audit] = await Promise.all([
+): Promise<{
+  org: OrgRow
+  alertRules: AlertRuleRow[]
+  audit: AuditRow[]
+  ruleBooks: RuleBookRow[]
+}> {
+  const [org, rules, audit, books] = await Promise.all([
     supabase
       .from('organizations')
-      .select('name, country_code, timezone, hos_regulator')
+      .select('name, country_code, timezone, hos_regulator, hos_rule_book_id')
       .eq('id', orgId)
       .single(),
 
@@ -3534,10 +3664,31 @@ export async function loadSettings(
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })
       .limit(50),
+
+    supabase
+      .from('hos_rule_books')
+      .select(RULE_BOOK_COLUMNS)
+      .eq('org_id', orgId)
+      .order('name', { ascending: true }),
   ])
 
   if (org.error) throw new Error(org.error.message)
   if (rules.error) throw new Error(rules.error.message)
+  /*
+   * A rule book that will not load does NOT take the organisation form with
+   * it.
+   *
+   * It did, once, and the result was every box on the settings screen blank —
+   * name, country, timezone — because one new table was missing its grant.
+   * The organisation's own row had loaded perfectly and the screen showed
+   * nothing, which sends somebody looking for lost data instead of a
+   * permission.
+   *
+   * The fleet's own rule books are an addition to that screen. Losing them
+   * costs the custom entries in one dropdown; losing the organisation costs
+   * the office its settings.
+   */
+  const ruleBooks = books.error ? [] : (books.data ?? []).map(toRuleBook)
   // The audit trail is readable by fleet admins and compliance officers only,
   // so a permission error here is a role question, not a broken screen.
   if (audit.error && !/permission|policy/i.test(audit.error.message)) {
@@ -3550,6 +3701,7 @@ export async function loadSettings(
       countryCode: org.data.country_code,
       timezone: org.data.timezone,
       regulator: org.data.hos_regulator,
+      ruleBookId: org.data.hos_rule_book_id,
     },
     alertRules: (rules.data ?? []).map((r) => ({
       id: r.id,
@@ -3566,6 +3718,7 @@ export async function loadSettings(
       summary: a.summary,
       createdAt: a.created_at,
     })),
+    ruleBooks,
   }
 }
 
@@ -3574,9 +3727,34 @@ export async function setAlertRuleActive(id: string, isActive: boolean): Promise
   if (error) throw new Error(error.message)
 }
 
+/** Splits the single dropdown value into the two columns. */
+function ruleBookColumns(value: string): {
+  hos_regulator: string | null
+  hos_rule_book_id: string | null
+} {
+  const clean = value.trim()
+  if (clean.startsWith(RULE_BOOK_PREFIX)) {
+    return { hos_regulator: null, hos_rule_book_id: clean.slice(RULE_BOOK_PREFIX.length) }
+  }
+  // Blank clears both, which is a real choice: "not decided yet".
+  return { hos_regulator: clean || null, hos_rule_book_id: null }
+}
+
 export async function saveOrgSettings(
   orgId: string,
-  input: { name: string; country: string; timezone: string; regulator: string },
+  input: {
+    name: string
+    country: string
+    timezone: string
+    /*
+     * One value for both kinds of rule book: a built-in's name, or
+     * "book:<uuid>" for one of the fleet's own. The two database columns are
+     * mutually exclusive and this is what keeps them that way — a single
+     * control cannot set both, so there is no state where an organisation
+     * appears to be on two rule books at once.
+     */
+    regulator: string
+  },
 ): Promise<void> {
   const { error } = await supabase
     .from('organizations')
@@ -3586,8 +3764,7 @@ export async function saveOrgSettings(
       // alone rather than trying to clear it.
       ...(input.country.trim() ? { country_code: input.country.trim() } : {}),
       timezone: input.timezone.trim(),
-      // Blank clears it, which is a real choice: "not decided yet".
-      hos_regulator: input.regulator.trim() || null,
+      ...ruleBookColumns(input.regulator),
     })
     .eq('id', orgId)
   if (error) throw new Error(error.message)

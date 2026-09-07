@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DutySegment } from '../src/features/hours/types'
 import {
-  cycleDaysFor,
+  limitsFor,
   regulatorFrom,
   violationsForDay,
 } from '../src/features/hours/rules'
@@ -36,7 +36,7 @@ const seg = (status: DutySegment['status'], from: number, to: number): DutySegme
 const noCycle = (day: DutySegment[]) => [day]
 
 const kinds = (day: DutySegment[], cycle = noCycle(day), regulator: 'FMCSA' | 'EU' = 'FMCSA') =>
-  violationsForDay(regulator, 'd1', '2026-09-02', day, cycle).map((v) => v.kind)
+  violationsForDay(limitsFor(regulator), 'd1', '2026-09-02', day, cycle).map((v) => v.kind)
 
 describe('regulatorFrom', () => {
   it('reads the rule books it supports, however they are written', () => {
@@ -141,7 +141,7 @@ describe('FMCSA: 11-hour driving limit', () => {
       seg('off', at(4), at(4, 30)),
       seg('driving', at(4, 30), at(11, 56)),
     ]
-    const found = violationsForDay('FMCSA', 'd1', '2026-09-02', day, noCycle(day))
+    const found = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day))
     const breach = found.find((v) => v.kind === 'daily_driving')
     expect(breach).toBeDefined()
     expect(breach!.actual).toBe('11:26 driving')
@@ -287,8 +287,8 @@ describe('the cycle', () => {
   })
 
   it('uses each rule book’s own window', () => {
-    expect(cycleDaysFor('FMCSA')).toBe(8)
-    expect(cycleDaysFor('EU')).toBe(7)
+    expect(limitsFor('FMCSA').cycleDays).toBe(8)
+    expect(limitsFor('EU').cycleDays).toBe(7)
   })
 
   it('applies the EU weekly ceiling of 56 hours', () => {
@@ -308,14 +308,14 @@ describe('a day with nothing recorded', () => {
      * reporting a breach would be worse. The missing certification shows up on
      * the log grid instead, which is where it belongs.
      */
-    expect(violationsForDay('FMCSA', 'd1', '2026-09-02', [], [[]])).toEqual([])
-    expect(violationsForDay('EU', 'd1', '2026-09-02', [], [[]])).toEqual([])
+    expect(violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', [], [[]])).toEqual([])
+    expect(violationsForDay(limitsFor('EU'), 'd1', '2026-09-02', [], [[]])).toEqual([])
   })
 
   it('raises nothing even when the cycle window is full', () => {
     const busy = [seg('driving', at(0), at(12))]
     const window = Array.from({ length: 8 }, () => busy)
-    expect(violationsForDay('FMCSA', 'd1', '2026-09-02', [], window)).toEqual([])
+    expect(violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', [], window)).toEqual([])
   })
 })
 
@@ -324,17 +324,17 @@ describe('violation identity', () => {
     // Screens key lists on this. An id that changed between reads would make
     // React discard and rebuild every row on every refresh.
     const day = [seg('driving', at(0), at(13))]
-    const first = violationsForDay('FMCSA', 'd1', '2026-09-02', day, noCycle(day))
-    const second = violationsForDay('FMCSA', 'd1', '2026-09-02', day, noCycle(day))
+    const first = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day))
+    const second = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day))
     expect(first.map((v) => v.id)).toEqual(second.map((v) => v.id))
     expect(new Set(first.map((v) => v.id)).size).toBe(first.length)
   })
 
   it('differs between drivers and between days', () => {
     const day = [seg('driving', at(0), at(13))]
-    const a = violationsForDay('FMCSA', 'd1', '2026-09-02', day, noCycle(day))[0]
-    const b = violationsForDay('FMCSA', 'd2', '2026-09-02', day, noCycle(day))[0]
-    const c = violationsForDay('FMCSA', 'd1', '2026-09-03', day, noCycle(day))[0]
+    const a = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day))[0]
+    const b = violationsForDay(limitsFor('FMCSA'), 'd2', '2026-09-02', day, noCycle(day))[0]
+    const c = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-03', day, noCycle(day))[0]
     expect(a.id).not.toBe(b.id)
     expect(a.id).not.toBe(c.id)
   })

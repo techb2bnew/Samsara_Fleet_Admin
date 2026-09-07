@@ -21,14 +21,26 @@ import { useAuth } from '../auth/AuthProvider'
 import type { Vehicle, WorkOrder } from '../vehicles/types'
 import { type Route, type RouteStop } from '../dispatch/types'
 import { haversineKm, parsePath } from '../dispatch/geometry'
-import { type AlertRule, type AuditEntry } from '../settings/types'
+import {
+  type AlertRule,
+  type AuditEntry,
+  type RuleBook,
+  type RuleBookDraft,
+} from '../settings/types'
 import { type Course } from '../training/types'
 import { type SafetyEvent } from '../safety/types'
 import {
   type EditRequest,
   type Violation,
 } from '../hours/types'
-import { cycleDaysFor, drivingLeftToday, regulatorFrom, violationsForDay } from '../hours/rules'
+import {
+  drivingLeftToday,
+  limitsFor,
+  limitsFromRuleBook,
+  regulatorFrom,
+  violationsForDay,
+  type Limits,
+} from '../hours/rules'
 import { VIOLATION_DETAIL, VIOLATION_WORDS } from '../hours/violationWords'
 import { segmentsByDriverDate, windowEndingOn } from '../hours/segments'
 import { formatClock as formatMinutes } from '../hours/totals'
@@ -152,8 +164,14 @@ type FleetDataValue = {
   violations: Violation[]
   editRequests: EditRequest[]
   org: OrgSettings
+  /** The fleet's own rule books. Built-ins are not in here; they live in code. */
+  ruleBooks: RuleBook[]
   alertRules: AlertRule[]
   audit: AuditEntry[]
+
+  addRuleBook: (input: RuleBookDraft) => Promise<void>
+  saveRuleBook: (id: string, input: RuleBookDraft) => Promise<void>
+  removeRuleBook: (id: string) => Promise<void>
 
   addDriver: (input: NewDriver) => Promise<DriverAddResult>
   saveDriver: (id: string, input: NewDriver) => Promise<void>
@@ -539,6 +557,7 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
   const [violations, setViolations] = useState<Violation[]>([])
   const [editRequests, setEditRequests] = useState<EditRequest[]>([])
   const [org, setOrg] = useState<OrgSettings>(EMPTY_ORG)
+  const [ruleBooks, setRuleBooks] = useState<RuleBook[]>([])
   const [alertRules, setAlertRules] = useState<AlertRule[]>([])
   const [audit, setAudit] = useState<AuditEntry[]>([])
 
@@ -561,8 +580,16 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
   const [dutySegments, setDutySegments] = useState<Map<string, Map<string, DutySegment[]>>>(
     new Map(),
   )
-  /** Null when the organisation has not said which rule book applies. */
-  const [regulator, setRegulator] = useState<ReturnType<typeof regulatorFrom>>(null)
+  /*
+   * The limits in force, whichever kind of rule book they came from.
+   *
+   * Resolved once, here, and passed on as numbers. Everything downstream then
+   * behaves the same whether the fleet is on FMCSA, on the EU regulation, or
+   * on limits it wrote itself — none of it has to know which.
+   *
+   * Null when the organisation has not chosen a rule book at all.
+   */
+  const [limits, setLimits] = useState<Limits | null>(null)
   const [opsStatus, setOpsStatus] = useState<LoadStatus>('loading')
   const [opsError, setOpsError] = useState<string | null>(null)
 
@@ -1029,13 +1056,34 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
          * screen says "not checked" rather than judging a driver against
          * limits nobody chose.
          */
-        const book = regulatorFrom(settings.org.regulator ?? '')
-        setRegulator(book)
+        /*
+         * A custom rule book wins over a built-in. The two columns behind this
+         * are mutually exclusive by construction — see ruleBookColumns in the
+         * api — so this order only decides what happens to rows written before
+         * that was true.
+         */
+        const custom = settings.org.ruleBookId
+          ? settings.ruleBooks.find((b) => b.id === settings.org.ruleBookId)
+          : undefined
+        const builtIn = regulatorFrom(settings.org.regulator ?? '')
+        const book: Limits | null = custom
+          ? limitsFromRuleBook({
+              daily_driving_minutes: custom.dailyDriving,
+              duty_window_minutes: custom.dutyWindow,
+              driving_before_break_minutes: custom.drivingBeforeBreak,
+              break_length_minutes: custom.breakLength,
+              cycle_minutes: custom.cycle,
+              cycle_days: custom.cycleDays,
+            })
+          : builtIn
+            ? limitsFor(builtIn)
+            : null
+        setLimits(book)
 
         if (!book) {
           setViolations([])
         } else {
-          const cycleDays = cycleDaysFor(book)
+          const cycleDays = book.cycleDays
           const found: Violation[] = []
 
           for (const [driverId, days] of segments) {
@@ -1302,11 +1350,15 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
         )
 
         /* --------------------------------------------------------- settings */
+        setRuleBooks(settings.ruleBooks)
         setOrg({
           name: settings.org.name,
           country: settings.org.countryCode ?? '',
           timezone: settings.org.timezone,
-          regulator: settings.org.regulator ?? '',
+          /* A custom book wins, and is carried as one prefixed value. */
+          regulator: settings.org.ruleBookId
+            ? api.ruleBookValue(settings.org.ruleBookId)
+            : (settings.org.regulator ?? ''),
         })
         setAlertRules(
           settings.alertRules.map((rule) => ({
@@ -1552,6 +1604,37 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
     [orgId, loadOperationsFromDb],
   )
 
+  /*
+   * Reloaded from the database after each of these rather than patched in
+   * place. A rule book's numbers feed the violations engine and every hours
+   * clock in the console, so a local edit would leave those screens judging
+   * drivers against limits that are no longer stored.
+   */
+  const addRuleBook = useCallback(
+    async (input: RuleBookDraft) => {
+      if (!orgId) throw new Error('No organisation on this session.')
+      await api.createRuleBook(orgId, input)
+      await loadOperationsFromDb()
+    },
+    [orgId, loadOperationsFromDb],
+  )
+
+  const saveRuleBook = useCallback(
+    async (id: string, input: RuleBookDraft) => {
+      await api.updateRuleBook(id, input)
+      await loadOperationsFromDb()
+    },
+    [loadOperationsFromDb],
+  )
+
+  const removeRuleBook = useCallback(
+    async (id: string) => {
+      await api.deleteRuleBook(id)
+      await loadOperationsFromDb()
+    },
+    [loadOperationsFromDb],
+  )
+
   const toggleAlertRule = useCallback(async (id: string) => {
     let turningOn = false
     setAlertRules((current) =>
@@ -1776,14 +1859,14 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
    */
   const cycleWindowFor = useCallback(
     (driverId: string, date: Date): DutySegment[][] => {
-      if (!regulator) return []
+      if (!limits) return []
       const days = dutySegments.get(driverId)
       if (!days) return []
-      return windowEndingOn(isoDateKey(date), cycleDaysFor(regulator)).map(
+      return windowEndingOn(isoDateKey(date), limits.cycleDays).map(
         (key) => days.get(key) ?? [],
       )
     },
-    [dutySegments, regulator],
+    [dutySegments, limits],
   )
 
   /*
@@ -1796,17 +1879,17 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
    * dispatcher would act on.
    */
   const driversWithHours = useMemo(() => {
-    if (!regulator) return drivers
+    if (!limits) return drivers
     const todayKey = isoDateKey(new Date())
     return drivers.map((driver) => {
       const today = dutySegments.get(driver.id)?.get(todayKey)
       // No events today is not eleven hours left. The driver may not have
       // signed on yet, and the dispatcher should see a dash and ask.
       if (!today || today.length === 0) return driver
-      const left = drivingLeftToday(regulator, today)
+      const left = drivingLeftToday(limits, today)
       return left === null ? driver : { ...driver, hoursLeft: formatMinutes(left) }
     })
-  }, [drivers, dutySegments, regulator])
+  }, [drivers, dutySegments, limits])
 
   const value = useMemo<FleetDataValue>(
     () => ({
@@ -1826,7 +1909,7 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
       reloadStaff: () => void loadStaffFromDb(),
       logs,
       unassigned,
-      violationsEvaluated: regulator !== null,
+      violationsEvaluated: limits !== null,
       unassignedDetected: UNASSIGNED_DETECTED,
       inspections,
       inspectionDefects,
@@ -1853,6 +1936,10 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
       violations,
       editRequests,
       org,
+      ruleBooks,
+      addRuleBook,
+      saveRuleBook,
+      removeRuleBook,
       alertRules,
       audit,
       addDriver,
@@ -1893,6 +1980,7 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
       sendToDriver, broadcast, markThreadRead, dutySegmentsFor, cycleWindowFor,
       routes, routeStops, forms, formFields, courses,
       safetyEvents, violations, editRequests, org, alertRules, audit,
+      ruleBooks, addRuleBook, saveRuleBook, removeRuleBook,
       addDriver, saveDriver, addVehicle, saveVehicle, inviteUser, inviteDriver, addRoute, assignRoute, addForm, addCourse, setCourseContent, saveCourseDetails,
       resolveViolation, resolveEditRequest, setSafetyEventStatus, saveOrg, toggleAlertRule,
       addDepot, saveDepot, removeDepot, assignDriver, assignCourse, unassignCourse,

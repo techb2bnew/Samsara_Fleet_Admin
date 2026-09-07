@@ -8,14 +8,19 @@ import {
   DataTable,
   EmptyState,
   Field,
-  Select,
+  Picker,
   useToast,
   type Column,
 } from '../../../components/ui'
-import { type AuditEntry, type OrgSettings } from '../types'
+import { type AuditEntry, type RuleBook } from '../types'
+import type { OrgSettings } from '../../fleet-data/FleetDataProvider'
 import { useAuth } from '../../auth/AuthProvider'
 import { useFleetData } from '../../fleet-data'
 import { DepotDialog } from '../components/DepotDialog'
+import { RuleBookDialog } from '../components/RuleBookDialog'
+import { formatClock } from '../../hours/totals'
+import { ruleBookValue } from '../../../supabase/api'
+import type { PickerGroup } from '../../../components/ui'
 import type { DepotRow } from '../../../supabase/api'
 import { COL } from '../../../components/ui/columnWidth'
 
@@ -23,7 +28,8 @@ const t = STRINGS.settings
 
 /** Module A15. */
 export function SettingsPage() {
-  const { org, saveOrg, audit, depots, removeDepot } = useFleetData()
+  const { org, saveOrg, audit, depots, removeDepot, ruleBooks, removeRuleBook } =
+    useFleetData()
   const { updateOrganization } = useAuth()
   const { show } = useToast()
   const [draft, setDraft] = useState(org)
@@ -33,6 +39,11 @@ export function SettingsPage() {
   const [archiving, setArchiving] = useState<DepotRow | null>(null)
   const [archiveError, setArchiveError] = useState<string | null>(null)
   const [archivingNow, setArchivingNow] = useState(false)
+  /** Null while closed; a book when editing; 'new' when adding. */
+  const [editingBook, setEditingBook] = useState<RuleBook | 'new' | null>(null)
+  const [deletingBook, setDeletingBook] = useState<RuleBook | null>(null)
+  const [bookError, setBookError] = useState<string | null>(null)
+  const [deletingNow, setDeletingNow] = useState(false)
   const [savingOrg, setSavingOrg] = useState(false)
   const [orgSaveError, setOrgSaveError] = useState<string | null>(null)
 
@@ -70,6 +81,58 @@ export function SettingsPage() {
       setArchivingNow(false)
     }
   }
+
+  async function handleDeleteBook() {
+    if (!deletingBook) return
+    setDeletingNow(true)
+    setBookError(null)
+    try {
+      await removeRuleBook(deletingBook.id)
+      show(t.ruleBook.removed)
+      setDeletingBook(null)
+    } catch (error) {
+      // Refused while the organisation is still on it, and that reason is the
+      // entire value of the message.
+      setBookError(error instanceof Error ? error.message : t.ruleBook.inUse)
+    } finally {
+      setDeletingNow(false)
+    }
+  }
+
+  /*
+   * Both kinds of rule book in one list.
+   *
+   * "Not chosen yet" sits in its own unnamed group rather than among the legal
+   * ones — it is the absence of a rule book, not one of them. The fleet's own
+   * books get their limits as a second line, because "Winter policy" tells
+   * somebody choosing between two of them nothing at all.
+   */
+  const ruleBookGroups: PickerGroup[] = [
+    { label: '', options: [{ value: '', label: t.regulatorOptions.none }] },
+    {
+      label: t.ruleBook.groupBuiltIn,
+      options: [
+        { value: 'FMCSA', label: t.regulatorOptions.FMCSA },
+        { value: 'EU', label: t.regulatorOptions.EU },
+      ],
+    },
+    ...(ruleBooks.length > 0
+      ? [
+          {
+            label: t.ruleBook.groupCustom,
+            options: ruleBooks.map((book) => ({
+              value: ruleBookValue(book.id),
+              label: book.name,
+              hint: t.ruleBook.summary(
+                formatClock(book.dailyDriving),
+                formatClock(book.cycle),
+                book.cycleDays,
+              ),
+            })),
+          },
+        ]
+      : []),
+  ]
 
   const auditColumns: Column<AuditEntry>[] = [
     {
@@ -136,21 +199,15 @@ export function SettingsPage() {
               explanation anywhere. Two spellings that had to agree, and only
               one of them was written down.
             */}
-            <Select
+            <Picker
               label={t.fields.dot}
               hint={t.regulatorHint}
-              options={[
-                { value: '', label: t.regulatorOptions.none },
-                { value: 'FMCSA', label: t.regulatorOptions.FMCSA },
-                { value: 'EU', label: t.regulatorOptions.EU },
-              ]}
+              groups={ruleBookGroups}
               value={draft.regulator}
-              onChange={(e) =>
-                setDraft((current) => ({
-                  ...current,
-                  regulator: e.target.value as OrgSettings['regulator'],
-                }))
+              onChange={(regulator) =>
+                setDraft((current) => ({ ...current, regulator }) satisfies OrgSettings)
               }
+              action={{ label: t.ruleBook.add, onSelect: () => setEditingBook('new') }}
             />
           </div>
         </Panel>
@@ -209,6 +266,66 @@ export function SettingsPage() {
         </Panel>
 
         {/*
+          A panel as well as the dropdown entry.
+
+          The dropdown can add one and choose one, but not fix a typo in one or
+          get rid of one — and a wrong number in here is the mistake this whole
+          feature is most likely to produce. Editing has to be reachable
+          without changing which rule book the fleet is on.
+        */}
+        <Panel
+          title={t.ruleBook.groupCustom}
+          hint={t.ruleBook.hint}
+          action={
+            <Button size="sm" variant="secondary" onClick={() => setEditingBook('new')}>
+              {t.ruleBook.add}
+            </Button>
+          }
+        >
+          {ruleBooks.length === 0 ? (
+            <EmptyState title={t.ruleBook.none} hint={t.ruleBook.hint} />
+          ) : (
+            <ul className="divide-y divide-line">
+              {ruleBooks.map((book) => {
+                const inUse = draft.regulator === ruleBookValue(book.id)
+                return (
+                  <li
+                    key={book.id}
+                    className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 transition-colors hover:bg-surface-2"
+                  >
+                    <div className="min-w-[180px] flex-1">
+                      <p className="text-[13.5px] font-medium text-ink">
+                        {book.name}
+                        {/* Says which one the fleet is actually on, so deleting
+                            the wrong one is not a guess. */}
+                        {inUse && (
+                          <span className="ml-2 text-[12px] font-normal text-accent">
+                            {t.ruleBook.inUseTag}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[12.5px] text-ink-3">
+                        {t.ruleBook.summary(
+                          formatClock(book.dailyDriving),
+                          formatClock(book.cycle),
+                          book.cycleDays,
+                        )}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="secondary" onClick={() => setEditingBook(book)}>
+                      {STRINGS.common.edit}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setDeletingBook(book)}>
+                      {t.ruleBook.remove}
+                    </Button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Panel>
+
+        {/*
           Alert rules were a panel here. Switched off, like the form builder
           and safety.
 
@@ -243,6 +360,27 @@ export function SettingsPage() {
         open={editing !== null}
         depot={editing === 'new' ? null : editing}
         onClose={() => setEditing(null)}
+      />
+
+      <RuleBookDialog
+        open={editingBook !== null}
+        book={editingBook === 'new' ? null : editingBook}
+        onClose={() => setEditingBook(null)}
+        onSaved={(message) => show(message)}
+      />
+
+      <ConfirmDialog
+        open={deletingBook !== null}
+        onClose={() => {
+          setDeletingBook(null)
+          setBookError(null)
+        }}
+        onConfirm={() => void handleDeleteBook()}
+        title={t.ruleBook.removeTitle}
+        message={bookError ?? t.ruleBook.removeMessage}
+        confirmLabel={t.ruleBook.remove}
+        tone="danger"
+        loading={deletingNow}
       />
 
       <ConfirmDialog

@@ -2,20 +2,29 @@
  * Organisation settings, notification rules and the audit trail.
  */
 
-export type OrgSettings = {
+/*
+ * OrgSettings is NOT declared here.
+ *
+ * There were two of them — this one and the live one in FleetDataProvider,
+ * which is what the context actually carries. Two declarations of the same
+ * settings shape is one that gets updated and one that quietly does not, so
+ * the unused copy is gone rather than kept in step by hand.
+ */
+
+/** A rule book a fleet wrote for itself. Minutes throughout. */
+export type RuleBook = {
+  id: string
   name: string
-  country: string
-  timezone: string
-  /**
-   * Which rule book the driver app works to. Empty means the office has not
-   * chosen, and the app shows a dash for every hours clock.
-   *
-   * Only these values: the app parses the string strictly and the column has a
-   * check constraint to match. It used to be free text, which meant a typo
-   * silently turned off hours calculation for every driver.
-   */
-  regulator: '' | 'FMCSA' | 'EU'
+  dailyDriving: number
+  /** Null where the fleet's rules have no on-duty window, like the EU's. */
+  dutyWindow: number | null
+  drivingBeforeBreak: number
+  breakLength: number
+  cycle: number
+  cycleDays: number
 }
+
+export type RuleBookDraft = Omit<RuleBook, 'id'>
 
 export type AlertRule = {
   id: string

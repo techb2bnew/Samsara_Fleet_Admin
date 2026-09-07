@@ -49,7 +49,16 @@ export function regulatorFrom(value: string): Regulator | null {
   return null
 }
 
-type Limits = {
+/*
+ * The shape the whole engine works in.
+ *
+ * Public because a rule book no longer has to be one of the two named below:
+ * a fleet can write its own, and what reaches these functions is the resolved
+ * set of numbers rather than the name of a regime. Everything downstream then
+ * behaves identically whether the limits came from 49 CFR or from a form
+ * somebody filled in.
+ */
+export type Limits = {
   /** Longest driving in one day. */
   dailyDriving: number
   /** Longest span from coming on duty to going off, FMCSA only. */
@@ -165,7 +174,7 @@ function drivingWithoutBreak(segments: DutySegment[], limits: Limits): number {
  * resting, and a "cycle" total is not a breach on its own.
  */
 export function violationsForDay(
-  regulator: Regulator,
+  limits: Limits,
   driverId: string,
   isoDate: string,
   today: DutySegment[],
@@ -173,7 +182,6 @@ export function violationsForDay(
 ): RuleViolation[] {
   if (today.length === 0) return []
 
-  const limits = LIMITS[regulator]
   const out: RuleViolation[] = []
   const key = `${driverId}-${isoDate}`
 
@@ -237,16 +245,11 @@ export function violationsForDay(
  * Null when no rule book is set, because there is no limit to subtract from.
  */
 export function drivingLeftToday(
-  regulator: Regulator | null,
+  limits: Limits | null,
   today: DutySegment[],
 ): number | null {
-  if (!regulator) return null
-  return Math.max(0, LIMITS[regulator].dailyDriving - drivingMinutes(today))
-}
-
-/** How many days back the cycle window reaches, so the caller can slice it. */
-export function cycleDaysFor(regulator: Regulator): number {
-  return LIMITS[regulator].cycleDays
+  if (!limits) return null
+  return Math.max(0, limits.dailyDriving - drivingMinutes(today))
 }
 
 /**
@@ -256,4 +259,32 @@ export function cycleDaysFor(regulator: Regulator): number {
  */
 export function limitsFor(regulator: Regulator): Limits {
   return LIMITS[regulator]
+}
+
+/**
+ * A fleet's own rule book, as stored.
+ *
+ * Separate from limitsFor rather than folded into it: the built-ins are
+ * checked against the regulations they cite, and these numbers are whatever
+ * somebody typed. Keeping the two apart means it is always clear at the call
+ * site which kind is in hand.
+ */
+export type RuleBookRow = {
+  daily_driving_minutes: number
+  duty_window_minutes: number | null
+  driving_before_break_minutes: number
+  break_length_minutes: number
+  cycle_minutes: number
+  cycle_days: number
+}
+
+export function limitsFromRuleBook(row: RuleBookRow): Limits {
+  return {
+    dailyDriving: row.daily_driving_minutes,
+    dutyWindow: row.duty_window_minutes,
+    drivingBeforeBreak: row.driving_before_break_minutes,
+    breakLength: row.break_length_minutes,
+    cycle: row.cycle_minutes,
+    cycleDays: row.cycle_days,
+  }
 }

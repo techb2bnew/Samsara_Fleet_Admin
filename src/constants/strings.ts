@@ -1503,6 +1503,56 @@ export const STRINGS = {
       FMCSA: 'FMCSA — 11h driving, 14h window, 70h / 8 days',
       EU: 'EU — 9h driving, 4h30 before a break, 56h / week',
     },
+    /*
+      A fleet's own rule book.
+
+      Worded throughout to keep the two kinds apart. The built-ins cite the
+      regulations they come from; these are the fleet's own numbers, and the
+      driver app labels them that way too — calling a hand-typed set of limits
+      "FMCSA" would be the one confusion worth preventing at any cost.
+    */
+    ruleBook: {
+      groupBuiltIn: 'Legal rule books',
+      groupCustom: 'This fleet’s own',
+      inUseTag: 'in use',
+      add: 'Add a rule book',
+      addTitle: 'New rule book',
+      editTitle: 'Edit rule book',
+      hint: 'For fleets neither of the legal rule books above covers, or an internal policy that is stricter than the law.',
+      warning:
+        'These numbers decide what the driver app tells a driver about the hours they have left. Nobody checks them against the law — get one wrong and a driver is told they are legal when they are not.',
+      name: 'Name',
+      namePlaceholder: 'e.g. India — internal policy',
+      dailyDriving: 'Longest driving in one day',
+      dutyWindow: 'On-duty window',
+      dutyWindowNone: 'No on-duty window limit',
+      dutyWindowHint: 'Longest span from coming on duty to going off. The EU has no such limit; leave it off if yours does not either.',
+      beforeBreak: 'Driving before a break is needed',
+      breakLength: 'How long that break must be',
+      breakLengthUnit: 'minutes',
+      cycle: 'On-duty ceiling over the cycle',
+      cycleDays: 'Cycle length',
+      cycleDaysUnit: 'days',
+      hours: 'h',
+      minutes: 'm',
+      save: 'Save rule book',
+      created: 'Rule book added',
+      updated: 'Rule book saved',
+      removed: 'Rule book deleted',
+      remove: 'Delete',
+      removeTitle: 'Delete this rule book?',
+      removeMessage:
+        'Any fleet still on it has to be moved to another rule book first. This cannot be undone.',
+      inUse:
+        'This rule book is in use. Move the organisation to another one before deleting it.',
+      duplicateName: 'A rule book with that name already exists.',
+      rejected:
+        'Those limits were refused: a driving limit cannot be longer than the day it sits in, a duty window cannot be shorter than the driving inside it, and a cycle cannot be shorter than a single day.',
+      failed: 'The rule book could not be saved.',
+      none: 'No rule books of your own yet.',
+      summary: (driving: string, cycle: string, days: number) =>
+        `${driving} driving · ${cycle} over ${days} days`,
+    },
     saveOrg: 'Save organisation',
     savedToast: 'Organisation saved',
     saveFailed: 'The organisation could not be saved.',
