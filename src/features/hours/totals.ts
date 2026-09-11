@@ -75,6 +75,18 @@ export function cycleMinutes(days: DutySegment[][]): number {
   return days.reduce((sum, segments) => sum + onDutyMinutes(segments), 0)
 }
 
+/**
+ * "07:26" — the same figure with the hour padded to two digits.
+ *
+ * For the totals down the side of a log grid, where the figures form a column
+ * and a one-digit hour left them ragged against the two-digit ones. Every ELD
+ * screen and every paper log pads them for the same reason.
+ */
+export function formatClockPadded(minutes: number): string {
+  const safe = Math.max(0, Math.round(minutes))
+  return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`
+}
+
 /** "7:26" — hours and minutes, the way a log book reads. */
 export function formatClock(minutes: number): string {
   const safe = Math.max(0, Math.round(minutes))

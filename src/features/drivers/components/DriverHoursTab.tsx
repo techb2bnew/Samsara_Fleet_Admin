@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { STRINGS, TONE_SOLID } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { Panel } from '../../../components/layout/PageShell'
-import { ArrowRightIcon, Button, EmptyState } from '../../../components/ui'
+import { ArrowRightIcon, Button, EmptyState, RingGauge, type Arc } from '../../../components/ui'
 import { HosLogGrid } from '../../hours/components/HosLogGrid'
 import { dayRecap, drivingMinutes, onDutyMinutes, formatClock } from '../../hours/totals'
 import { datesForPeriod, formatLogColumn, fromIsoDate, isSameDay, shiftAnchor, toIsoDate } from '../../hours/dates'
@@ -14,11 +14,15 @@ import {
 } from '../../hours/types'
 import type { Driver } from '../types'
 import { useFleetData } from '../../fleet-data'
+import { recapFor } from '../../hours/rules'
 
 const t = STRINGS.drivers
 
+/** The last half hour. Mirrors the driver app's HosRecap. */
+const WARN_AT = 30
+
 export function DriverHoursTab({ driver, logs }: { driver: Driver; logs: DailyLog | undefined }) {
-  const { dutySegmentsFor, cycleWindowFor } = useFleetData()
+  const { dutySegmentsFor, cycleWindowFor, limits } = useFleetData()
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -55,8 +59,102 @@ export function DriverHoursTab({ driver, logs }: { driver: Driver; logs: DailyLo
     month: 'long',
   })
 
+  /*
+   * What is LEFT, next to the graph that shows what was used.
+   *
+   * The office had neither: dayRecap answers "how long did they work", and the
+   * question a dispatcher actually asks before sending one more load is "how
+   * much have they got". The driver reads exactly these four figures on their
+   * phone, so an argument about whether there is time for another drop is now
+   * two people reading the same numbers.
+   */
+  const remaining = useMemo(
+    () => recapFor(limits, segments, cycleWindowFor(driver.id, day)),
+    [limits, segments, cycleWindowFor, driver.id, day],
+  )
+
+  /*
+   * Label, what is left, what it is left out of, and the colour of the status
+   * it belongs to — the same four the driver's buttons use.
+   *
+   * Cycle has none of its own: it spans eight days and belongs to no single
+   * status, so it takes plain ink rather than borrowing one it is not.
+   */
+  const remainingCells: Array<[string, number | null, number | null, string, number]> = [
+    [t.detail.leftOnDuty, remaining.onDuty, limits?.dutyWindow ?? null, 'var(--color-duty-onduty)', remaining.over.onDuty ?? 0],
+    [t.detail.leftDriving, remaining.driving, limits?.dailyDriving ?? null, 'var(--color-duty-driving)', remaining.over.driving ?? 0],
+    [t.detail.leftBreak, remaining.breakIn, limits?.drivingBeforeBreak ?? null, 'var(--color-duty-off)', remaining.over.breakIn ?? 0],
+    [t.detail.leftRest, remaining.restOwed, limits?.dailyRest ?? null, 'var(--color-duty-sleeper)', 0],
+    [t.detail.leftLoad, remaining.loadLeft, limits?.maxOnDuty ?? null, 'var(--color-duty-onduty)', remaining.over.loadLeft ?? 0],
+    [t.detail.leftCycle, remaining.cycle, limits?.cycle ?? null, 'var(--color-ink)', remaining.over.cycle ?? 0],
+  ]
+  /* A clock the rule book has no rule for is dropped, not shown as a dash —
+     the EU has no on-duty window at all. */
+  const shownCells = remainingCells.filter(([, value]) => value !== null)
+
   return (
     <div className="flex flex-col gap-5">
+      <Panel title={t.detail.leftTitle} hint={t.detail.leftHint}>
+        {shownCells.length === 0 ? (
+          <EmptyState title={t.detail.leftNoRules} hint={t.detail.leftNoRulesHint} />
+        ) : (
+          <div className="flex flex-wrap items-start gap-x-8 gap-y-5 px-4 py-5 sm:px-5">
+            {shownCells.map(([label, value, limit, status, over]) => {
+              const left = value ?? 0
+
+              /*
+               * What the ring is a picture OF changes once a limit is passed.
+               *
+               * Inside the limit it is the allowance, draining. Past it the
+               * ring becomes the time actually spent: the limit's share in the
+               * status colour and the rest in red, which says WHERE the line
+               * was crossed rather than only that it was.
+               */
+              const arcs: Arc[] =
+                over > 0 && limit
+                  ? [
+                      { portion: limit / (limit + over), color: status },
+                      { portion: over / (limit + over), color: 'var(--color-danger)' },
+                    ]
+                  : [
+                      {
+                        portion: value !== null && limit && limit > 0 ? value / limit : 0,
+                        color: status,
+                      },
+                    ]
+
+              const figure =
+                over > 0 || left <= 0
+                  ? 'text-danger'
+                  : left <= WARN_AT
+                    ? 'text-warn'
+                    : 'text-ink'
+
+              return (
+                <div key={label} className="flex flex-col items-center gap-2">
+                  <span className="text-[11.5px] font-medium uppercase tracking-wide text-ink-4">
+                    {label}
+                  </span>
+                  <RingGauge size={78} stroke={7} arcs={arcs}>
+                    {/* Past the limit the figure counts UP and wears a plus:
+                        "0:00 left" is the same thing a second before a clock
+                        runs out and an hour after. */}
+                    <span className={cn('font-mono text-[13.5px] font-medium', figure)}>
+                      {over > 0 ? `+${formatClock(over)}` : formatClock(left)}
+                    </span>
+                  </RingGauge>
+                  {/* What the ring is a fraction of. Without it the arc is a
+                      decoration and the figure has no scale. */}
+                  <span className="font-mono text-[11.5px] text-ink-4">
+                    {limit === null ? '' : t.detail.leftOfTotal(formatClock(limit))}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Panel>
+
       <Panel title={t.detail.logGraph} hint={t.detail.logGraphHint}>
         <div className="flex flex-wrap items-center justify-end gap-1.5 border-b border-line px-4 py-3 sm:px-5">
           <DayButton

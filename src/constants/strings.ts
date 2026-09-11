@@ -653,6 +653,26 @@ export const STRINGS = {
       recentLogs: 'Last seven days',
       logGraph: 'Daily log',
       logGraphHint: 'Duty status across 24 hours — the same chart the driver sees on the phone.',
+      /*
+        Hours LEFT, which the console never showed.
+
+        The graph and the clocks beside it answer "how long did they work".
+        This answers the question a dispatcher actually has before sending one
+        more load, and it is the same four figures the driver reads on their
+        phone — so the two are not arguing from different numbers.
+      */
+      leftTitle: 'Hours left',
+      leftHint: 'What this driver has left today, against the fleet’s rule book. The same clocks they see in the app.',
+      leftOnDuty: 'On duty',
+      leftDriving: 'Driving',
+      leftBreak: 'Break',
+      leftRest: 'Rest',
+      leftLoad: 'Load',
+      leftCycle: 'Cycle',
+      /* Under each ring, so the ring is a fraction OF something. */
+      leftOfTotal: (total: string) => `of ${total}`,
+      leftNoRules: 'No rule book chosen',
+      leftNoRulesHint: 'Set an hours rule book in Settings and these clocks start counting.',
       noDutyRecorded: 'Nothing recorded for this day.',
       logStatuses: {
         off: 'Off duty',
@@ -1528,6 +1548,26 @@ export const STRINGS = {
       dutyWindowNone: 'No on-duty window limit',
       dutyWindowHint: 'Longest span from coming on duty to going off. The EU has no such limit; leave it off if yours does not either.',
       beforeBreak: 'Driving before a break is needed',
+      dailyRest: 'Rest needed before driving again',
+      dailyRestHint:
+        'Consecutive hours off duty before a driver may drive again. FMCSA requires 10, the EU 11 — reducible to 9. Consecutive is the rule: two short rests added together are not a rest.',
+      dailyRestNone: 'No daily rest requirement',
+      /*
+        The fleet's own rules, worded so nobody mistakes one for a regulation.
+        None of the three is in FMCSA or EU 561/2006, and a violation raised by
+        one is labelled "(fleet rule)" wherever it appears.
+      */
+      policyTitle: 'This fleet’s own shift rules',
+      policyHint:
+        'None of these is in any hours regulation. Turn one on and the app enforces it as your own rule, and a breach is recorded as a fleet rule rather than a legal one.',
+      minWork: 'Require work before a break',
+      minWorkHint:
+        'A driver must work this long before stopping for a break. The end-of-shift rest is not affected.',
+      maxBreak: 'Cap a single break',
+      maxBreakHint:
+        'The longest one break may run. A rest long enough to be the daily rest is treated as ending the shift, not as an over-long break.',
+      maxOnDuty: 'Cap on-duty time that is not driving',
+      maxOnDutyHint: 'Loading, unloading, paperwork and waiting, added up across the day.',
       breakLength: 'How long that break must be',
       breakLengthUnit: 'minutes',
       cycle: 'On-duty ceiling over the cycle',

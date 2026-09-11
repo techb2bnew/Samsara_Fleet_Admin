@@ -22,6 +22,15 @@ export type RuleBook = {
   breakLength: number
   cycle: number
   cycleDays: number
+  /*
+   * Consecutive minutes off duty required before driving again. Null where
+   * the fleet's rules have no such requirement.
+   */
+  dailyRest: number | null
+  /* A fleet's own shift rules. Null on both legal regimes. */
+  minWorkBeforeBreak: number | null
+  maxBreak: number | null
+  maxOnDuty: number | null
 }
 
 export type RuleBookDraft = Omit<RuleBook, 'id'>

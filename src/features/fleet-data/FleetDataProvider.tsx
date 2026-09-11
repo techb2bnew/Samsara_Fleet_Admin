@@ -42,7 +42,7 @@ import {
   type Limits,
 } from '../hours/rules'
 import { VIOLATION_DETAIL, VIOLATION_WORDS } from '../hours/violationWords'
-import { segmentsByDriverDate, windowEndingOn } from '../hours/segments'
+import { dayBefore, segmentsByDriverDate, windowEndingOn } from '../hours/segments'
 import { formatClock as formatMinutes } from '../hours/totals'
 import { DEFAULT_NEW_FORM_FIELDS, type FormDef, type FormField } from '../forms/types'
 import { personName } from '../../lib/names'
@@ -164,6 +164,12 @@ type FleetDataValue = {
   violations: Violation[]
   editRequests: EditRequest[]
   org: OrgSettings
+  /*
+   * The limits in force, whichever kind of rule book they came from. Null when
+   * the organisation has not chosen one — which is what puts a dash on every
+   * clock rather than a zero.
+   */
+  limits: Limits | null
   /** The fleet's own rule books. Built-ins are not in here; they live in code. */
   ruleBooks: RuleBook[]
   alertRules: AlertRule[]
@@ -1074,6 +1080,10 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
               break_length_minutes: custom.breakLength,
               cycle_minutes: custom.cycle,
               cycle_days: custom.cycleDays,
+              daily_rest_minutes: custom.dailyRest,
+              min_work_before_break_minutes: custom.minWorkBeforeBreak,
+              max_break_minutes: custom.maxBreak,
+              max_on_duty_minutes: custom.maxOnDuty,
             })
           : builtIn
             ? limitsFor(builtIn)
@@ -1092,7 +1102,20 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
               const cycleWindow = windowEndingOn(date, cycleDays).map(
                 (key) => days.get(key) ?? [],
               )
-              for (const breach of violationsForDay(book, driverId, date, today, cycleWindow)) {
+              /*
+               * The day before, for the daily-rest check. Empty for the oldest
+               * day loaded, which makes the check skip rather than judge a
+               * rest that began in a day nobody fetched.
+               */
+              const yesterday = days.get(dayBefore(date)) ?? []
+              for (const breach of violationsForDay(
+                book,
+                driverId,
+                date,
+                today,
+                cycleWindow,
+                yesterday,
+              )) {
                 found.push({
                   id: breach.id,
                   driver: driverName,
@@ -1936,6 +1959,7 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
       violations,
       editRequests,
       org,
+      limits,
       ruleBooks,
       addRuleBook,
       saveRuleBook,
@@ -1980,7 +2004,7 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
       sendToDriver, broadcast, markThreadRead, dutySegmentsFor, cycleWindowFor,
       routes, routeStops, forms, formFields, courses,
       safetyEvents, violations, editRequests, org, alertRules, audit,
-      ruleBooks, addRuleBook, saveRuleBook, removeRuleBook,
+      ruleBooks, addRuleBook, saveRuleBook, removeRuleBook, limits,
       addDriver, saveDriver, addVehicle, saveVehicle, inviteUser, inviteDriver, addRoute, assignRoute, addForm, addCourse, setCourseContent, saveCourseDetails,
       resolveViolation, resolveEditRequest, setSafetyEventStatus, saveOrg, toggleAlertRule,
       addDepot, saveDepot, removeDepot, assignDriver, assignCourse, unassignCourse,

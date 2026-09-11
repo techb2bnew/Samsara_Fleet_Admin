@@ -3538,10 +3538,15 @@ export type RuleBookRow = {
   breakLength: number
   cycle: number
   cycleDays: number
+  dailyRest: number | null
+  /* A fleet's own shift rules. Null on both legal regimes. */
+  minWorkBeforeBreak: number | null
+  maxBreak: number | null
+  maxOnDuty: number | null
 }
 
 const RULE_BOOK_COLUMNS =
-  'id, name, daily_driving_minutes, duty_window_minutes, driving_before_break_minutes, break_length_minutes, cycle_minutes, cycle_days'
+  'id, name, daily_driving_minutes, duty_window_minutes, driving_before_break_minutes, break_length_minutes, cycle_minutes, cycle_days, daily_rest_minutes, min_work_before_break_minutes, max_break_minutes, max_on_duty_minutes'
 
 type RuleBookDbRow = {
   id: string
@@ -3552,6 +3557,10 @@ type RuleBookDbRow = {
   break_length_minutes: number
   cycle_minutes: number
   cycle_days: number
+  daily_rest_minutes: number | null
+  min_work_before_break_minutes: number | null
+  max_break_minutes: number | null
+  max_on_duty_minutes: number | null
 }
 
 function toRuleBook(r: RuleBookDbRow): RuleBookRow {
@@ -3564,6 +3573,10 @@ function toRuleBook(r: RuleBookDbRow): RuleBookRow {
     breakLength: r.break_length_minutes,
     cycle: r.cycle_minutes,
     cycleDays: r.cycle_days,
+    dailyRest: r.daily_rest_minutes,
+    minWorkBeforeBreak: r.min_work_before_break_minutes,
+    maxBreak: r.max_break_minutes,
+    maxOnDuty: r.max_on_duty_minutes,
   }
 }
 
@@ -3575,6 +3588,11 @@ export type RuleBookInput = {
   breakLength: number
   cycle: number
   cycleDays: number
+  dailyRest: number | null
+  /* A fleet's own shift rules. Null on both legal regimes. */
+  minWorkBeforeBreak: number | null
+  maxBreak: number | null
+  maxOnDuty: number | null
 }
 
 function toRuleBookColumns(input: RuleBookInput) {
@@ -3586,6 +3604,10 @@ function toRuleBookColumns(input: RuleBookInput) {
     break_length_minutes: input.breakLength,
     cycle_minutes: input.cycle,
     cycle_days: input.cycleDays,
+    daily_rest_minutes: input.dailyRest,
+    min_work_before_break_minutes: input.minWorkBeforeBreak,
+    max_break_minutes: input.maxBreak,
+    max_on_duty_minutes: input.maxOnDuty,
   }
 }
 

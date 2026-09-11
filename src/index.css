@@ -90,6 +90,16 @@
   --color-danger-soft: #FBE7E5;
   --color-danger-line: #EFB9B4;
 
+  /* -- duty statuses ----------------------------------------------------- */
+  /* The four the driver app paints its status buttons and duty graph with,
+     copied exactly. A dispatcher matching a ring to the button a driver
+     pressed is matching colours by eye, and two greens that nearly agree are
+     worse than one. Keep these in step with SamsaraDriver's Color.js. */
+  --color-duty-off:     #8A93A3;
+  --color-duty-sleeper: #5B6BC9;
+  --color-duty-driving: #1F9254;
+  --color-duty-onduty:  #D98324;
+
   --color-neutral-soft: #EDE8DC;
   --color-neutral-line: #D4CBBA;
 

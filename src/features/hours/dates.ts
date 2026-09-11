@@ -119,7 +119,12 @@ export function dutyTotals(segments: DutySegment[]): Record<DutyStatus, number> 
   return totals
 }
 
-export function formatDutyHours(minutes: number) {
-  if (minutes <= 0) return '0.0'
-  return (Math.round((minutes / 60) * 10) / 10).toFixed(1)
-}
+/*
+ * formatDutyHours is gone.
+ *
+ * It rendered minutes as decimal hours — "9.5", and "0.1" for six minutes —
+ * and the log grid was the only thing that called it. A duty log is kept in
+ * hours and minutes, on paper and on every ELD screen, and an inspector
+ * reading "0.1" has to convert it before it means anything. formatClock, used
+ * everywhere else in this console, gives "9:28".
+ */

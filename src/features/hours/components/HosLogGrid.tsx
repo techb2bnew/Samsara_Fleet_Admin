@@ -1,6 +1,7 @@
 import { STRINGS } from '../../../constants'
 import { cn } from '../../../lib/cn'
-import { DUTY_STATUSES, dutyTotals, formatDutyHours } from '../dates'
+import { DUTY_STATUSES, dutyTotals } from '../dates'
+import { formatClock, formatClockPadded } from '../totals'
 import {
   type DutyClocks,
   type DutySegment,
@@ -16,6 +17,18 @@ const PAD_R = 56
 const PAD_T = 28
 const PAD_B = 26
 const INNER_W = WIDTH - PAD_L - PAD_R
+
+/**
+ * The narrowest block that gets its own figure written on it.
+ *
+ * Derived from the room a figure actually needs — about 34px at 11px mono —
+ * rather than from a count of minutes. It was `minutes < 10`, and ten minutes
+ * of a twenty-four hour day is seven pixels here, so two short blocks side by
+ * side printed their figures on top of each other and the result was
+ * unreadable. Anything narrower is left unlabelled; the total down the side
+ * still accounts for it.
+ */
+const LABEL_MIN_MINUTES = Math.ceil((34 / INNER_W) * 24 * 60)
 const INNER_H = HEIGHT - PAD_T - PAD_B
 
 function xOf(minutes: number) {
@@ -129,7 +142,7 @@ export function HosLogGrid({
                   className="fill-ink font-mono"
                   fontSize={11}
                 >
-                  {formatDutyHours(totals[status])}
+                  {formatClockPadded(totals[status])}
                 </text>
               </g>
             )
@@ -149,7 +162,7 @@ export function HosLogGrid({
 
           {segments.map((segment, index) => {
             const minutes = segment.to - segment.from
-            if (minutes < 10) return null
+            if (minutes < LABEL_MIN_MINUTES) return null
             const x = (xOf(segment.from) + xOf(segment.to)) / 2
             const y = yOf(segment.status) - 8
             return (
@@ -162,7 +175,7 @@ export function HosLogGrid({
                 fontSize={11}
                 fontWeight={600}
               >
-                {formatDutyHours(minutes)}
+                {formatClock(minutes)}
               </text>
             )
           })}

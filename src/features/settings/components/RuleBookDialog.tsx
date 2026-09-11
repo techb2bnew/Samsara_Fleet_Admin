@@ -41,6 +41,14 @@ function fromSpan(span: Span): number | null {
 type Draft = {
   name: string
   dailyDriving: Span
+  hasDailyRest: boolean
+  dailyRest: Span
+  hasMinWork: boolean
+  minWorkBeforeBreak: Span
+  hasMaxBreak: boolean
+  maxBreak: Span
+  hasMaxOnDuty: boolean
+  maxOnDuty: Span
   hasDutyWindow: boolean
   dutyWindow: Span
   drivingBeforeBreak: Span
@@ -60,6 +68,19 @@ type Draft = {
 const EMPTY: Draft = {
   name: '',
   dailyDriving: { h: '11', m: '0' },
+  hasDailyRest: true,
+  /* FMCSA 395.3(a)(1). The EU's is 9 after reduction, 11 otherwise. */
+  dailyRest: { h: '10', m: '0' },
+  /*
+   * The three fleet rules start OFF. They are nobody's law, so a rule book
+   * should not quietly acquire them — a fleet that wants them turns them on.
+   */
+  hasMinWork: false,
+  minWorkBeforeBreak: { h: '3', m: '0' },
+  hasMaxBreak: false,
+  maxBreak: { h: '3', m: '0' },
+  hasMaxOnDuty: false,
+  maxOnDuty: { h: '3', m: '0' },
   hasDutyWindow: true,
   dutyWindow: { h: '14', m: '0' },
   drivingBeforeBreak: { h: '8', m: '0' },
@@ -72,6 +93,14 @@ function draftFrom(book: RuleBook): Draft {
   return {
     name: book.name,
     dailyDriving: toSpan(book.dailyDriving),
+    hasDailyRest: book.dailyRest !== null,
+    dailyRest: toSpan(book.dailyRest ?? 0),
+    hasMinWork: book.minWorkBeforeBreak !== null,
+    minWorkBeforeBreak: toSpan(book.minWorkBeforeBreak ?? 3 * 60),
+    hasMaxBreak: book.maxBreak !== null,
+    maxBreak: toSpan(book.maxBreak ?? 3 * 60),
+    hasMaxOnDuty: book.maxOnDuty !== null,
+    maxOnDuty: toSpan(book.maxOnDuty ?? 3 * 60),
     hasDutyWindow: book.dutyWindow !== null,
     dutyWindow: toSpan(book.dutyWindow ?? 0),
     drivingBeforeBreak: toSpan(book.drivingBeforeBreak),
@@ -128,6 +157,43 @@ function SpanField({
   )
 }
 
+/**
+ * One of the fleet's own rules: a switch and, when it is on, a span.
+ *
+ * Off by default and off means null. A rule nobody asked for should have no
+ * effect at all rather than a value sitting in the database waiting to
+ * surprise somebody.
+ */
+function PolicySpan({
+  label,
+  hint,
+  on,
+  onToggle,
+  value,
+  onChange,
+}: {
+  label: string
+  hint: string
+  on: boolean
+  onToggle: (on: boolean) => void
+  value: Span
+  onChange: (next: Span) => void
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <label className="flex items-center gap-2 text-[13px] font-medium text-ink">
+        <input type="checkbox" checked={on} onChange={(e) => onToggle(e.target.checked)} />
+        {label}
+      </label>
+      {on ? (
+        <SpanField label={label} hint={hint} value={value} onChange={onChange} />
+      ) : (
+        <p className="text-[13px] text-ink-3">{hint}</p>
+      )}
+    </div>
+  )
+}
+
 export function RuleBookDialog({
   open,
   book,
@@ -178,6 +244,10 @@ export function RuleBookDialog({
       breakLength: Number(draft.breakLength) || 0,
       cycle,
       cycleDays: Number(draft.cycleDays) || 0,
+      dailyRest: draft.hasDailyRest ? fromSpan(draft.dailyRest) : null,
+      minWorkBeforeBreak: draft.hasMinWork ? fromSpan(draft.minWorkBeforeBreak) : null,
+      maxBreak: draft.hasMaxBreak ? fromSpan(draft.maxBreak) : null,
+      maxOnDuty: draft.hasMaxOnDuty ? fromSpan(draft.maxOnDuty) : null,
     }
 
     setSaving(true)
@@ -263,6 +333,24 @@ export function RuleBookDialog({
           onChange={(drivingBeforeBreak) => setDraft((c) => ({ ...c, drivingBeforeBreak }))}
         />
 
+        <div className="grid gap-1.5">
+          <label className="flex items-center gap-2 text-[13px] text-ink">
+            <input
+              type="checkbox"
+              checked={!draft.hasDailyRest}
+              onChange={(e) => setDraft((c) => ({ ...c, hasDailyRest: !e.target.checked }))}
+            />
+            {t.dailyRestNone}
+          </label>
+          <SpanField
+            label={t.dailyRest}
+            hint={t.dailyRestHint}
+            value={draft.dailyRest}
+            disabled={!draft.hasDailyRest}
+            onChange={(dailyRest) => setDraft((c) => ({ ...c, dailyRest }))}
+          />
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label={t.breakLength}
@@ -286,6 +374,46 @@ export function RuleBookDialog({
           label={t.cycle}
           value={draft.cycle}
           onChange={(cycle) => setDraft((c) => ({ ...c, cycle }))}
+        />
+
+        {/*
+          The fleet's own rules, kept in their own section and labelled as
+          such.
+
+          Not because they matter less, but because mixing them in with the
+          limits above would let somebody believe a regulation requires them.
+          None of the three appears in FMCSA or EU 561/2006.
+        */}
+        <div className="border-t border-line pt-4">
+          <p className="text-[13px] font-semibold text-ink">{t.policyTitle}</p>
+          <p className="mt-1 text-[12.5px] text-ink-3">{t.policyHint}</p>
+        </div>
+
+        <PolicySpan
+          label={t.minWork}
+          hint={t.minWorkHint}
+          on={draft.hasMinWork}
+          onToggle={(on) => setDraft((c) => ({ ...c, hasMinWork: on }))}
+          value={draft.minWorkBeforeBreak}
+          onChange={(minWorkBeforeBreak) => setDraft((c) => ({ ...c, minWorkBeforeBreak }))}
+        />
+
+        <PolicySpan
+          label={t.maxBreak}
+          hint={t.maxBreakHint}
+          on={draft.hasMaxBreak}
+          onToggle={(on) => setDraft((c) => ({ ...c, hasMaxBreak: on }))}
+          value={draft.maxBreak}
+          onChange={(maxBreak) => setDraft((c) => ({ ...c, maxBreak }))}
+        />
+
+        <PolicySpan
+          label={t.maxOnDuty}
+          hint={t.maxOnDutyHint}
+          on={draft.hasMaxOnDuty}
+          onToggle={(on) => setDraft((c) => ({ ...c, hasMaxOnDuty: on }))}
+          value={draft.maxOnDuty}
+          onChange={(maxOnDuty) => setDraft((c) => ({ ...c, maxOnDuty }))}
         />
       </form>
     </Modal>

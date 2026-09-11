@@ -86,6 +86,18 @@ export function segmentsByDriverDate(
   return out
 }
 
+/**
+ * The calendar day before `date`.
+ *
+ * Built from a Date rather than by subtracting from the string, so month ends
+ * and leap days are the calendar's problem and not this file's.
+ */
+export function dayBefore(date: string): string {
+  const day = new Date(`${date}T00:00:00`)
+  day.setDate(day.getDate() - 1)
+  return isoDateKey(day)
+}
+
 /** The ISO dates ending at `date`, `days` long, oldest first. */
 export function windowEndingOn(date: string, days: number): string[] {
   const end = new Date(`${date}T00:00:00`)

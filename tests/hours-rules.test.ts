@@ -36,7 +36,7 @@ const seg = (status: DutySegment['status'], from: number, to: number): DutySegme
 const noCycle = (day: DutySegment[]) => [day]
 
 const kinds = (day: DutySegment[], cycle = noCycle(day), regulator: 'FMCSA' | 'EU' = 'FMCSA') =>
-  violationsForDay(limitsFor(regulator), 'd1', '2026-09-02', day, cycle).map((v) => v.kind)
+  violationsForDay(limitsFor(regulator), 'd1', '2026-09-02', day, cycle, []).map((v) => v.kind)
 
 describe('regulatorFrom', () => {
   it('reads the rule books it supports, however they are written', () => {
@@ -141,7 +141,7 @@ describe('FMCSA: 11-hour driving limit', () => {
       seg('off', at(4), at(4, 30)),
       seg('driving', at(4, 30), at(11, 56)),
     ]
-    const found = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day))
+    const found = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day), [])
     const breach = found.find((v) => v.kind === 'daily_driving')
     expect(breach).toBeDefined()
     expect(breach!.actual).toBe('11:26 driving')
@@ -308,14 +308,14 @@ describe('a day with nothing recorded', () => {
      * reporting a breach would be worse. The missing certification shows up on
      * the log grid instead, which is where it belongs.
      */
-    expect(violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', [], [[]])).toEqual([])
-    expect(violationsForDay(limitsFor('EU'), 'd1', '2026-09-02', [], [[]])).toEqual([])
+    expect(violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', [], [[]], [])).toEqual([])
+    expect(violationsForDay(limitsFor('EU'), 'd1', '2026-09-02', [], [[]], [])).toEqual([])
   })
 
   it('raises nothing even when the cycle window is full', () => {
     const busy = [seg('driving', at(0), at(12))]
     const window = Array.from({ length: 8 }, () => busy)
-    expect(violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', [], window)).toEqual([])
+    expect(violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', [], window, [])).toEqual([])
   })
 })
 
@@ -324,18 +324,227 @@ describe('violation identity', () => {
     // Screens key lists on this. An id that changed between reads would make
     // React discard and rebuild every row on every refresh.
     const day = [seg('driving', at(0), at(13))]
-    const first = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day))
-    const second = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day))
+    const first = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day), [])
+    const second = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day), [])
     expect(first.map((v) => v.id)).toEqual(second.map((v) => v.id))
     expect(new Set(first.map((v) => v.id)).size).toBe(first.length)
   })
 
   it('differs between drivers and between days', () => {
     const day = [seg('driving', at(0), at(13))]
-    const a = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day))[0]
-    const b = violationsForDay(limitsFor('FMCSA'), 'd2', '2026-09-02', day, noCycle(day))[0]
-    const c = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-03', day, noCycle(day))[0]
+    const a = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day), [])[0]
+    const b = violationsForDay(limitsFor('FMCSA'), 'd2', '2026-09-02', day, noCycle(day), [])[0]
+    const c = violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-03', day, noCycle(day), [])[0]
     expect(a.id).not.toBe(b.id)
     expect(a.id).not.toBe(c.id)
+  })
+})
+
+
+describe('FMCSA: 10 consecutive hours off before driving again', () => {
+  /*
+   * 395.3(a)(1). The reason this suite is longer than the others is that a
+   * night's sleep crosses midnight, and segments are stored per calendar day —
+   * so the rule cannot be checked from one day's rows.
+   */
+  const restKinds = (day: DutySegment[], yesterday: DutySegment[]) =>
+    violationsForDay(limitsFor('FMCSA'), 'd1', '2026-09-02', day, noCycle(day), yesterday).map(
+      (v) => v.kind,
+    )
+
+  it('counts a rest that began yesterday', () => {
+    /*
+     * Off from 21:00 last night to 07:00 this morning is ten hours. Looking at
+     * today alone sees seven, and would report a violation against a driver who
+     * slept properly — which is the failure this reaches into yesterday for.
+     */
+    const yesterday = [seg('driving', at(9), at(21)), seg('off', at(21), at(24))]
+    const today = [seg('off', 0, at(7)), seg('driving', at(7), at(15))]
+
+    expect(restKinds(today, yesterday)).not.toContain('daily_rest')
+  })
+
+  it('raises a short rest', () => {
+    // 23:00 to 06:00 is seven hours. Three short.
+    const yesterday = [seg('driving', at(11), at(23)), seg('off', at(23), at(24))]
+    const today = [seg('off', 0, at(6)), seg('driving', at(6), at(14))]
+
+    expect(restKinds(today, yesterday)).toContain('daily_rest')
+  })
+
+  it('does not add two separate rests together', () => {
+    /*
+     * Five hours off, an hour of work, five more. Ten hours of rest and no
+     * daily rest at all — the driver is not fit to drive under either regime,
+     * and a total would call this compliant.
+     */
+    const yesterday = [seg('off', at(19), at(24))]
+    const today = [
+      seg('off', 0, at(1)),
+      seg('on_duty', at(1), at(2)),
+      seg('off', at(2), at(6)),
+      seg('driving', at(6), at(12)),
+    ]
+
+    expect(restKinds(today, yesterday)).toContain('daily_rest')
+  })
+
+  it('says nothing about a day with no work in it', () => {
+    // A day off is not a breach, however little sleep preceded it.
+    const yesterday = [seg('driving', at(9), at(24))]
+    const today = [seg('off', 0, at(24))]
+
+    expect(restKinds(today, yesterday)).not.toContain('daily_rest')
+  })
+
+  it('skips the check when yesterday was not loaded', () => {
+    /*
+     * The oldest day in the window has no day before it in memory. A rest that
+     * began in a day nobody fetched would look like no rest at all, so the
+     * check stands down rather than guessing.
+     */
+    const today = [seg('driving', at(1), at(9))]
+
+    expect(restKinds(today, [])).not.toContain('daily_rest')
+  })
+
+  it('ignores yesterday when the driver was working at midnight', () => {
+    /*
+     * A rest run that does not reach midnight belongs to the shift it sits in.
+     * Yesterday's rest is yesterday's, and stitching them would invent one long
+     * rest across a night of work.
+     */
+    const yesterday = [seg('off', at(8), at(20)), seg('driving', at(20), at(24))]
+    const today = [seg('driving', 0, at(2)), seg('off', at(2), at(5)), seg('driving', at(5), at(9))]
+
+    expect(restKinds(today, yesterday)).toContain('daily_rest')
+  })
+
+  it('has no opinion when the rule book has no rest rule', () => {
+    const bookWithoutRest = { ...limitsFor('FMCSA'), dailyRest: null }
+    const today = [seg('off', 0, at(1)), seg('driving', at(1), at(9))]
+
+    expect(
+      violationsForDay(bookWithoutRest, 'd1', '2026-09-02', today, noCycle(today), [
+        seg('off', at(23), at(24)),
+      ]).map((v) => v.kind),
+    ).not.toContain('daily_rest')
+  })
+})
+
+
+describe('a fleet\u2019s own shift rules', () => {
+  /*
+   * 8h driving + 10h rest + 3h break + 3h loading = 24h. A shift plan, not a
+   * regulation — none of the three rules below is in FMCSA or EU 561/2006,
+   * which is why both built-ins leave them null.
+   */
+  const POLICY = {
+    ...limitsFor('FMCSA'),
+    dailyDriving: at(8),
+    dailyRest: at(10),
+    minWorkBeforeBreak: at(3),
+    maxBreak: at(3),
+    maxOnDuty: at(3),
+  }
+
+  const kindsOf = (day: DutySegment[], yesterday: DutySegment[] = []) =>
+    violationsForDay(POLICY, 'd1', '2026-09-02', day, noCycle(day), yesterday).map((v) => v.kind)
+
+  it('leaves both built-in regimes alone', () => {
+    // A fleet on a legal regime must see none of this.
+    for (const regulator of ['FMCSA', 'EU'] as const) {
+      const limits = limitsFor(regulator)
+      expect(limits.minWorkBeforeBreak).toBeNull()
+      expect(limits.maxBreak).toBeNull()
+      expect(limits.maxOnDuty).toBeNull()
+    }
+  })
+
+  it('raises a break taken before the work was done', () => {
+    // An hour of driving, then a stop. Two hours short.
+    const day = [seg('driving', at(6), at(7)), seg('off', at(7), at(8)), seg('driving', at(8), at(12))]
+
+    expect(kindsOf(day)).toContain('break_too_early')
+  })
+
+  it('accepts a break once the work is done', () => {
+    const day = [seg('driving', at(6), at(9)), seg('off', at(9), at(10)), seg('driving', at(10), at(13))]
+
+    expect(kindsOf(day)).not.toContain('break_too_early')
+  })
+
+  it('makes the driver earn each break, not just the first', () => {
+    /*
+     * Three hours, a break, then twenty minutes and another break. The second
+     * one is the breach — work resets when a break is taken.
+     */
+    const day = [
+      seg('driving', at(6), at(9)),
+      seg('off', at(9), at(10)),
+      seg('driving', at(10), at(10, 20)),
+      seg('off', at(10, 20), at(11)),
+    ]
+
+    expect(kindsOf(day)).toContain('break_too_early')
+  })
+
+  it('raises a break that ran too long', () => {
+    const day = [seg('driving', at(4), at(8)), seg('off', at(8), at(12)), seg('driving', at(12), at(15))]
+
+    expect(kindsOf(day)).toContain('break_too_long')
+  })
+
+  it('does NOT treat the day\u2019s rest as an over-long break', () => {
+    /*
+     * The contradiction that made a break cap look impossible. Ten hours off
+     * is not a four-hour break that overran — it is the end of the shift, and
+     * flagging it would put a violation on every night a driver sleeps.
+     */
+    const day = [seg('driving', at(6), at(12)), seg('off', at(12), at(22)), seg('on_duty', at(22), at(23))]
+
+    expect(kindsOf(day)).not.toContain('break_too_long')
+  })
+
+  it('does not require the day\u2019s rest to be earned either', () => {
+    // An hour of work then the shift ends. Short day, not a breach.
+    const day = [seg('on_duty', at(6), at(7)), seg('off', at(7), at(20))]
+
+    expect(kindsOf(day)).not.toContain('break_too_early')
+  })
+
+  it('joins a rest split across two taps', () => {
+    /*
+     * Off duty and then Sleeper is ONE rest. Counted separately, a four-hour
+     * rest taken as two twos would slip under a three-hour cap.
+     */
+    const day = [
+      seg('driving', at(4), at(8)),
+      seg('off', at(8), at(10)),
+      seg('sleeper', at(10), at(12)),
+      seg('driving', at(12), at(15)),
+    ]
+
+    expect(kindsOf(day)).toContain('break_too_long')
+  })
+
+  it('raises too long on duty without driving', () => {
+    // Four hours of loading against a three-hour cap.
+    const day = [seg('on_duty', at(6), at(10)), seg('driving', at(10), at(14))]
+
+    expect(kindsOf(day)).toContain('on_duty_too_long')
+  })
+
+  it('does not count driving toward the on-duty cap', () => {
+    // Eight hours of driving and two of loading. Driving has its own limit.
+    const day = [seg('driving', at(4), at(12)), seg('on_duty', at(12), at(14))]
+
+    expect(kindsOf(day)).not.toContain('on_duty_too_long')
+  })
+
+  it('raises driving past eight hours on this rule book', () => {
+    const day = [seg('driving', at(4), at(13))]
+
+    expect(kindsOf(day)).toContain('daily_driving')
   })
 })
