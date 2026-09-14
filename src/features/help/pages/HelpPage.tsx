@@ -51,6 +51,33 @@ export function HelpPage() {
           </ol>
         </Panel>
 
+        {/*
+          The public documents, linked from inside as well as from the app
+          stores. Somebody looking for the privacy policy looks here first, and
+          "it is in the App Store listing" is not an answer.
+        */}
+        <Panel title={t.legalTitle} hint={t.legalHint}>
+          <ul className="divide-y divide-line">
+            {[
+              { to: '/privacy', label: STRINGS.legal.privacy },
+              { to: '/terms', label: STRINGS.legal.terms },
+              { to: '/support', label: STRINGS.legal.support },
+            ].map((doc) => (
+              <li key={doc.to}>
+                <Link
+                  to={doc.to}
+                  className="group flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-surface-2"
+                >
+                  <span className="text-[13.5px] font-medium text-ink group-hover:text-accent">
+                    {doc.label}
+                  </span>
+                  <ArrowRightIcon size={15} className="shrink-0 text-ink-4" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+
         <Panel title={t.topicsTitle} hint={t.topicsHint}>
           <ul className="grid gap-px bg-line sm:grid-cols-2">
             {t.topics.map((topic) => (

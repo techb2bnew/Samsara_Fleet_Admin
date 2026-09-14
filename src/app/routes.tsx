@@ -8,6 +8,7 @@ import {
   RequireAuth,
   ResetPasswordPage,
 } from '../features/auth'
+import { LegalPage, PRIVACY, SUPPORT, TERMS } from '../features/legal'
 import { NotificationsPage } from '../features/notifications'
 import { DashboardPage } from '../features/dashboard'
 import { LiveMapPage } from '../features/live-map'
@@ -40,6 +41,18 @@ import { HelpPage } from '../features/help'
 export function AppRoutes() {
   return (
     <Routes>
+      {/*
+        Public, and outside BOTH guards.
+
+        Not just outside RequireAuth: RedirectIfSignedIn would send a signed-in
+        fleet admin to the dashboard for clicking a link to the terms, and App
+        Store review opens the privacy policy with no account at all. A policy
+        behind a sign-in is the same as no policy, and it fails review.
+      */}
+      <Route path="/privacy" element={<LegalPage document={PRIVACY} />} />
+      <Route path="/terms" element={<LegalPage document={TERMS} />} />
+      <Route path="/support" element={<LegalPage document={SUPPORT} />} />
+
       <Route element={<RedirectIfSignedIn />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

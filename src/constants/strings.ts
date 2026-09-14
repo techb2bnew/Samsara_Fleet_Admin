@@ -1602,18 +1602,32 @@ export const STRINGS = {
     turnOff: 'Turn off',
   },
 
+  /* The public document pages. The documents themselves are in
+     features/legal/documents.ts — see the note there. */
+  legal: {
+    updated: (date: string) => `Last updated ${date}`,
+    backToConsole: 'Back to the console',
+    privacy: 'Privacy policy',
+    terms: 'Terms of service',
+    support: 'Support',
+  },
+
   help: {
     title: 'Help & support',
     description: 'How this console works, and who to contact when something is wrong.',
     contactTitle: 'Contact support',
     contactHint: 'A person reads this. Include the organisation name and what you were doing.',
     emailLabel: 'Email',
-    email: 'support@example.com',
+    email: '[support@yourdomain.com]',
     hoursLabel: 'Hours',
     hours: 'Monday–Saturday, 8:00–20:00 IST',
+    phoneLabel: 'Phone',
+    phone: '+91 98783 00209',
     replyLabel: 'Typical reply',
     reply: 'Same working day',
     emailCta: 'Write to support',
+    legalTitle: 'Policies',
+    legalHint: 'Public pages. The same links go on the app store listings.',
     guidesTitle: 'How the console works',
     guidesHint: 'The few things that are easy to get wrong.',
     guides: [
