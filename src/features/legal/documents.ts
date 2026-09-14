@@ -64,6 +64,15 @@ const PHONE = '+91 98783 00209'
 
 const CONTACT_EMAIL = 'hello@b2bcampus.com'
 
+/*
+ * The name on the store listings.
+ *
+ * Google Play requires the page behind the "Delete data" URL to name the app
+ * or developer as it appears on the listing — a reader arriving from the store
+ * has to be able to tell they are in the right place.
+ */
+const APP_NAME = 'B2b Samsara Driver'
+
 export const PRIVACY: LegalDocument = {
   title: 'Privacy policy',
   updated: UPDATED,
@@ -240,6 +249,25 @@ export const SUPPORT: LegalDocument = {
         '- A past log is wrong: open the day, ask for a correction, and your office approves it. Nobody can silently edit your log.',
         '- Hours clocks show a dash: your office has not chosen an hours rule book yet.',
         '- An arrival says “unverified”: the app could not get a position at that moment. The arrival still counts.',
+      ],
+    },
+    {
+      /*
+       * This section is what the Google Play "Delete data" URL points at, and
+       * Play checks it for three things: that it names the app as the listing
+       * does, that the steps are prominent, and that it says what is deleted
+       * and what is kept. All three are below. Do not trim it without
+       * checking that page in the Play Console first.
+       */
+      heading: 'Deleting your account and your data',
+      body: [
+        `${APP_NAME} accounts are created by a fleet for its drivers, so a deletion request goes through the fleet.`,
+        'To ask for your account and data to be deleted:',
+        '- In the app, open Me, then Delete my account. That takes you to a message to your fleet office with the request already written. Send it.',
+        `- Or write to ${CONTACT_EMAIL} from the address your account is on, with your fleet's name. We will pass the request to your fleet and confirm when it is done.`,
+        'What is deleted: your login, your name, email and phone number, your photographs of paperwork and faults, your messages, and the documents held against you. Your account can no longer be used.',
+        'What is kept, and why: your duty status records — the hours you worked. Those are your fleet’s legal record, not ours to remove. A fleet that deleted them could not answer a roadside inspection or an audit, and in most countries keeping them is a legal requirement. They are held for as long as your fleet’s regulator requires, and are not used for anything else.',
+        'How long it takes: deletions are actioned within 30 days of the request.',
       ],
     },
     {
