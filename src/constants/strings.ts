@@ -162,10 +162,10 @@ export const STRINGS = {
 
   /** Pinned to the bottom of every signed-out screen. */
   authFooter: {
-    copyright: (year: number) => `© ${year} B2bSamsaraFleet`,
+    copyright: (year: number) => `© ${year} B2B Campus`,
     privacy: 'Privacy',
     terms: 'Terms',
-    status: 'All systems operational',
+    support: 'Support',
   },
 
   /** The signed-in shell: app/layouts/ConsoleLayout */

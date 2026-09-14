@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { Logo } from '../../components/layout/Logo'
 import { LightField } from '../../features/auth/components/LightField'
 import { RouteNetwork } from '../../features/auth/components/RouteNetwork'
@@ -188,16 +189,29 @@ export function AuthLayout({
         <span>{foot.copyright(new Date().getFullYear())}</span>
 
         <div className="flex items-center gap-6">
-          <span className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-ok" aria-hidden="true" />
-            {foot.status}
-          </span>
-          <a href="#" className="hover:text-brand-ink/75">
+          {/*
+            "All systems operational" is gone. It was a hard-coded string with
+            a green dot beside it, printed on every signed-out screen whether
+            anything was operational or not — so the one moment it would have
+            mattered, an outage, is the moment it lied. Bring it back when
+            something actually reports status.
+          */}
+          {/*
+            Real links now. These were href="#" — three words that looked like
+            a policy and went nowhere, on the one screen every signed-out
+            visitor sees. A dead privacy link is worse than none: it reads as
+            an answer, and it is what somebody clicks when they have not
+            decided to trust the app yet.
+          */}
+          <Link to="/privacy" className="hover:text-brand-ink/75">
             {foot.privacy}
-          </a>
-          <a href="#" className="hover:text-brand-ink/75">
+          </Link>
+          <Link to="/terms" className="hover:text-brand-ink/75">
             {foot.terms}
-          </a>
+          </Link>
+          <Link to="/support" className="hover:text-brand-ink/75">
+            {foot.support}
+          </Link>
         </div>
       </footer>
     </div>
