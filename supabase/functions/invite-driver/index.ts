@@ -99,35 +99,33 @@ function driverEmailBody(
 }
 
 /**
- * Sends over SMTP.
+ * Sends one message over SMTP, by hand.
  *
  * ---------------------------------------------------------------------------
- * Why a second way to send
+ * Why not a library
  * ---------------------------------------------------------------------------
- * Resend refuses to deliver anywhere except its own signup address until a
- * sending DOMAIN is verified, and verifying one needs DNS records on a domain
- * the business actually controls. That is the right long-term answer and it
- * was not available: the address in INVITE_EMAIL_FROM was on a domain with no
- * DNS at all, so it could never have been verified.
+ * denomailer was here and it killed the isolate: the function returned 503 on
+ * every send, and a dead isolate returns no CORS headers, so the browser
+ * reported a CORS failure and sent us looking for a missing header that was
+ * never missing.
  *
- * SMTP through a mailbox that already exists sidesteps the whole problem.
- * Google owns gmail.com and has verified it, so a Gmail account can send to
- * anybody from the moment it has an app password. No DNS, no waiting.
+ * The runtime was never the problem. Probing it directly showed a plain socket
+ * to smtp.gmail.com:587 answering in 656ms with its greeting, implicit TLS on
+ * 465 answering in 499ms, and Deno.startTls upgrading a 587 connection in
+ * 514ms. Everything SMTP needs works here.
  *
- * The trade is worth knowing: mail sent this way comes FROM the gmail address,
- * and a fleet office seeing "someone@gmail.com" on a system email reads it as
- * less trustworthy than one from the company's own domain. Use it to get
- * moving; verify the domain to finish.
+ * So the conversation is written out. It is eighty lines, it uses only what
+ * was proven to work, and when it fails it fails with a sentence instead of a
+ * crash.
  *
  * ---------------------------------------------------------------------------
- * Gmail specifics
+ * The conversation
  * ---------------------------------------------------------------------------
- * An app password, not the account password — Google stopped accepting those
- * in 2022, and two-step verification has to be on before one can be made.
+ *   greeting → EHLO → AUTH LOGIN → MAIL FROM → RCPT TO → DATA → . → QUIT
  *
- * The From must be the authenticated account or one of its aliases. Gmail
- * quietly rewrites anything else, so a mismatched INVITE_EMAIL_FROM would not
- * error, it would just silently not be what you set.
+ * Each step's reply starts with a three digit code. A hyphen after it means
+ * more lines follow, a space means that was the last — which is why the reader
+ * below cannot simply take one line and move on.
  */
 async function sendOverSmtp(
   to: string,
@@ -140,34 +138,129 @@ async function sendOverSmtp(
   const pass = Deno.env.get('SMTP_PASSWORD')
   if (!host || !user || !pass) return 'SMTP is not configured on this project'
 
-  /* 465 with implicit TLS. 587 needs a STARTTLS upgrade mid-conversation,
-     which is one more thing to go wrong for no gain here. */
   const port = Number(Deno.env.get('SMTP_PORT') ?? '465')
 
-  const { SMTPClient } = await import('https://deno.land/x/denomailer@1.6.0/mod.ts')
-  const client = new SMTPClient({
-    connection: {
-      hostname: host,
-      port,
-      tls: port === 465,
-      auth: { username: user, password: pass },
-    },
-  })
+  const encoder = new TextEncoder()
+  const decoder = new TextDecoder()
+  let conn: Deno.Conn | null = null
+
+  /** Reads until a line whose code is followed by a space: the last one. */
+  async function reply(): Promise<string> {
+    let out = ''
+    const buf = new Uint8Array(4096)
+    while (true) {
+      const n = await conn!.read(buf)
+      if (n === null) break
+      out += decoder.decode(buf.subarray(0, n))
+      if (/^\d{3} [^\n]*\r?\n$/m.test(out.split(/\r?\n/).slice(-2)[0] + '\n')) break
+      if (/(^|\n)\d{3} [^\n]*\r?\n$/.test(out)) break
+    }
+    return out.trim()
+  }
+
+  async function say(line: string): Promise<string> {
+    await conn!.write(encoder.encode(line + '\r\n'))
+    return await reply()
+  }
+
+  /** Every step states the code it expects, so a failure names its own step. */
+  function expect(got: string, code: string, step: string): string | null {
+    return got.startsWith(code) ? null : `${step} failed: ${got.split(/\r?\n/)[0]}`
+  }
 
   try {
-    await client.send({ from, to, subject, content: text })
+    if (port === 465) {
+      conn = await Deno.connectTls({ hostname: host, port })
+    } else {
+      /* 587 opens in the clear and is upgraded in place, which is what
+         STARTTLS means. The credentials go after the upgrade, never before. */
+      const plain = await Deno.connect({ hostname: host, port })
+      conn = plain
+      const greeting = await reply()
+      const bad = expect(greeting, '220', 'connecting')
+      if (bad) return bad
+      const ehlo = await say(`EHLO ${host}`)
+      const badEhlo = expect(ehlo, '250', 'EHLO')
+      if (badEhlo) return badEhlo
+      const starttls = await say('STARTTLS')
+      const badStart = expect(starttls, '220', 'STARTTLS')
+      if (badStart) return badStart
+      conn = await Deno.startTls(plain, { hostname: host })
+    }
+
+    if (port === 465) {
+      const bad = expect(await reply(), '220', 'connecting')
+      if (bad) return bad
+    }
+
+    const ehlo = await say(`EHLO ${host}`)
+    const badEhlo = expect(ehlo, '250', 'EHLO')
+    if (badEhlo) return badEhlo
+
+    /* AUTH LOGIN: the username and password each go as their own base64 line.
+       An app password, not the account password — Google stopped accepting
+       those in 2022, and two-step verification has to be on to make one. */
+    const badAuth = expect(await say('AUTH LOGIN'), '334', 'AUTH')
+    if (badAuth) return badAuth
+    const badUser = expect(await say(btoa(user)), '334', 'username')
+    if (badUser) return badUser
+    const badPass = expect(await say(btoa(pass)), '235', 'password')
+    if (badPass) return badPass
+
+    const badFrom = expect(await say(`MAIL FROM:<${from}>`), '250', 'MAIL FROM')
+    if (badFrom) return badFrom
+    const badTo = expect(await say(`RCPT TO:<${to}>`), '250', 'RCPT TO')
+    if (badTo) return badTo
+    const badData = expect(await say('DATA'), '354', 'DATA')
+    if (badData) return badData
+
+    /*
+     * A line consisting of one dot ends the message, so any line in the body
+     * that is just a dot has to be doubled — otherwise a paragraph could end
+     * the email early. It cannot happen with the text above, and it is one
+     * line to make sure it never can.
+     */
+    const body = [
+      `From: ${from}`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      `Date: ${new Date().toUTCString()}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      text.replace(/^\.$/gm, '..'),
+      '',
+      '.',
+    ].join('\r\n')
+
+    const badSend = expect(await say(body), '250', 'sending')
+    if (badSend) return badSend
+
+    await say('QUIT')
     return null
   } catch (cause) {
-    const why = cause instanceof Error ? cause.message : String(cause)
-    return `the mail server refused the message sending from "${from}" to "${to}": ${why}`
+    const why = cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause)
+    return `could not send from "${from}" to "${to}" via ${host}:${port} — ${why}`
   } finally {
-    /* Always closed. A leaked connection outlives the invocation, and the
-       provider starts refusing new ones. */
-    await client.close().catch(() => {})
+    /* Always closed. A leaked socket outlives the invocation. */
+    try {
+      conn?.close()
+    } catch {
+      // Already gone.
+    }
   }
 }
 
 Deno.serve(async (request) => {
+  try {
+    return await handle(request)
+  } catch (cause) {
+    const why = cause instanceof Error ? cause.message : String(cause)
+    return json({ error: `The invitation failed unexpectedly: ${why}` }, 500)
+  }
+})
+
+async function handle(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (request.method !== 'POST') return json({ error: 'Use POST.' }, 405)
 
@@ -318,4 +411,4 @@ Deno.serve(async (request) => {
   }
 
   return json({ ok: true, emailed: true, email, sentTo: email })
-})
+}

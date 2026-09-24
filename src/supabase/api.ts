@@ -723,6 +723,30 @@ export type DriverInviteResult = {
   reason?: string
 }
 
+/**
+ * Removes a driver from the roster and deletes their sign-in.
+ *
+ * Through a function, because removing an auth account needs the secret key.
+ * The roster row is only marked deleted, never actually removed — duty events
+ * cascade from it, and those are the fleet's legal record of hours worked.
+ */
+export async function deleteDriver(driverId: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke<{ ok?: boolean; error?: string }>(
+    'delete-driver',
+    { body: { driverId } },
+  )
+
+  if (error) {
+    let detail = error.message
+    if (error instanceof FunctionsHttpError) {
+      const body = await error.context.json().catch(() => null)
+      if (body?.error) detail = body.error
+    }
+    throw new Error(detail)
+  }
+  if (!data?.ok) throw new Error(data?.error ?? 'The driver could not be removed.')
+}
+
 export async function inviteDriverToApp(driverId: string): Promise<DriverInviteResult> {
   const { data, error } = await supabase.functions.invoke<{
     ok?: boolean
@@ -763,6 +787,39 @@ export async function inviteDriverToApp(driverId: string): Promise<DriverInviteR
  * The licence expiry becomes a document rather than a column, so a renewal adds
  * a row and the old certificate is still on file for an audit.
  */
+/**
+ * A duplicate contact, named by the field it is on.
+ *
+ * The database refuses these, and its message names an index. That is exactly
+ * right for a log and useless in a form: the office typed an email, and what
+ * they need back is that THIS email is taken — not "drivers_one_per_email".
+ *
+ * Returns the field so the dialog can put the message under the box that
+ * caused it rather than at the top, where a reader has to work out which of
+ * six fields is wrong.
+ */
+export type DuplicateField = 'email' | 'phone'
+
+export class DuplicateDriverError extends Error {
+  readonly field: DuplicateField
+
+  constructor(field: DuplicateField) {
+    super(
+      field === 'email'
+        ? 'A driver with this email is already on the roster.'
+        : 'A driver with this phone number is already on the roster.',
+    )
+    this.name = 'DuplicateDriverError'
+    this.field = field
+  }
+}
+
+function asDriverError(message: string): Error {
+  if (/drivers_one_per_email/.test(message)) return new DuplicateDriverError('email')
+  if (/drivers_one_per_phone/.test(message)) return new DuplicateDriverError('phone')
+  return new Error(message)
+}
+
 export async function createDriver(orgId: string, input: NewDriverInput): Promise<string> {
   /*
    * A driver's working-hours day is cut in their depot's timezone, so the
@@ -797,7 +854,7 @@ export async function createDriver(orgId: string, input: NewDriverInput): Promis
     .select('id')
     .single()
 
-  if (error) throw new Error(error.message)
+  if (error) throw asDriverError(error.message)
 
   if (input.licenceExpires.trim()) {
     const licence = await supabase.from('documents').insert({
@@ -845,7 +902,7 @@ export async function updateDriver(orgId: string, driverId: string, input: NewDr
     .eq('id', driverId)
     .is('deleted_at', null)
 
-  if (error) throw new Error(error.message)
+  if (error) throw asDriverError(error.message)
 
   const nextExpiry = input.licenceExpires.trim()
   const current = (input.currentLicenceExpires ?? '').slice(0, 10)

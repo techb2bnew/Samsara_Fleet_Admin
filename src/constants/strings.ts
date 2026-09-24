@@ -599,6 +599,12 @@ export const STRINGS = {
     loading: 'Loading the roster…',
     loadFailed: 'The roster could not be loaded.',
     emptyHint: 'Drivers added to the fleet will appear here.',
+    remove: 'Remove',
+    removeTitle: 'Remove this driver?',
+    removeMessage: (name: string) =>
+      `${name} comes off the roster and can no longer sign into the app. Their duty records stay — they are the fleet's legal record of hours worked. Their email becomes free to use for another driver.`,
+    removedToast: (name: string) => `${name} removed from the roster`,
+    removeFailed: 'That driver could not be removed.',
     columns: { driver: 'Driver', depot: 'Depot', status: 'Status', vehicle: 'Vehicle', hoursLeft: 'Hours left', licence: 'Licence expires', score: 'Safety', actions: '' },
     empty: 'No drivers match those filters.',
     licenceWarning: 'Expiring soon',

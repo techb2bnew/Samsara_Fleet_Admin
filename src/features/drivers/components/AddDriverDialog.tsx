@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { STRINGS } from '../../../constants'
+import { DuplicateDriverError, type DuplicateField } from '../../../supabase/api'
 import { Alert, Button, FormGrid, FormRow, Field, Modal, Select, useToast } from '../../../components/ui'
 import { useFleetData, type DriverAddResult, type NewDriver } from '../../fleet-data'
 import { DepotSelect } from '../../settings/components/DepotSelect'
@@ -35,6 +36,26 @@ const EMPTY: NewDriver = {
 function driverSaveMessage(error: unknown) {
   const message = error instanceof Error ? error.message : t.addDriverFailed
   return message.includes('drivers_employee_number') ? t.addDriverDuplicateEmployee : message
+}
+
+/**
+ * Puts a failure where it belongs.
+ *
+ * A duplicate email or phone is a problem with ONE box, and saying so under
+ * that box is worth more than the same sentence at the top of a form with six
+ * of them. Everything else stays in the banner, because it is about the save
+ * rather than about a field.
+ */
+function placeFailure(
+  error: unknown,
+  onField: (field: DuplicateField, message: string) => void,
+  onForm: (message: string) => void,
+) {
+  if (error instanceof DuplicateDriverError) {
+    onField(error.field, error.message)
+    return
+  }
+  onForm(driverSaveMessage(error))
 }
 
 function fromDriver(driver: Driver): NewDriver {
@@ -108,6 +129,21 @@ export function AddDriverDialog({
    * does everywhere else, and it beats shifting digits the office already
    * typed.
    */
+  /*
+   * The email box, lower-cased as it is typed.
+   *
+   * It was already lower-cased on the way to the database, so a capital never
+   * changed what got stored — but the office saw "Nitin@Yopmail.com" in the
+   * box, was told it was taken, and had no way to see that the row blocking it
+   * was the same address. Showing the stored form removes the discrepancy
+   * instead of explaining it.
+   *
+   * Phones get the same treatment below, for the same reason: what is in the
+   * box should be what is kept.
+   */
+  const setEmail = (event: { target: { value: string } }) =>
+    setValues((current) => ({ ...current, email: event.target.value.toLowerCase() }))
+
   const setPhone = (event: { target: { value: string } }) => {
     let digits = event.target.value.replace(/\D/g, '')
     if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2)
@@ -153,7 +189,11 @@ export function AddDriverDialog({
       try {
         await saveDriver(driver.id, values)
       } catch (error) {
-        setSaveError(driverSaveMessage(error))
+        placeFailure(
+          error,
+          (field, message) => setErrors({ [field]: message }),
+          setSaveError,
+        )
         return
       } finally {
         setSaving(false)
@@ -167,7 +207,7 @@ export function AddDriverDialog({
     try {
       result = await addDriver(values)
     } catch (error) {
-      setSaveError(driverSaveMessage(error))
+      placeFailure(error, (field, message) => setErrors({ [field]: message }), setSaveError)
       return
     } finally {
       setSaving(false)
@@ -293,7 +333,7 @@ export function AddDriverDialog({
             type="email"
             placeholder="name@company.com"
             value={values.email}
-            onChange={set('email')}
+            onChange={setEmail}
             error={errors.email}
             hint={editing ? t.driverFields.emailEditHint : undefined}
             required

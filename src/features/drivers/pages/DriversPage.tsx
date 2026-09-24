@@ -3,7 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { STRINGS } from '../../../constants'
 import { cn } from '../../../lib/cn'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
-import { Alert, Badge, Button, DataTable, EmptyState, FilterChips, Toolbar, type Column } from '../../../components/ui'
+import {
+  Alert,
+  Badge,
+  Button,
+  ConfirmDialog,
+  DataTable,
+  EmptyState,
+  FilterChips,
+  Toolbar,
+  type Column,
+  useToast,
+} from '../../../components/ui'
 import { EMPLOYMENT_LABEL, EMPLOYMENT_TONE, type Driver } from '../types'
 import { useFleetData } from '../../fleet-data'
 import { useOpenOnQuery } from '../../../lib/useOpenOnQuery'
@@ -15,10 +26,16 @@ type Tab = keyof typeof t.tabs
 
 /** Module A04. */
 export function DriversPage() {
-  const { drivers, driversStatus, driversError, reloadDrivers } = useFleetData()
+  const { drivers, driversStatus, driversError, reloadDrivers, removeDriver } =
+    useFleetData()
+  const { show } = useToast()
   // Opened directly by the dashboard quick action, which links to ?new=1.
   const [adding, setAdding] = useOpenOnQuery()
   const [editing, setEditing] = useState<Driver | null>(null)
+  /** Null while closed; the driver being removed when open. */
+  const [removing, setRemoving] = useState<Driver | null>(null)
+  const [removeError, setRemoveError] = useState<string | null>(null)
+  const [removingNow, setRemovingNow] = useState(false)
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
@@ -140,19 +157,50 @@ export function DriversPage() {
       width: COL.actions,
       align: 'right',
       render: (d) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={(event) => {
-            event.stopPropagation()
-            setEditing(d)
-          }}
-        >
-          {STRINGS.common.edit}
-        </Button>
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(event) => {
+              event.stopPropagation()
+              setEditing(d)
+            }}
+          >
+            {STRINGS.common.edit}
+          </Button>
+          {/* Ghost, and second. Removing somebody is rarer than correcting
+              their name, and the two sit a thumb's width apart in a row that
+              is clicked all day. */}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(event) => {
+              event.stopPropagation()
+              setRemoveError(null)
+              setRemoving(d)
+            }}
+          >
+            {t.remove}
+          </Button>
+        </div>
       ),
     },
   ]
+
+  async function handleRemove() {
+    if (!removing) return
+    setRemovingNow(true)
+    setRemoveError(null)
+    try {
+      await removeDriver(removing.id)
+      show(t.removedToast(removing.name))
+      setRemoving(null)
+    } catch (error) {
+      setRemoveError(error instanceof Error ? error.message : t.removeFailed)
+    } finally {
+      setRemovingNow(false)
+    }
+  }
 
   const countFor = (key: Tab) =>
     key === 'all' ? drivers.length : drivers.filter((d) => d.employment === key).length
@@ -210,6 +258,30 @@ export function DriversPage() {
             )
           } />
       </Panel>
+
+      {/*
+        What removal actually does, said before it happens.
+
+        Two things somebody deserves to know: their hours survive, because that
+        is the fleet's legal record and deleting it would leave an inspection
+        unanswerable; and their sign-in does not, which is what frees the email
+        to be used again. The second is the whole reason this button exists —
+        a roster row with an orphaned account behind it locks that address out
+        for good.
+      */}
+      <ConfirmDialog
+        open={removing !== null}
+        onClose={() => {
+          setRemoving(null)
+          setRemoveError(null)
+        }}
+        onConfirm={() => void handleRemove()}
+        title={t.removeTitle}
+        message={removeError ?? t.removeMessage(removing?.name ?? '')}
+        confirmLabel={t.remove}
+        tone="danger"
+        loading={removingNow}
+      />
 
       <AddDriverDialog
         open={adding || editing !== null}

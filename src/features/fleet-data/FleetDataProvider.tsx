@@ -180,6 +180,7 @@ type FleetDataValue = {
   removeRuleBook: (id: string) => Promise<void>
 
   addDriver: (input: NewDriver) => Promise<DriverAddResult>
+  removeDriver: (driverId: string) => Promise<void>
   saveDriver: (id: string, input: NewDriver) => Promise<void>
   addVehicle: (input: NewVehicle) => Promise<string>
   saveVehicle: (id: string, input: NewVehicle) => Promise<void>
@@ -901,6 +902,14 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
       await loadStaffFromDb()
     },
     [orgId, loadStaffFromDb],
+  )
+
+  const removeDriver = useCallback(
+    async (driverId: string) => {
+      await api.deleteDriver(driverId)
+      await loadDriversFromDb()
+    },
+    [loadDriversFromDb],
   )
 
   const inviteDriver = useCallback(
@@ -1971,6 +1980,7 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
       addVehicle,
       saveVehicle,
       inviteUser,
+      removeDriver,
       inviteDriver,
       addRoute,
       assignRoute,
@@ -2005,7 +2015,7 @@ export function FleetDataProvider({ children }: { children: ReactNode }) {
       routes, routeStops, forms, formFields, courses,
       safetyEvents, violations, editRequests, org, alertRules, audit,
       ruleBooks, addRuleBook, saveRuleBook, removeRuleBook, limits,
-      addDriver, saveDriver, addVehicle, saveVehicle, inviteUser, inviteDriver, addRoute, assignRoute, addForm, addCourse, setCourseContent, saveCourseDetails,
+      addDriver, saveDriver, removeDriver, addVehicle, saveVehicle, inviteUser, inviteDriver, addRoute, assignRoute, addForm, addCourse, setCourseContent, saveCourseDetails,
       resolveViolation, resolveEditRequest, setSafetyEventStatus, saveOrg, toggleAlertRule,
       addDepot, saveDepot, removeDepot, assignDriver, assignCourse, unassignCourse,
       setFormPublished, setCoursePublished,
