@@ -1,5 +1,5 @@
 /**
- * Creates a driver's app account and emails them the login password.
+ * Creates a driver's app account and emails them the login password over SMTP.
  *
  *   POST /functions/v1/invite-driver
  *   { "driverId": "<uuid>" }
@@ -65,7 +65,19 @@ function generatePassword(): string {
   return Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('')
 }
 
-function emailBody(name: string, orgName: string, email: string, password: string) {
+/**
+ * The email the driver gets.
+ *
+ * This is the intended one, and the default. It goes to their own address, so
+ * the office does not sit in the middle of a handover it has no reason to be
+ * in.
+ */
+function driverEmailBody(
+  name: string,
+  orgName: string,
+  driverEmail: string,
+  password: string,
+) {
   return {
     subject: `Your ${orgName} driver app login`,
     text: [
@@ -73,7 +85,7 @@ function emailBody(name: string, orgName: string, email: string, password: strin
       ``,
       `${orgName} has set up your driver app account.`,
       ``,
-      `Email:    ${email}`,
+      `Email:    ${driverEmail}`,
       `Password: ${password}`,
       ``,
       `This password does not expire. Keep using it to sign in until you change`,
@@ -87,35 +99,72 @@ function emailBody(name: string, orgName: string, email: string, password: strin
 }
 
 /**
- * Sends through Resend. Returns null on success, or a reason if it could not
- * send — the caller reports that rather than failing the whole request, because
- * the account has already been created by then.
+ * Sends over SMTP.
+ *
+ * ---------------------------------------------------------------------------
+ * Why a second way to send
+ * ---------------------------------------------------------------------------
+ * Resend refuses to deliver anywhere except its own signup address until a
+ * sending DOMAIN is verified, and verifying one needs DNS records on a domain
+ * the business actually controls. That is the right long-term answer and it
+ * was not available: the address in INVITE_EMAIL_FROM was on a domain with no
+ * DNS at all, so it could never have been verified.
+ *
+ * SMTP through a mailbox that already exists sidesteps the whole problem.
+ * Google owns gmail.com and has verified it, so a Gmail account can send to
+ * anybody from the moment it has an app password. No DNS, no waiting.
+ *
+ * The trade is worth knowing: mail sent this way comes FROM the gmail address,
+ * and a fleet office seeing "someone@gmail.com" on a system email reads it as
+ * less trustworthy than one from the company's own domain. Use it to get
+ * moving; verify the domain to finish.
+ *
+ * ---------------------------------------------------------------------------
+ * Gmail specifics
+ * ---------------------------------------------------------------------------
+ * An app password, not the account password — Google stopped accepting those
+ * in 2022, and two-step verification has to be on before one can be made.
+ *
+ * The From must be the authenticated account or one of its aliases. Gmail
+ * quietly rewrites anything else, so a mismatched INVITE_EMAIL_FROM would not
+ * error, it would just silently not be what you set.
  */
-async function sendEmail(
+async function sendOverSmtp(
   to: string,
   from: string,
   subject: string,
   text: string,
 ): Promise<string | null> {
-  const apiKey = Deno.env.get('RESEND_API_KEY')
-  if (!apiKey) return 'RESEND_API_KEY is not set on this project'
+  const host = Deno.env.get('SMTP_HOST')
+  const user = Deno.env.get('SMTP_USER')
+  const pass = Deno.env.get('SMTP_PASSWORD')
+  if (!host || !user || !pass) return 'SMTP is not configured on this project'
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+  /* 465 with implicit TLS. 587 needs a STARTTLS upgrade mid-conversation,
+     which is one more thing to go wrong for no gain here. */
+  const port = Number(Deno.env.get('SMTP_PORT') ?? '465')
+
+  const { SMTPClient } = await import('https://deno.land/x/denomailer@1.6.0/mod.ts')
+  const client = new SMTPClient({
+    connection: {
+      hostname: host,
+      port,
+      tls: port === 465,
+      auth: { username: user, password: pass },
     },
-    body: JSON.stringify({ from, to, subject, text }),
   })
 
-  if (response.ok) return null
-
-  const raw = (await response.text()).slice(0, 400)
-  if (raw.includes('verify a domain') || raw.includes('only send testing emails')) {
-    return 'Resend will only mail the address you signed up with until a sending domain is verified. Verify a domain at resend.com/domains, then set INVITE_EMAIL_FROM to an address on that domain.'
+  try {
+    await client.send({ from, to, subject, content: text })
+    return null
+  } catch (cause) {
+    const why = cause instanceof Error ? cause.message : String(cause)
+    return `the mail server refused the message sending from "${from}" to "${to}": ${why}`
+  } finally {
+    /* Always closed. A leaked connection outlives the invocation, and the
+       provider starts refusing new ones. */
+    await client.close().catch(() => {})
   }
-  return `the email provider answered ${response.status}: ${raw}`
 }
 
 Deno.serve(async (request) => {
@@ -228,9 +277,27 @@ Deno.serve(async (request) => {
     return json({ error: `The account could not be linked: ${linkError.message}` }, 500)
   }
 
-  const { subject, text } = emailBody(name, orgName, email, password)
-  const from = Deno.env.get('INVITE_EMAIL_FROM') ?? 'onboarding@resend.dev'
-  const emailProblem = await sendEmail(email, from, subject, text)
+  /*
+   * One transport and one recipient: SMTP, to the driver.
+   *
+   * There was a second path here — Resend, plus an INVITE_EMAIL_TO override
+   * that relayed the login to the office. Both existed for one reason: Resend
+   * will not deliver anywhere except its own signup address until a sending
+   * domain is verified, and the domain in question had no DNS at all.
+   *
+   * SMTP does not have that limitation, so neither the second transport nor
+   * the relay has a reason to exist. Keeping a fallback nobody chose would
+   * mean a failed send quietly going out from a different address.
+   */
+  const { subject, text } = driverEmailBody(name, orgName, email, password)
+
+  /*
+   * The From is the authenticated account unless told otherwise. Gmail
+   * rewrites a From it does not own, so defaulting to anything else would not
+   * error — it would just silently not be what was set.
+   */
+  const from = Deno.env.get('INVITE_EMAIL_FROM') ?? Deno.env.get('SMTP_USER') ?? ''
+  const emailProblem = await sendOverSmtp(email, from, subject, text)
 
   if (emailProblem) {
     /*
@@ -250,5 +317,5 @@ Deno.serve(async (request) => {
     })
   }
 
-  return json({ ok: true, emailed: true, email })
+  return json({ ok: true, emailed: true, email, sentTo: email })
 })
