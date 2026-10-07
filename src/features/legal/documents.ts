@@ -278,3 +278,96 @@ export const SUPPORT: LegalDocument = {
     },
   ],
 }
+
+
+/* ==========================================================================
+   Word Haul
+   ==========================================================================
+   A different product, hosted here only because this project already serves
+   public pages and has a domain. It shares nothing with the fleet console: a
+   separate document, its own route, and no link to or from the console — its
+   store listing is the only thing that points at it.
+
+   Kept in this file rather than its own because it is the same KIND of thing
+   and the file is a list of published documents, not a list of this product's
+   documents.
+   ========================================================================== */
+
+const WORD_HAUL_MAKER = 'Base2Brand'
+
+export const WORD_HAUL_PRIVACY: LegalDocument = {
+  title: 'Privacy policy for Word Haul',
+  updated: '7 October 2026',
+  intro:
+    `Word Haul (“the app”) is a word puzzle game made by ${WORD_HAUL_MAKER} (“we”, “us”). ` +
+    `This policy explains what the app does with information. The short version: the app does ` +
+    `not collect, share or sell your personal information.`,
+  sections: [
+    {
+      heading: '1. Information we collect',
+      body: [
+        'We do not collect any personal information. Word Haul has no accounts, no sign-in, and no forms. It does not ask for or use your name, email address, phone number, location, contacts, photos, camera, microphone, or advertising identifier.',
+      ],
+    },
+    {
+      heading: '2. Information stored on your device',
+      body: [
+        'To let you pick up where you left off, the app saves a few small pieces of information on your device only:',
+        '- your best score,',
+        '- how many levels you have completed for each role (Truck Dispatcher and Freight Broker), and',
+        '- whether you have already seen the introduction screens.',
+        'This information never leaves your device. We cannot see it. It is deleted when you uninstall the app or clear the app’s data.',
+      ],
+    },
+    {
+      heading: '3. Information we do not share',
+      body: [
+        'Because we do not collect any information, we have nothing to sell, rent, or share with anyone. The app does not send data to our servers or to anyone else.',
+      ],
+    },
+    {
+      heading: '4. Advertising, analytics and tracking',
+      body: [
+        'Word Haul contains no advertising, no analytics, no crash-reporting service, and no third-party tracking. We do not track you across other apps or websites.',
+      ],
+    },
+    {
+      heading: '5. Sound and vibration',
+      body: [
+        'The app plays short sound effects and may vibrate your device when you play. It uses your device’s speaker and vibration motor only. It does not use your microphone or camera.',
+      ],
+    },
+    {
+      heading: '6. Third-party code',
+      body: [
+        'The app is built with open-source libraries that run entirely on your device (for example, for local storage and sound playback). They do not send your information anywhere.',
+      ],
+    },
+    {
+      heading: '7. Children’s privacy',
+      body: [
+        'Word Haul does not collect personal information from anyone, including children. Because the app collects nothing, there is no information from children for us to use, share, or delete.',
+      ],
+    },
+    {
+      heading: '8. Security',
+      body: [
+        'Your game progress is kept in the app’s private storage on your device, which is protected by your device’s own security. No information is transmitted, so there is nothing to intercept.',
+      ],
+    },
+    {
+      heading: '9. Changes to this policy',
+      body: [
+        'If the app ever changes in a way that affects your privacy, for example by adding an online feature, we will update this policy and the effective date above before the change is released.',
+      ],
+    },
+    {
+      heading: '10. Contact us',
+      body: [
+        'If you have any questions about this policy, contact us at:',
+        WORD_HAUL_MAKER,
+        CONTACT_EMAIL,
+      ],
+    },
+  ],
+}

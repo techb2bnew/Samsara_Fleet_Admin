@@ -8,7 +8,7 @@ import {
   RequireAuth,
   ResetPasswordPage,
 } from '../features/auth'
-import { LegalPage, PRIVACY, SUPPORT, TERMS } from '../features/legal'
+import { LegalPage, PRIVACY, SUPPORT, TERMS, WORD_HAUL_PRIVACY } from '../features/legal'
 import { NotificationsPage } from '../features/notifications'
 import { DashboardPage } from '../features/dashboard'
 import { LiveMapPage } from '../features/live-map'
@@ -52,6 +52,16 @@ export function AppRoutes() {
       <Route path="/privacy" element={<LegalPage document={PRIVACY} />} />
       <Route path="/terms" element={<LegalPage document={TERMS} />} />
       <Route path="/support" element={<LegalPage document={SUPPORT} />} />
+
+      {/*
+        Word Haul's policy, hosted here and linked from nowhere in this app.
+        Its own path, because /privacy belongs to the fleet console and a
+        store listing points at exactly one URL.
+      */}
+      <Route
+        path="/privacy/word-haul"
+        element={<LegalPage document={WORD_HAUL_PRIVACY} related={false} />}
+      />
 
       <Route element={<RedirectIfSignedIn />}>
         <Route path="/login" element={<LoginPage />} />

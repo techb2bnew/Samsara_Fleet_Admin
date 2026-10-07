@@ -28,7 +28,22 @@ const t = STRINGS.legal
  * own layout — a rail, a header, a grid of cards — is furniture that has
  * nothing to do with reading one.
  */
-export function LegalPage({ document }: { document: LegalDocument }) {
+export function LegalPage({
+  document,
+  /*
+   * Whether to offer the console's other two documents at the foot.
+   *
+   * Off for anything that is not the console's. Word Haul's policy is hosted
+   * here because this project already has a domain and serves public pages,
+   * not because it belongs to the fleet product — and sending somebody from a
+   * game's privacy policy to a haulage system's terms would be a link that
+   * answers a question nobody asked.
+   */
+  related = true,
+}: {
+  document: LegalDocument
+  related?: boolean
+}) {
   return (
     <div className="min-h-dvh bg-ground">
       <header className="border-b border-line bg-surface">
@@ -72,17 +87,19 @@ export function LegalPage({ document }: { document: LegalDocument }) {
           </section>
         ))}
 
-        <nav className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-line pt-6 text-[13.5px]">
-          <Link to="/privacy" className="text-ink-3 hover:text-accent">
-            {t.privacy}
-          </Link>
-          <Link to="/terms" className="text-ink-3 hover:text-accent">
-            {t.terms}
-          </Link>
-          <Link to="/support" className="text-ink-3 hover:text-accent">
-            {t.support}
-          </Link>
-        </nav>
+        {related && (
+          <nav className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-line pt-6 text-[13.5px]">
+            <Link to="/privacy" className="text-ink-3 hover:text-accent">
+              {t.privacy}
+            </Link>
+            <Link to="/terms" className="text-ink-3 hover:text-accent">
+              {t.terms}
+            </Link>
+            <Link to="/support" className="text-ink-3 hover:text-accent">
+              {t.support}
+            </Link>
+          </nav>
+        )}
       </main>
     </div>
   )
