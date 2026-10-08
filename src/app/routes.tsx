@@ -8,7 +8,14 @@ import {
   RequireAuth,
   ResetPasswordPage,
 } from '../features/auth'
-import { LegalPage, PRIVACY, SUPPORT, TERMS, WORD_HAUL_PRIVACY } from '../features/legal'
+import {
+  DRIVEQUIZ_PRIVACY,
+  LegalPage,
+  PRIVACY,
+  SUPPORT,
+  TERMS,
+  WORD_HAUL_PRIVACY,
+} from '../features/legal'
 import { NotificationsPage } from '../features/notifications'
 import { DashboardPage } from '../features/dashboard'
 import { LiveMapPage } from '../features/live-map'
@@ -61,6 +68,10 @@ export function AppRoutes() {
       <Route
         path="/privacy/word-haul"
         element={<LegalPage document={WORD_HAUL_PRIVACY} ofConsole={false} />}
+      />
+      <Route
+        path="/privacy/drivequiz"
+        element={<LegalPage document={DRIVEQUIZ_PRIVACY} ofConsole={false} />}
       />
 
       <Route element={<RedirectIfSignedIn />}>

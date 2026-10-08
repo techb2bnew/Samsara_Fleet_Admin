@@ -293,13 +293,20 @@ export const SUPPORT: LegalDocument = {
    documents.
    ========================================================================== */
 
-const WORD_HAUL_MAKER = 'Base2Brand'
+/* Word Haul and DriveQuiz are published by the same company. Its name, address
+   and phone number are the ones on its own Google Business listing, so a reader
+   can check them. These are deliberately separate from the fleet document's
+   COMPANY/ADDRESS/PHONE above: those belong to the fleet product. */
+const APP_PUBLISHER = 'B2B Campus'
+const APP_PUBLISHER_ADDRESS =
+  'F-209, Phase 8B, Industrial Area, Sector 74, Sahibzada Ajit Singh Nagar, Punjab 140307, India'
+const APP_PUBLISHER_PHONE = '+91 98783 00209'
 
 export const WORD_HAUL_PRIVACY: LegalDocument = {
   title: 'Privacy policy for Word Haul',
   updated: '7 October 2026',
   intro:
-    `Word Haul (“the app”) is a word puzzle game made by ${WORD_HAUL_MAKER} (“we”, “us”). ` +
+    `Word Haul (“the app”) is a word puzzle game made by ${APP_PUBLISHER} (“we”, “us”). ` +
     `This policy explains what the app does with information. The short version: the app does ` +
     `not collect, share or sell your personal information.`,
   sections: [
@@ -365,8 +372,111 @@ export const WORD_HAUL_PRIVACY: LegalDocument = {
       heading: '10. Contact us',
       body: [
         'If you have any questions about this policy, contact us at:',
-        WORD_HAUL_MAKER,
-        CONTACT_EMAIL,
+        APP_PUBLISHER,
+        APP_PUBLISHER_ADDRESS,
+        `Email: ${CONTACT_EMAIL}`,
+        `Phone: ${APP_PUBLISHER_PHONE}`,
+      ],
+    },
+  ],
+}
+
+
+/* ==========================================================================
+   DriveQuiz
+   ==========================================================================
+   Another product served from here for the same reason as Word Haul: this
+   project already has a domain and public pages. Own route, no console
+   chrome, linked from nowhere.
+
+   Its contact block is the publisher's own and deliberately not the constants
+   above — a different legal entity and a different postcode from the fleet
+   console's, and quietly substituting one for the other would put the wrong
+   company's name on a published policy.
+   ========================================================================== */
+
+export const DRIVEQUIZ_PRIVACY: LegalDocument = {
+  title: 'Privacy policy for DriveQuiz',
+  updated: '8 October 2026',
+  intro:
+    `This policy explains how the DriveQuiz mobile app (the “App”) handles information. ` +
+    `The App is published by ${APP_PUBLISHER} (“we”, “us”, “our”). ` +
+    `In short: DriveQuiz does not collect, store on our servers, share or sell any of your ` +
+    `personal information.`,
+  sections: [
+    {
+      heading: '1. Information we collect',
+      body: [
+        'We do not collect any personal information from you. The App does not require you to create an account or sign in, and it never asks for your name, email address, phone number, location or any other personal details.',
+      ],
+    },
+    {
+      heading: '2. Information stored on your device',
+      body: [
+        'To work properly, the App saves a small amount of information only on your own device:',
+        '- whether you have already seen the introduction screens;',
+        '- which quiz questions you have completed;',
+        '- your scores, including your best score for each level; and',
+        '- whether you have used the hint for a level.',
+        'This information never leaves your device and we cannot see it. It is removed when you uninstall the App or clear its data from your device settings.',
+      ],
+    },
+    {
+      heading: '3. Device permissions',
+      body: [
+        'The App does not request access to your camera, microphone, contacts, photos, location or any other sensitive feature of your device.',
+      ],
+    },
+    {
+      heading: '4. Analytics, advertising and tracking',
+      body: [
+        'The App does not use analytics tools, advertising networks or tracking technologies. We do not track you across other apps or websites.',
+      ],
+    },
+    {
+      heading: '5. Sharing of information',
+      body: [
+        'Because we do not collect your information, we do not sell, rent, trade or share it with anyone.',
+      ],
+    },
+    {
+      heading: '6. Third-party services',
+      body: [
+        'The App does not include third-party services that collect data about you. If a future version adds such a service, we will update this policy before the change takes effect.',
+      ],
+    },
+    {
+      heading: '7. Sound',
+      body: [
+        'The App plays short sound effects for right and wrong answers. These sounds are built into the App and play on your device; nothing is recorded.',
+      ],
+    },
+    {
+      heading: '8. Children’s privacy',
+      body: [
+        'DriveQuiz is a learning tool for drivers and trainees and is not directed at children under 13. We do not knowingly collect information from anyone, including children.',
+      ],
+    },
+    {
+      heading: '9. Data security',
+      body: [
+        'Your App data stays on your device and is protected by your device’s own security features. The App does not transmit your data anywhere.',
+      ],
+    },
+    {
+      heading: '10. Changes to this policy',
+      body: [
+        'We may update this Privacy Policy from time to time. When we do, we will post the new version on this page and change the effective date above.',
+      ],
+    },
+    {
+      heading: '11. Contact us',
+      body: [
+        'If you have any questions about this Privacy Policy, please contact us:',
+        APP_PUBLISHER,
+        APP_PUBLISHER_ADDRESS,
+        `Email: ${CONTACT_EMAIL}`,
+        `Phone: ${APP_PUBLISHER_PHONE}`,
       ],
     },
   ],
