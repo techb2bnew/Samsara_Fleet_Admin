@@ -60,7 +60,7 @@ export function AppRoutes() {
       */}
       <Route
         path="/privacy/word-haul"
-        element={<LegalPage document={WORD_HAUL_PRIVACY} related={false} />}
+        element={<LegalPage document={WORD_HAUL_PRIVACY} ofConsole={false} />}
       />
 
       <Route element={<RedirectIfSignedIn />}>

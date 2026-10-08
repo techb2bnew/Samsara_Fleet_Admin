@@ -31,32 +31,39 @@ const t = STRINGS.legal
 export function LegalPage({
   document,
   /*
-   * Whether to offer the console's other two documents at the foot.
+   * Whether this document belongs to the fleet console.
    *
-   * Off for anything that is not the console's. Word Haul's policy is hosted
-   * here because this project already has a domain and serves public pages,
-   * not because it belongs to the fleet product — and sending somebody from a
-   * game's privacy policy to a haulage system's terms would be a link that
-   * answers a question nobody asked.
+   * Everything console-shaped on this page hangs off it: the truck mark, the
+   * way back into the app, and the links to the other two documents. Word
+   * Haul's policy is served from here because this project already has a
+   * domain and public pages, not because it is part of the fleet product — and
+   * a word game's privacy policy carrying a lorry logo, a "back to the
+   * console" link and a route to a haulage system's terms answers questions
+   * nobody reading it asked.
+   *
+   * With it off the page is only the document, which is all a store listing
+   * ever points at.
    */
-  related = true,
+  ofConsole = true,
 }: {
   document: LegalDocument
-  related?: boolean
+  ofConsole?: boolean
 }) {
   return (
     <div className="min-h-dvh bg-ground">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-[46rem] items-center justify-between gap-4 px-5 py-4">
-          <Logo />
-          {/* Back to the console, for the reader who arrived from inside it.
-              A plain link, because a signed-out reader lands on sign-in and
-              that is the right place for them. */}
-          <Link to="/" className="text-[13px] text-ink-3 hover:text-accent">
-            {t.backToConsole}
-          </Link>
-        </div>
-      </header>
+      {ofConsole && (
+        <header className="border-b border-line bg-surface">
+          <div className="mx-auto flex max-w-[46rem] items-center justify-between gap-4 px-5 py-4">
+            <Logo />
+            {/* Back to the console, for the reader who arrived from inside it.
+                A plain link, because a signed-out reader lands on sign-in and
+                that is the right place for them. */}
+            <Link to="/" className="text-[13px] text-ink-3 hover:text-accent">
+              {t.backToConsole}
+            </Link>
+          </div>
+        </header>
+      )}
 
       <main className="mx-auto max-w-[46rem] px-5 py-10">
         <h1 className="text-[26px] font-semibold tracking-tight text-ink">{document.title}</h1>
@@ -87,7 +94,7 @@ export function LegalPage({
           </section>
         ))}
 
-        {related && (
+        {ofConsole && (
           <nav className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-line pt-6 text-[13.5px]">
             <Link to="/privacy" className="text-ink-3 hover:text-accent">
               {t.privacy}
