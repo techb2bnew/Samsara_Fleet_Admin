@@ -12,12 +12,16 @@ type Errors = { email?: string; password?: string; form?: string }
 /**
  * The demo fleet account, typed into the form on load so that a store reviewer
  * or anyone being shown the console can sign in without being handed
- * credentials separately. Everyone who opens the login page holds these, so the
- * account must stay a demo — never a real customer's.
+ * credentials separately. Both come from the environment, which keeps them out
+ * of the repository — but a VITE_ variable is baked into the browser bundle, so
+ * everyone who opens the login page can still read them. The account must stay
+ * a demo, never a real customer's.
+ *
+ * Leave either one unset and that field simply starts empty.
  */
 const DEMO_SIGN_IN = {
-  email: 'admin@b2bsamsarafleet.com',
-  password: 'Admin@Fleet2026',
+  email: import.meta.env.VITE_DEMO_EMAIL?.trim() ?? '',
+  password: import.meta.env.VITE_DEMO_PASSWORD ?? '',
 }
 
 export function LoginPage() {
