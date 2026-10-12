@@ -9,11 +9,22 @@ const t = STRINGS.auth.login
 
 type Errors = { email?: string; password?: string; form?: string }
 
+/**
+ * The demo fleet account, typed into the form on load so that a store reviewer
+ * or anyone being shown the console can sign in without being handed
+ * credentials separately. Everyone who opens the login page holds these, so the
+ * account must stay a demo — never a real customer's.
+ */
+const DEMO_SIGN_IN = {
+  email: 'admin@b2bsamsarafleet.com',
+  password: 'Admin@Fleet2026',
+}
+
 export function LoginPage() {
   const { signIn } = useAuth()
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState(DEMO_SIGN_IN.email)
+  const [password, setPassword] = useState(DEMO_SIGN_IN.password)
   const [remember, setRemember] = useState(true)
   const [errors, setErrors] = useState<Errors>({})
   const [loading, setLoading] = useState(false)
