@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Logo } from '../../components/layout/Logo'
+import { StoreBadges } from '../../components/layout/StoreLinks'
 import { LightField } from '../../features/auth/components/LightField'
 import { RouteNetwork } from '../../features/auth/components/RouteNetwork'
 import { STRINGS } from '../../constants'
@@ -174,6 +175,25 @@ export function AuthLayout({
                 {footer}
               </div>
             )}
+
+            {/*
+              Under the card, not in the page footer. A driver who has found
+              the console is looking for the app, and three words between
+              Privacy and Terms is not where anybody finds it.
+            */}
+            <div
+              className={cn(
+                'mt-5 rounded-[12px] border border-brand-ink/12 bg-auth-card/55 px-5 py-4',
+                animated && 'animate-fade',
+              )}
+              style={animated ? { animationDelay: '0.62s' } : undefined}
+            >
+              <p className="text-[13px] font-semibold text-brand-ink">{foot.appTitle}</p>
+              <p className="mt-0.5 text-[12.5px] leading-snug text-brand-ink/60">{foot.appHint}</p>
+              <div className="mt-3.5">
+                <StoreBadges />
+              </div>
+            </div>
           </div>
         </div>
       </div>

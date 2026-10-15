@@ -1,3 +1,5 @@
+import { APP_STORE_URL, PLAY_STORE_URL } from '../../constants'
+
 /**
  * The legal and support documents, as structured content.
  *
@@ -234,6 +236,17 @@ export const SUPPORT: LegalDocument = {
         'Hours: Monday to Saturday, 8:00–20:00 IST',
         'Typical reply: the same working day',
         'Please include your fleet’s name and what you were doing when the problem happened. A screenshot usually saves a round trip.',
+      ],
+    },
+    {
+      /* First, because a driver who cannot find the app has not got as far as
+         any of the problems below it. */
+      heading: 'Getting the app',
+      body: [
+        `${APP_NAME} is free. Your fleet creates your account — you cannot sign up yourself.`,
+        `iPhone: ${APP_STORE_URL}`,
+        `Android: ${PLAY_STORE_URL}`,
+        'Your fleet office emails you a password once your account is made. Install the app first, then sign in with that email and password.',
       ],
     },
     {

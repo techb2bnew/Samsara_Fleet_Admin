@@ -1,4 +1,5 @@
 export { COLORS, TONES, TONE_SURFACE, TONE_SOLID, TONE_TEXT, resolveColor } from './colors'
 export type { ColorToken, Tone } from './colors'
+export { APP_STORE_URL, PLAY_STORE_URL } from './links'
 export { STRINGS } from './strings'
 export type { Strings } from './strings'

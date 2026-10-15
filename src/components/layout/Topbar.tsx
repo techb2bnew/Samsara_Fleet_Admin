@@ -1,5 +1,6 @@
 import { NotificationsBell } from '../../features/notifications'
 import { GlobalSearch } from './GlobalSearch'
+import { StoreIconLinks } from './StoreLinks'
 import { UserMenu } from './UserMenu'
 import { MenuIcon } from '../ui'
 import { STRINGS } from '../../constants'
@@ -29,6 +30,15 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
       <GlobalSearch />
 
       <div className="ml-auto flex items-center gap-1">
+        {/*
+          Where the driver app is. The office sends this link often enough that
+          hunting for it in Help is a trip; off on a phone, where the header has
+          no room to spare.
+        */}
+        <span className="hidden items-center gap-0.5 sm:flex">
+          <StoreIconLinks />
+        </span>
+        <div className="mx-1 hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
         <NotificationsBell />
         <div className="mx-1 hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
         <UserMenu />

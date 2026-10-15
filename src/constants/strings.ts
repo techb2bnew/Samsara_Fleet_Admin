@@ -163,6 +163,19 @@ export const STRINGS = {
   /** Pinned to the bottom of every signed-out screen. */
   authFooter: {
     copyright: (year: number) => `© ${year} B2B Campus`,
+    /*
+      The driver app, under the sign-in card.
+      A driver who goes looking for the product on the web lands here, and
+      this is the one screen where they cannot sign in — the console is the
+      office's. So the useful thing to show them is where the app is, as the
+      two badges they already recognise rather than as words in a footer.
+    */
+    appTitle: 'Driving for a fleet?',
+    appHint: 'The driver app is free. Your fleet office creates your account.',
+    playTop: 'Get it on',
+    playName: 'Google Play',
+    appleTop: 'Download on the',
+    appleName: 'App Store',
     privacy: 'Privacy',
     terms: 'Terms',
     support: 'Support',
@@ -170,6 +183,9 @@ export const STRINGS = {
 
   /** The signed-in shell: app/layouts/ConsoleLayout */
   console: {
+    /* Hover text on the two store marks in the header. */
+    getAppAndroid: 'Driver app on Google Play',
+    getAppIos: 'Driver app on the App Store',
     subtitle: 'Fleet console',
     signOut: 'Sign out',
     accountMenu: 'Account menu',
@@ -1632,6 +1648,10 @@ export const STRINGS = {
     replyLabel: 'Typical reply',
     reply: 'Same working day',
     emailCta: 'Write to support',
+    appTitle: 'Get the driver app',
+    appHint: 'Send these to a driver who has not installed it yet. The invitation email carries them too.',
+    appIos: 'iPhone — App Store',
+    appAndroid: 'Android — Google Play',
     legalTitle: 'Policies',
     legalHint: 'Public pages. The same links go on the app store listings.',
     guidesTitle: 'How the console works',

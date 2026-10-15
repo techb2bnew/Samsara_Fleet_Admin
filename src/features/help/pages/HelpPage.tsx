@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { STRINGS } from '../../../constants'
+import { APP_STORE_URL, PLAY_STORE_URL, STRINGS } from '../../../constants'
 import { PageShell, Panel } from '../../../components/layout/PageShell'
 import { ArrowRightIcon, Button } from '../../../components/ui'
 
@@ -49,6 +49,41 @@ export function HelpPage() {
               </li>
             ))}
           </ol>
+        </Panel>
+
+        {/*
+          The store links. An office user looking for them is almost always
+          about to send one to a driver who cannot install the app, so the
+          links are the whole panel — no screenshots, no instructions.
+        */}
+        <Panel title={t.appTitle} hint={t.appHint}>
+          <ul className="divide-y divide-line">
+            {[
+              { href: PLAY_STORE_URL, label: t.appAndroid },
+              { href: APP_STORE_URL, label: t.appIos },
+            ].map((store) => (
+              <li key={store.href}>
+                <a
+                  href={store.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-surface-2"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-[13.5px] font-medium text-ink group-hover:text-accent">
+                      {store.label}
+                    </span>
+                    {/* The URL itself, because this is a link somebody copies
+                        into a message rather than clicks. */}
+                    <span className="mt-0.5 block truncate text-[12px] text-ink-4">
+                      {store.href}
+                    </span>
+                  </span>
+                  <ArrowRightIcon size={15} className="shrink-0 text-ink-4 group-hover:text-accent" />
+                </a>
+              </li>
+            ))}
+          </ul>
         </Panel>
 
         {/*
